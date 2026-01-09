@@ -59,7 +59,7 @@ Search for markets across Polymarket and Kalshi using the same API:
 ```typescript
 import { PolymarketExchange, KalshiExchange } from 'pmxtjs';
 
-const query = process.argv[2] || 'Fed';
+const query = process.argv[2] || 'Who will Trump nominate as Fed Chair?';
 console.log(`Searching for "${query}"...\n`);
 
 // Polymarket
