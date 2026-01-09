@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-01-09
+
+### Breaking Changes
+- **CCXT Syntax Alignment**: Renamed core methods to follow `ccxt` conventions:
+  - `getMarkets` -> `fetchMarkets`
+  - `getOrderBook` -> `fetchOrderBook`
+  - `getTradeHistory` -> `fetchTrades`
+  - `getMarketHistory` -> `fetchOHLCV`
+- **Namespace Support**: Implemented `pmxt` default export to allow usage like `pmxt.polymarket`.
+
+### Improved
+- **Kalshi OHLCV**: Enhanced price mapping and added mid-price fallback for historical data.
+- **Examples**: Updated `historical_prices.ts` to use new method names and improved logic.
+
+### Fixed
+- **Type Definitions**: Updated internal interfaces to match the new naming scheme.
+- **Documentation**: Updated test headers and file references.
+
 ## [0.2.1] - 2026-01-09
 
 ### Fixed
