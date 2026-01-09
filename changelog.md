@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-01-09
+
+### Fixed
+- **Test Suite**: Added missing `ts-jest` dependency to ensure tests run correctly.
+- **Search Robustness**: Fixed a potential crash in `searchMarkets` for both Kalshi and Polymarket when handling markets with missing descriptions or titles.
+- **Data Validation**: Added better error handling for JSON parsing in Polymarket outcomes.
+
 ## [0.2.0] - 2026-01-09
 
 ### Breaking Changes

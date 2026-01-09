@@ -62,7 +62,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                         outcomeLabels = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : (market.outcomes || []);
                         outcomePrices = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : (market.outcomePrices || []);
                     } catch (e) {
-
+                        console.warn(`Error parsing outcomes for market ${market.id}:`, e);
                     }
 
                     // Extract CLOB token IDs for granular operations
@@ -166,8 +166,8 @@ export class PolymarketExchange extends PredictionMarketExchange {
             // Client-side text filtering
             const lowerQuery = query.toLowerCase();
             const filtered = markets.filter(market =>
-                market.title.toLowerCase().includes(lowerQuery) ||
-                market.description.toLowerCase().includes(lowerQuery)
+                (market.title || '').toLowerCase().includes(lowerQuery) ||
+                (market.description || '').toLowerCase().includes(lowerQuery)
             );
 
             // Apply limit to filtered results
@@ -215,7 +215,9 @@ export class PolymarketExchange extends PredictionMarketExchange {
                         outcomeLabels = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : (market.outcomes || []);
                         outcomePrices = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : (market.outcomePrices || []);
                         clobTokenIds = typeof market.clobTokenIds === 'string' ? JSON.parse(market.clobTokenIds) : (market.clobTokenIds || []);
-                    } catch (e) { /* ignore */ }
+                    } catch (e) {
+                        console.warn(`Error parsing outcomes for market ${market.id}:`, e);
+                    }
 
                     let candidateName = market.groupItemTitle;
                     if (!candidateName && market.question) candidateName = market.question;

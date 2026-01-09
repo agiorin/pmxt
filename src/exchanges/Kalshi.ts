@@ -166,8 +166,8 @@ export class KalshiExchange extends PredictionMarketExchange {
             const markets = await this.fetchMarkets({ ...params, limit: fetchLimit });
             const lowerQuery = query.toLowerCase();
             const filtered = markets.filter(market =>
-                market.title.toLowerCase().includes(lowerQuery) ||
-                market.description.toLowerCase().includes(lowerQuery)
+                (market.title || '').toLowerCase().includes(lowerQuery) ||
+                (market.description || '').toLowerCase().includes(lowerQuery)
             );
             const limit = params?.limit || 20;
             return filtered.slice(0, limit);
