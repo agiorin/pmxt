@@ -7,13 +7,11 @@ This project implements a **Unified Interface** for interacting with multiple pr
 All components are available directly from the `pmxt` library.
 
 ```typescript
-import { 
-  PolymarketExchange, 
-  KalshiExchange
-} from './pmxt';
+import pmxt from 'pmxtjs';
 
-const polymarket = new PolymarketExchange();
-const kalshi = new KalshiExchange();
+// ccxt-style instantiation
+const polymarket = new pmxt.polymarket();
+const kalshi = new pmxt.kalshi();
 ```
 
 ## 1. Unified Interface (`PredictionMarketExchange`)
@@ -36,7 +34,7 @@ Search markets by title/description across the exchange(s).
 
 Methods available on specific exchange instances (`KalshiExchange`, `PolymarketExchange`) for detailed data.
 
-### `getMarketHistory(id, params)`
+### `fetchOHLCV(id, params)`
 Fetches OHLCV candlesticks.
 - **Input**: `id`, `resolution` (1m, 1h, 1d), `start`, `end`.
 - **Output**: `Promise<PriceCandle[]>`
@@ -44,18 +42,18 @@ Fetches OHLCV candlesticks.
   - **Kalshi**: Uses the Market Ticker (e.g., `FED-25DEC`). Returns **native OHLCV** (Open/High/Low/Close data is distinct).
   - **Polymarket**: Uses the **CLOB Token ID** found in `outcome.metadata.clobTokenId`. Returns **synthetic candles** (Open=High=Low=Close) derived from raw price points.
 
-### `getOrderBook(id)`
+### `fetchOrderBook(id)`
 Fetches live Bids/Asks.
 - **Input**: `id` (Ticker for Kalshi, Token ID for Polymarket).
 - **Output**: `Promise<OrderBook>` (Normalized: "No" bids becomes "Yes" asks).
 
-### `getTradeHistory(id, params)`
+### `fetchTrades(id, params)`
 Fetches the "Tape" (raw transaction history).
 - **Input**: `id`, `limit`.
 - **Output**: `Promise<Trade[]>`
 - **Note**: 
   - **Kalshi**: Publicly accessible for all tickers.
-  - **Polymarket**: Requires L2 Authentication (API Key). Without a key, this method will throw an unauthorized error. Use `getMarketHistory` for public historical data.
+  - **Polymarket**: Requires L2 Authentication (API Key). Without a key, this method will throw an unauthorized error. Use `fetchOHLCV` for public historical data.
 
 ---
 

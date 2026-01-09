@@ -231,7 +231,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         return mapping[interval];
     }
 
-    async getMarketHistory(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
         try {
             // Kalshi API expects uppercase tickers
             // Handle virtual "-NO" suffix by stripping it (fetching the underlying market history)
@@ -292,7 +292,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         }
     }
 
-    async getOrderBook(id: string): Promise<OrderBook> {
+    async fetchOrderBook(id: string): Promise<OrderBook> {
         try {
             const ticker = id.replace(/-NO$/, '');
             const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${ticker}/orderbook`;
@@ -321,7 +321,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         }
     }
 
-    async getTradeHistory(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
         try {
             const ticker = id.replace(/-NO$/, '');
             const url = `https://api.elections.kalshi.com/trade-api/v2/markets/trades`;

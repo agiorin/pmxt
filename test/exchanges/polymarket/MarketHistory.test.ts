@@ -12,7 +12,7 @@ import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('PolymarketExchange - getMarketHistory', () => {
+describe('PolymarketExchange - fetchOHLCV', () => {
     let exchange: PolymarketExchange;
 
     beforeEach(() => {
@@ -31,7 +31,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('token123456789', { resolution: '1h' });
 
         expect(history.length).toBe(3);
         expect(history[0].close).toBe(0.52);
@@ -46,7 +46,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('token123456789', { resolution: '1h' });
 
         expect(history[0].timestamp).toBeGreaterThan(1704067200);
         expect(history[0].timestamp).toBeLessThanOrEqual(1704067200 * 1000 + 3600000);
@@ -61,7 +61,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('token123456789', { resolution: '1h' });
 
         // Should snap to 00:00:00
         const expectedSnap = Math.floor(1704067221 / 3600) * 3600 * 1000;
@@ -78,7 +78,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             data: { history: mockHistory }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', {
+        const history = await exchange.fetchOHLCV('token123456789', {
             resolution: '1h',
             limit: 20
         });
@@ -91,7 +91,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             data: { history: [] }
         });
 
-        await exchange.getMarketHistory('token123456789', { resolution: '1m' });
+        await exchange.fetchOHLCV('token123456789', { resolution: '1m' });
         expect(mockedAxios.get).toHaveBeenCalledWith(
             expect.any(String),
             expect.objectContaining({
@@ -102,7 +102,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
         jest.clearAllMocks();
         mockedAxios.get.mockResolvedValue({ data: { history: [] } });
 
-        await exchange.getMarketHistory('token123456789', { resolution: '1d' });
+        await exchange.fetchOHLCV('token123456789', { resolution: '1d' });
         expect(mockedAxios.get).toHaveBeenCalledWith(
             expect.any(String),
             expect.objectContaining({
@@ -119,7 +119,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
         const start = new Date('2025-01-01T00:00:00Z');
         const end = new Date('2025-01-02T00:00:00Z');
 
-        await exchange.getMarketHistory('token123456789', {
+        await exchange.fetchOHLCV('token123456789', {
             resolution: '1h',
             start,
             end
@@ -141,7 +141,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             data: { history: [] }
         });
 
-        await exchange.getMarketHistory('token123456789', {
+        await exchange.fetchOHLCV('token123456789', {
             resolution: '1h',
             limit: 24
         });
@@ -162,7 +162,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             data: { history: [] }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('token123456789', { resolution: '1h' });
 
         expect(history).toEqual([]);
     });
@@ -174,7 +174,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('token123456789', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('token123456789', { resolution: '1h' });
 
         expect(history[0].open).toBe(0.52);
         expect(history[0].high).toBe(0.52);
@@ -183,7 +183,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
     });
 
     it('should throw error for invalid token ID format', async () => {
-        await expect(exchange.getMarketHistory('123', { resolution: '1h' }))
+        await expect(exchange.fetchOHLCV('123', { resolution: '1h' }))
             .rejects
             .toThrow(/Invalid ID/i);
     });
@@ -200,7 +200,7 @@ describe('PolymarketExchange - getMarketHistory', () => {
         // @ts-expect-error - Mock type mismatch is expected in tests
         mockedAxios.isAxiosError = jest.fn().mockReturnValue(true);
 
-        await expect(exchange.getMarketHistory('token123456789', { resolution: '1h' }))
+        await expect(exchange.fetchOHLCV('token123456789', { resolution: '1h' }))
             .rejects
             .toThrow(/History API Error/i);
     });

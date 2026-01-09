@@ -12,7 +12,7 @@ import { KalshiExchange } from '../../../src/exchanges/Kalshi';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('KalshiExchange - getMarketHistory', () => {
+describe('KalshiExchange - fetchOHLCV', () => {
     let exchange: KalshiExchange;
 
     beforeEach(() => {
@@ -38,7 +38,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('FED-25JAN-B4.75', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('FED-25JAN-B4.75', { resolution: '1h' });
 
         expect(history.length).toBe(2);
         expect(history[0].open).toBe(52);  // 5200 / 100 = 52
@@ -59,7 +59,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('TEST-MARKET-B5', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('TEST-MARKET-B5', { resolution: '1h' });
 
         expect(history[0].timestamp).toBe(1704067200 * 1000);
     });
@@ -75,7 +75,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             data: { candlesticks: mockCandles }
         });
 
-        const history = await exchange.getMarketHistory('TEST-MARKET-B5', {
+        const history = await exchange.fetchOHLCV('TEST-MARKET-B5', {
             resolution: '1h',
             limit: 20
         });
@@ -94,7 +94,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             }
         });
 
-        await exchange.getMarketHistory('TEST-MARKET-B5', { resolution: '1m' });
+        await exchange.fetchOHLCV('TEST-MARKET-B5', { resolution: '1m' });
         expect(mockedAxios.get).toHaveBeenCalledWith(
             expect.any(String),
             expect.objectContaining({
@@ -107,7 +107,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             data: { candlesticks: [] }
         });
 
-        await exchange.getMarketHistory('TEST-MARKET-B5', { resolution: '1d' });
+        await exchange.fetchOHLCV('TEST-MARKET-B5', { resolution: '1d' });
         expect(mockedAxios.get).toHaveBeenCalledWith(
             expect.any(String),
             expect.objectContaining({
@@ -124,7 +124,7 @@ describe('KalshiExchange - getMarketHistory', () => {
         const start = new Date('2025-01-01T00:00:00Z');
         const end = new Date('2025-01-02T00:00:00Z');
 
-        await exchange.getMarketHistory('TEST-MARKET-B5', {
+        await exchange.fetchOHLCV('TEST-MARKET-B5', {
             resolution: '1h',
             start,
             end
@@ -146,7 +146,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             data: { candlesticks: [] }
         });
 
-        const history = await exchange.getMarketHistory('TEST-MARKET-B5', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('TEST-MARKET-B5', { resolution: '1h' });
 
         expect(history).toEqual([]);
     });
@@ -162,7 +162,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             }
         });
 
-        const history = await exchange.getMarketHistory('TEST-MARKET-B5', { resolution: '1h' });
+        const history = await exchange.fetchOHLCV('TEST-MARKET-B5', { resolution: '1h' });
 
         expect(history[0].open).toBe(0);
         expect(history[0].high).toBe(0);
@@ -175,7 +175,7 @@ describe('KalshiExchange - getMarketHistory', () => {
             data: { candlesticks: [] }
         });
 
-        await exchange.getMarketHistory('FED-25JAN-B4.75', { resolution: '1h' });
+        await exchange.fetchOHLCV('FED-25JAN-B4.75', { resolution: '1h' });
 
         expect(mockedAxios.get).toHaveBeenCalledWith(
             expect.stringContaining('/series/FED-25JAN/markets/FED-25JAN-B4.75/'),

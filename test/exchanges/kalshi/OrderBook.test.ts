@@ -12,7 +12,7 @@ import { KalshiExchange } from '../../../src/exchanges/Kalshi';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('KalshiExchange - getOrderBook', () => {
+describe('KalshiExchange - fetchOrderBook', () => {
     let exchange: KalshiExchange;
 
     beforeEach(() => {
@@ -38,7 +38,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('FED-25JAN-B4.75');
+        const orderbook = await exchange.fetchOrderBook('FED-25JAN-B4.75');
 
         expect(orderbook.bids).toBeDefined();
         expect(orderbook.asks).toBeDefined();
@@ -56,7 +56,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.bids[0].price).toBe(52);  // 5200 / 100 = 52
         expect(orderbook.asks[0].price).toBe(-47);  // (100 - 4800) / 100 = -47
@@ -76,7 +76,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.bids[0].price).toBeGreaterThanOrEqual(orderbook.bids[1].price);
         expect(orderbook.bids[1].price).toBeGreaterThanOrEqual(orderbook.bids[2].price);
@@ -96,7 +96,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.asks[0].price).toBeLessThanOrEqual(orderbook.asks[1].price);
         expect(orderbook.asks[1].price).toBeLessThanOrEqual(orderbook.asks[2].price);
@@ -112,7 +112,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.bids).toEqual([]);
         expect(orderbook.asks).toEqual([]);
@@ -128,7 +128,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.timestamp).toBeDefined();
         expect(typeof orderbook.timestamp).toBe('number');
@@ -141,7 +141,7 @@ describe('KalshiExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('TEST-MARKET');
+        const orderbook = await exchange.fetchOrderBook('TEST-MARKET');
 
         expect(orderbook.bids).toEqual([]);
         expect(orderbook.asks).toEqual([]);

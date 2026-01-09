@@ -291,7 +291,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
      * Fetch historical price data (OHLCV candles) for a specific token.
      * @param id - The CLOB token ID (e.g., outcome token ID)
      */
-    async getMarketHistory(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
         // ID Validation: Polymarket CLOB requires a Token ID (long numeric string) not a Market ID
         if (id.length < 10 && /^\d+$/.test(id)) {
             throw new Error(`Invalid ID for Polymarket history: "${id}". You provided a Market ID, but Polymarket's CLOB API requires a Token ID. Ensure you are using 'outcome.id'.`);
@@ -368,7 +368,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
      * Fetch the current order book for a specific token.
      * @param id - The CLOB token ID
      */
-    async getOrderBook(id: string): Promise<OrderBook> {
+    async fetchOrderBook(id: string): Promise<OrderBook> {
         try {
             const response = await axios.get(`${this.clobUrl}/book`, {
                 params: { token_id: id }
@@ -405,9 +405,9 @@ export class PolymarketExchange extends PredictionMarketExchange {
      * 
      * NOTE: Polymarket's /trades endpoint currently requires L2 Authentication (API Key).
      * This method will return an empty array if an API key is not provided in headers.
-     * Use getMarketHistory for public historical price data instead.
+     * Use fetchOHLCV for public historical price data instead.
      */
-    async getTradeHistory(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
         // ID Validation
         if (id.length < 10 && /^\d+$/.test(id)) {
             throw new Error(`Invalid ID for Polymarket trades: "${id}". You provided a Market ID, but Polymarket's CLOB API requires a Token ID.`);

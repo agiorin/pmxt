@@ -35,23 +35,23 @@ export abstract class PredictionMarketExchange {
      * Fetch historical price data for a specific market outcome.
      * @param id - The Outcome ID (MarketOutcome.id). This should be the ID of the specific tradeable asset.
      */
-    async getMarketHistory(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
-        throw new Error("Method getMarketHistory not implemented.");
+    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+        throw new Error("Method fetchOHLCV not implemented.");
     }
 
     /**
      * Fetch the current order book (bids/asks) for a specific outcome.
      * Essential for calculating localized spread and depth.
      */
-    async getOrderBook(id: string): Promise<OrderBook> {
-        throw new Error("Method getOrderBook not implemented.");
+    async fetchOrderBook(id: string): Promise<OrderBook> {
+        throw new Error("Method fetchOrderBook not implemented.");
     }
 
     /**
      * Fetch raw trade history.
      * Useful for generating synthetic OHLCV candles if the exchange doesn't provide them natively.
      */
-    async getTradeHistory(id: string, params: HistoryFilterParams): Promise<Trade[]> {
-        throw new Error("Method getTradeHistory not implemented.");
+    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+        throw new Error("Method fetchTrades not implemented.");
     }
 }

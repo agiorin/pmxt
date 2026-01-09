@@ -1,14 +1,13 @@
-import { PolymarketExchange } from '../src/exchanges/Polymarket';
-import { KalshiExchange } from '../src/exchanges/Kalshi';
+import pmxt from '../src';
 
 const main = async () => {
     // Polymarket - Get order book
-    const polymarket = new PolymarketExchange();
+    const polymarket = new pmxt.polymarket();
     const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
     const tokenId = polyMarkets[0].outcomes[0].metadata?.clobTokenId;
 
     console.log('--- Polymarket Order Book ---');
-    const polyBook = await polymarket.getOrderBook(tokenId);
+    const polyBook = await polymarket.fetchOrderBook(tokenId);
     console.log('Asks:');
     polyBook.asks.slice(0, 3).forEach((ask, i) => {
         console.log(`  ${i + 1}. Price: $${ask.price.toFixed(2)} | Size: ${ask.size.toLocaleString()}`);
@@ -19,7 +18,7 @@ const main = async () => {
     });
 
     // Kalshi - Get order book
-    const kalshi = new KalshiExchange();
+    const kalshi = new pmxt.kalshi();
     const kalshiMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
     const warshMarket = kalshiMarkets.find(m => m.outcomes[0].label.includes('Kevin Warsh'));
 
@@ -30,7 +29,7 @@ const main = async () => {
     }
 
     console.log('\n--- Kalshi Order Book ---');
-    const kalshiBook = await kalshi.getOrderBook(warshMarket.id);
+    const kalshiBook = await kalshi.fetchOrderBook(warshMarket.id);
     console.log('Asks:');
     kalshiBook.asks.slice(0, 3).forEach((ask, i) => {
         console.log(`  ${i + 1}. Price: $${ask.price.toFixed(2)} | Size: ${ask.size.toLocaleString()}`);

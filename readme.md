@@ -57,13 +57,13 @@ Different prediction market platforms have different APIs, data formats, and con
 Search for markets across Polymarket and Kalshi using the same API:
 
 ```typescript
-import { PolymarketExchange, KalshiExchange } from 'pmxtjs';
+import pmxt from 'pmxtjs';
 
 const query = process.argv[2] || 'Who will Trump nominate as Fed Chair?';
 console.log(`Searching for "${query}"...\n`);
 
 // Polymarket
-const polymarket = new PolymarketExchange();
+const polymarket = new pmxt.polymarket();
 const polyResults = await polymarket.searchMarkets(query, { sort: 'volume' });
 
 console.log(`--- Polymarket Found ${polyResults.length} ---`);
@@ -73,7 +73,7 @@ polyResults.slice(0, 10).forEach(m => {
 });
 
 // Kalshi
-const kalshi = new KalshiExchange();
+const kalshi = new pmxt.kalshi();
 const kalshiResults = await kalshi.searchMarkets(query);
 
 console.log(`\n--- Kalshi Found ${kalshiResults.length} ---`);

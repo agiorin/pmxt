@@ -12,7 +12,7 @@ import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('PolymarketExchange - getOrderBook', () => {
+describe('PolymarketExchange - fetchOrderBook', () => {
     let exchange: PolymarketExchange;
 
     beforeEach(() => {
@@ -37,7 +37,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.bids).toBeDefined();
         expect(orderbook.asks).toBeDefined();
@@ -53,7 +53,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(typeof orderbook.bids[0].price).toBe('number');
         expect(typeof orderbook.bids[0].size).toBe('number');
@@ -73,7 +73,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.bids[0].price).toBeGreaterThanOrEqual(orderbook.bids[1].price);
         expect(orderbook.bids[1].price).toBeGreaterThanOrEqual(orderbook.bids[2].price);
@@ -91,7 +91,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.asks[0].price).toBeLessThanOrEqual(orderbook.asks[1].price);
         expect(orderbook.asks[1].price).toBeLessThanOrEqual(orderbook.asks[2].price);
@@ -105,7 +105,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.bids).toEqual([]);
         expect(orderbook.asks).toEqual([]);
@@ -121,7 +121,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             }
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.timestamp).toBeDefined();
         expect(typeof orderbook.timestamp).toBe('number');
@@ -136,7 +136,7 @@ describe('PolymarketExchange - getOrderBook', () => {
         });
 
         const before = Date.now();
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
         const after = Date.now();
 
         expect(orderbook.timestamp).toBeGreaterThanOrEqual(before);
@@ -148,7 +148,7 @@ describe('PolymarketExchange - getOrderBook', () => {
             data: {}
         });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook.bids).toEqual([]);
         expect(orderbook.asks).toEqual([]);
@@ -158,7 +158,7 @@ describe('PolymarketExchange - getOrderBook', () => {
         mockedAxios.get.mockRejectedValue(new Error('API Error'));
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-        const orderbook = await exchange.getOrderBook('token123456789');
+        const orderbook = await exchange.fetchOrderBook('token123456789');
 
         expect(orderbook).toEqual({ bids: [], asks: [] });
         expect(consoleSpy).toHaveBeenCalled();

@@ -1,5 +1,4 @@
-import { PolymarketExchange } from '../src/exchanges/Polymarket';
-import { KalshiExchange } from '../src/exchanges/Kalshi';
+import pmxt from '../src';
 
 const main = async () => {
     const polySlug = process.argv[2] || 'who-will-trump-nominate-as-fed-chair';
@@ -8,7 +7,7 @@ const main = async () => {
     console.log(`Fetching prices for: ${polySlug} / ${kalshiTicker}\n`);
 
     // Polymarket
-    const polymarket = new PolymarketExchange();
+    const polymarket = new pmxt.polymarket();
     const polyMarkets = await polymarket.getMarketsBySlug(polySlug);
 
     console.log('--- Polymarket ---');
@@ -21,7 +20,7 @@ const main = async () => {
         });
 
     // Kalshi
-    const kalshi = new KalshiExchange();
+    const kalshi = new pmxt.kalshi();
     const kalshiMarkets = await kalshi.getMarketsBySlug(kalshiTicker);
 
     console.log('\n--- Kalshi ---');

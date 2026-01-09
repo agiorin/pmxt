@@ -85,13 +85,13 @@ describe('KalshiExchange - API Error Handling', () => {
         expect(Array.isArray(markets)).toBe(true);
     });
 
-    it('should handle invalid ticker format in getMarketHistory', async () => {
-        await expect(exchange.getMarketHistory('INVALID', { resolution: '1h' }))
+    it('should handle invalid ticker format in fetchOHLCV', async () => {
+        await expect(exchange.fetchOHLCV('INVALID', { resolution: '1h' }))
             .rejects
             .toThrow(/Invalid Kalshi Ticker format/i);
     });
 
-    it('should handle API errors in getMarketHistory', async () => {
+    it('should handle API errors in fetchOHLCV', async () => {
         const error = {
             response: {
                 status: 400,
@@ -103,7 +103,7 @@ describe('KalshiExchange - API Error Handling', () => {
         // @ts-expect-error - Mock type mismatch is expected in tests
         mockedAxios.isAxiosError = jest.fn().mockReturnValue(true);
 
-        await expect(exchange.getMarketHistory('FED-25JAN-B4.75', { resolution: '1h' }))
+        await expect(exchange.fetchOHLCV('FED-25JAN-B4.75', { resolution: '1h' }))
             .rejects
             .toThrow(/History API Error/i);
     });
@@ -112,7 +112,7 @@ describe('KalshiExchange - API Error Handling', () => {
         mockedAxios.get.mockRejectedValue(new Error('API Error'));
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-        const orderbook = await exchange.getOrderBook('TEST-TICKER');
+        const orderbook = await exchange.fetchOrderBook('TEST-TICKER');
 
         expect(orderbook).toEqual({ bids: [], asks: [] });
         expect(consoleSpy).toHaveBeenCalled();
@@ -123,7 +123,7 @@ describe('KalshiExchange - API Error Handling', () => {
         mockedAxios.get.mockRejectedValue(new Error('API Error'));
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-        const trades = await exchange.getTradeHistory('TEST-TICKER', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('TEST-TICKER', { resolution: '1h' });
 
         expect(trades).toEqual([]);
         expect(consoleSpy).toHaveBeenCalled();

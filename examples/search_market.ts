@@ -1,12 +1,11 @@
-import { PolymarketExchange } from '../src/exchanges/Polymarket';
-import { KalshiExchange } from '../src/exchanges/Kalshi';
+import pmxt from '../src';
 
 const main = async () => {
     const query = process.argv[2] || 'Fed';
     console.log(`Searching for "${query}"...\n`);
 
     // Polymarket
-    const polymarket = new PolymarketExchange();
+    const polymarket = new pmxt.polymarket();
     const polyResults = await polymarket.searchMarkets(query, { sort: 'volume' });
 
     console.log(`--- Polymarket Found ${polyResults.length} ---`);
@@ -16,7 +15,7 @@ const main = async () => {
     });
 
     // Kalshi
-    const kalshi = new KalshiExchange();
+    const kalshi = new pmxt.kalshi();
     const kalshiResults = await kalshi.searchMarkets(query);
 
     console.log(`\n--- Kalshi Found ${kalshiResults.length} ---`);

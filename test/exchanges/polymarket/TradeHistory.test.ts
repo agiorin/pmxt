@@ -12,7 +12,7 @@ import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('PolymarketExchange - getTradeHistory', () => {
+describe('PolymarketExchange - fetchTrades', () => {
     let exchange: PolymarketExchange;
 
     beforeEach(() => {
@@ -40,7 +40,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             ]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades.length).toBe(2);
         expect(trades[0].id).toBe('trade-1');
@@ -60,7 +60,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             }]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades[0].timestamp).toBe(1704067200 * 1000);
     });
@@ -73,7 +73,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             ]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades[0].side).toBe('buy');
         expect(trades[1].side).toBe('sell');
@@ -90,7 +90,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             }]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades[0].side).toBe('unknown');
     });
@@ -106,7 +106,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             }]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades[0].id).toBe('1704067200-0.50');
     });
@@ -122,7 +122,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
             }]
         });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades[0].amount).toBe(200);
     });
@@ -138,7 +138,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
 
         mockedAxios.get.mockResolvedValue({ data: mockTrades });
 
-        const trades = await exchange.getTradeHistory('token123456789', {
+        const trades = await exchange.fetchTrades('token123456789', {
             resolution: '1h',
             limit: 20
         });
@@ -150,7 +150,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
         mockedAxios.get.mockResolvedValue({ data: [] });
 
         const start = new Date('2025-01-01T00:00:00Z');
-        await exchange.getTradeHistory('token123456789', {
+        await exchange.fetchTrades('token123456789', {
             resolution: '1h',
             start
         });
@@ -169,7 +169,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
         mockedAxios.get.mockResolvedValue({ data: [] });
 
         const end = new Date('2025-01-31T00:00:00Z');
-        await exchange.getTradeHistory('token123456789', {
+        await exchange.fetchTrades('token123456789', {
             resolution: '1h',
             end
         });
@@ -187,13 +187,13 @@ describe('PolymarketExchange - getTradeHistory', () => {
     it('should handle empty trades array', async () => {
         mockedAxios.get.mockResolvedValue({ data: [] });
 
-        const trades = await exchange.getTradeHistory('token123456789', { resolution: '1h' });
+        const trades = await exchange.fetchTrades('token123456789', { resolution: '1h' });
 
         expect(trades).toEqual([]);
     });
 
     it('should throw error for invalid token ID format', async () => {
-        await expect(exchange.getTradeHistory('123', { resolution: '1h' }))
+        await expect(exchange.fetchTrades('123', { resolution: '1h' }))
             .rejects
             .toThrow(/Invalid ID/i);
     });
@@ -210,7 +210,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
         // @ts-expect-error - Mock type mismatch is expected in tests
         mockedAxios.isAxiosError = jest.fn().mockReturnValue(true);
 
-        await expect(exchange.getTradeHistory('token123456789', { resolution: '1h' }))
+        await expect(exchange.fetchTrades('token123456789', { resolution: '1h' }))
             .rejects
             .toThrow(/Trades API Error/i);
     });
@@ -219,7 +219,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
         mockedAxios.get.mockRejectedValue(new Error('Network failure'));
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-        await expect(exchange.getTradeHistory('token123456789', { resolution: '1h' }))
+        await expect(exchange.fetchTrades('token123456789', { resolution: '1h' }))
             .rejects
             .toThrow('Network failure');
 
@@ -236,7 +236,7 @@ describe('PolymarketExchange - getTradeHistory', () => {
 
         mockedAxios.get.mockResolvedValue({ data: mockTrades });
 
-        const trades = await exchange.getTradeHistory('token123456789', {
+        const trades = await exchange.fetchTrades('token123456789', {
             resolution: '1h',
             limit: 2
         });

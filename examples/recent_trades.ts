@@ -1,9 +1,8 @@
-import { KalshiExchange } from '../src/exchanges/Kalshi';
-import { PolymarketExchange } from '../src/exchanges/Polymarket';
+import pmxt from '../src';
 
 async function run() {
-    const kalshi = new KalshiExchange();
-    const poly = new PolymarketExchange();
+    const kalshi = new pmxt.kalshi();
+    const poly = new pmxt.polymarket();
 
     const kMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
     // Filter for Kevin Warsh specifically
@@ -11,7 +10,7 @@ async function run() {
 
     if (warshMarket) {
         console.log(`--- Kalshi Tape: ${warshMarket.outcomes[0].label} ---`);
-        const trades = await kalshi.getTradeHistory(warshMarket.id, { limit: 10, resolution: '1m' });
+        const trades = await kalshi.fetchTrades(warshMarket.id, { limit: 10, resolution: '1m' });
         trades.forEach(t => console.log(`${new Date(t.timestamp).toLocaleTimeString()} | ${t.side.toUpperCase()} | ${(t.price * 100).toFixed(1)}c | ${t.amount}`));
     }
 
@@ -21,7 +20,7 @@ async function run() {
     if (pWarsh) {
         console.log(`\n--- Polymarket Tape: Kevin Warsh ---`);
         const tokenId = pWarsh.outcomes[0].metadata?.clobTokenId;
-        const trades = await poly.getTradeHistory(tokenId, { limit: 5, resolution: '1m' });
+        const trades = await poly.fetchTrades(tokenId, { limit: 5, resolution: '1m' });
         trades.forEach(t => console.log(`${new Date(t.timestamp).toLocaleTimeString()} | ${t.side.toUpperCase()} | ${(t.price * 100).toFixed(1)}c | ${t.amount}`));
     }
 }
