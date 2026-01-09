@@ -1,32 +1,44 @@
 import pmxt from '../src';
 
 const main = async () => {
-    // Polymarket - Get historical prices
+    const candidateName = 'Kevin Warsh';  // Compare the SAME candidate on both platforms
+
+    // Polymarket - Get historical prices for Kevin Warsh
     const polymarket = new pmxt.polymarket();
     const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
-    const tokenId = polyMarkets[0].outcomes[0].metadata?.clobTokenId;
+    const polyWarsh = polyMarkets.find(m => m.outcomes[0].label.includes(candidateName));
 
-    console.log('--- Polymarket Historical Prices ---');
-    const polyHistory = await polymarket.fetchOHLCV(tokenId, {
-        resolution: '1h',
-        limit: 5
-    });
-    polyHistory.forEach(candle => {
-        console.log(`${new Date(candle.timestamp).toLocaleString()} | Price: $${candle.close.toFixed(2)}`);
-    });
+    if (polyWarsh) {
+        const tokenId = polyWarsh.outcomes[0].metadata?.clobTokenId;
+        console.log(`--- Polymarket: ${candidateName} ---`);
+        const polyHistory = await polymarket.fetchOHLCV(tokenId, {
+            resolution: '1h',
+            limit: 5
+        });
+        polyHistory.forEach(candle => {
+            console.log(`${new Date(candle.timestamp).toLocaleString()} | Price: $${candle.close.toFixed(2)}`);
+        });
+    } else {
+        console.log(`Polymarket: ${candidateName} not found`);
+    }
 
-    // Kalshi - Get historical prices
+    // Kalshi - Get historical prices for Kevin Warsh
     const kalshi = new pmxt.kalshi();
     const kalshiMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
+    const kalshiWarsh = kalshiMarkets.find(m => m.outcomes[0].label.includes(candidateName));
 
-    console.log('\n--- Kalshi Historical Prices ---');
-    const kalshiHistory = await kalshi.fetchOHLCV(kalshiMarkets[0].id, {
-        resolution: '1h',
-        limit: 5
-    });
-    kalshiHistory.forEach(candle => {
-        console.log(`${new Date(candle.timestamp).toLocaleString()} | Price: $${candle.close.toFixed(2)}`);
-    });
+    if (kalshiWarsh) {
+        console.log(`\n--- Kalshi: ${candidateName} ---`);
+        const kalshiHistory = await kalshi.fetchOHLCV(kalshiWarsh.id, {
+            resolution: '1h',
+            limit: 5
+        });
+        kalshiHistory.forEach(candle => {
+            console.log(`${new Date(candle.timestamp).toLocaleString()} | Price: $${candle.close.toFixed(2)}`);
+        });
+    } else {
+        console.log(`\nKalshi: ${candidateName} not found`);
+    }
 };
 
 main();
