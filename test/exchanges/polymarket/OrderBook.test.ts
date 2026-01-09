@@ -2,7 +2,7 @@ import axios from 'axios';
 import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
 
 /**
- * Polymarket getOrderBook() Test
+ * Polymarket fetchOrderBook() Test
  * 
  * What: Tests fetching and parsing of CLOB order book data.
  * Why: Order book data is critical for trading and price discovery.

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { KalshiExchange } from '../../../src/exchanges/Kalshi';
 
 /**
- * Kalshi getMarketHistory() Test
+ * Kalshi fetchOHLCV() Test
  * 
  * What: Tests fetching historical OHLCV candlestick data.
  * Why: Historical data is essential for charting and analysis.

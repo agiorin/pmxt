@@ -2,7 +2,7 @@ import axios from 'axios';
 import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
 
 /**
- * Polymarket getTradeHistory() Test
+ * Polymarket fetchTrades() Test
  * 
  * What: Tests fetching raw trade history data from CLOB API.
  * Why: Trade history is CRITICAL for market analysis and price discovery.

@@ -2,7 +2,7 @@ import axios from 'axios';
 import { KalshiExchange } from '../../../src/exchanges/Kalshi';
 
 /**
- * Kalshi getOrderBook() Test
+ * Kalshi fetchOrderBook() Test
  * 
  * What: Tests fetching and parsing of order book data (bids/asks).
  * Why: Order book data is critical for trading and price discovery.
