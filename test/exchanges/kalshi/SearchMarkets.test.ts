@@ -53,7 +53,7 @@ describe('KalshiExchange - searchMarkets', () => {
         expect(results[0].title.toLowerCase()).toContain('federal');
     });
 
-    it('should filter markets by description', async () => {
+    it('should filter markets by description when searchIn is set to description', async () => {
         mockedAxios.get.mockResolvedValue({
             data: {
                 events: [
@@ -73,7 +73,7 @@ describe('KalshiExchange - searchMarkets', () => {
             }
         });
 
-        const results = await exchange.searchMarkets('climate');
+        const results = await exchange.searchMarkets('climate', { searchIn: 'description' });
 
         expect(results.length).toBeGreaterThan(0);
     });
