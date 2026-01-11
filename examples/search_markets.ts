@@ -4,8 +4,8 @@ const main = async () => {
     const poly = new pmxt.polymarket();
     const kalshi = new pmxt.kalshi();
 
-    console.log('Polymarket:', await poly.searchMarkets('Trump'));
-    console.log('Kalshi:', await kalshi.searchMarkets('Trump'));
+    console.log('Polymarket:', await poly.searchMarkets('Fed'));
+    console.log('Kalshi:', await kalshi.searchMarkets('Fed'));
 };
 
 main();
