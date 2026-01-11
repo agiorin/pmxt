@@ -1,86 +1,251 @@
 # Prediction Market API Reference
 
-This project implements a **Unified Interface** for interacting with multiple prediction market exchanges (Kalshi, Polymarket) identically.
+A unified interface for interacting with multiple prediction market exchanges (Kalshi, Polymarket) identically.
 
-## Usage
+## Installation & Usage
 
-All components are available directly from the `pmxt` library.
+```bash
+npm install pmxtjs
+```
 
 ```typescript
 import pmxt from 'pmxtjs';
 
-// ccxt-style instantiation
 const polymarket = new pmxt.polymarket();
 const kalshi = new pmxt.kalshi();
 ```
 
-## 1. Unified Interface (`PredictionMarketExchange`)
+---
 
-All exchanges implement this core interface for discovery.
+## Core Methods
 
 ### `fetchMarkets(params?)`
-Retrieves active markets normalized into a standard format.
-- **Input**: `limit`, `sort` ('volume' | 'liquidity' | 'newest')
-- **Output**: `Promise<UnifiedMarket[]>`
+Get active markets from an exchange.
+
+```typescript
+const markets = await polymarket.fetchMarkets({ 
+  limit: 20, 
+  offset: 0,
+  sort: 'volume' // 'volume' | 'liquidity' | 'newest'
+});
+```
 
 ### `searchMarkets(query, params?)`
-Search markets by title/description across the exchange(s).
-- **Input**: `query` (string), `limit`
-- **Output**: `Promise<UnifiedMarket[]>`
+Search markets by keyword.
+
+```typescript
+const results = await kalshi.searchMarkets('Fed rates', { limit: 10 });
+```
+
+### `getMarketsBySlug(slug)`
+Fetch markets by URL slug/ticker.
+
+```typescript
+// Polymarket: use URL slug
+const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
+
+// Kalshi: use event ticker (auto-uppercased)
+const kalshiMarkets = await kalshi.getMarketsBySlug('FED-25JAN');
+```
 
 ---
 
-## 2. Deep-Dive Interface (Exchange Only)
+## Deep-Dive Methods
 
-Methods available on specific exchange instances (`KalshiExchange`, `PolymarketExchange`) for detailed data.
+### `fetchOHLCV(outcomeId, params)`
+Get historical price candles.
 
-### `fetchOHLCV(id, params)`
-Fetches OHLCV candlesticks.
-- **Input**: `id`, `resolution` (1m, 1h, 1d), `start`, `end`.
-- **Output**: `Promise<PriceCandle[]>`
-- **Important**:
-  - **Kalshi**: Uses the Market Ticker (e.g., `FED-25DEC`). Returns **native OHLCV** (Open/High/Low/Close data is distinct).
-  - **Polymarket**: Uses the **CLOB Token ID** found in `outcome.metadata.clobTokenId`. Returns **synthetic candles** (Open=High=Low=Close) derived from raw price points.
+**CRITICAL**: Use `outcome.id`, not `market.id`.
+- **Polymarket**: `outcome.id` is the CLOB Token ID
+- **Kalshi**: `outcome.id` is the Market Ticker
 
-### `fetchOrderBook(id)`
-Fetches live Bids/Asks.
-- **Input**: `id` (Ticker for Kalshi, Token ID for Polymarket).
-- **Output**: `Promise<OrderBook>` (Normalized: "No" bids becomes "Yes" asks).
+```typescript
+const markets = await polymarket.searchMarkets('Trump');
+const outcomeId = markets[0].outcomes[0].id; // Get the outcome ID
 
-### `fetchTrades(id, params)`
-Fetches the "Tape" (raw transaction history).
-- **Input**: `id`, `limit`.
-- **Output**: `Promise<Trade[]>`
-- **Note**: 
-  - **Kalshi**: Publicly accessible for all tickers.
-  - **Polymarket**: Requires L2 Authentication (API Key). Without a key, this method will throw an unauthorized error. Use `fetchOHLCV` for public historical data.
+const candles = await polymarket.fetchOHLCV(outcomeId, {
+  resolution: '1h', // '1m' | '5m' | '15m' | '1h' | '6h' | '1d'
+  start: new Date('2024-01-01'),
+  end: new Date('2024-01-31'),
+  limit: 100
+});
+```
+
+### `fetchOrderBook(outcomeId)`
+Get current bids/asks.
+
+```typescript
+const orderBook = await kalshi.fetchOrderBook('FED-25JAN');
+console.log('Best bid:', orderBook.bids[0].price);
+console.log('Best ask:', orderBook.asks[0].price);
+```
+
+### `fetchTrades(outcomeId, params)`
+Get trade history.
+
+**Note**: Polymarket requires API key. Use `fetchOHLCV` for public historical data.
+
+```typescript
+const trades = await kalshi.fetchTrades('FED-25JAN', {
+  resolution: '1h',
+  limit: 100
+});
+```
 
 ---
 
-## 3. Data Models
+## Data Models
 
-### `UnifiedMarket` (The Standard Atom)
+### `UnifiedMarket`
 ```typescript
 {
-  id: string;          // Exchange-specific ID
-  title: string;       // "Who will win the election?"
-  description: string; // Detailed context/rules of the market
-  outcomes: [
-    { 
-      id: string, 
-      label: "Trump", 
-      price: 0.52,
-      priceChange24h: 0.05, // Optional: Change in price over last 24h
-      metadata: { ... }      // Exchange-specific keys (clobTokenId)
-    }
-  ];
+  id: string;              // Market ID
+  title: string;
+  description: string;
+  outcomes: MarketOutcome[]; // All tradeable outcomes
+  
   resolutionDate: Date;
-  volume24h: number;
-  liquidity: number;
+  volume24h: number;       // USD
+  volume?: number;         // Total volume (USD)
+  liquidity: number;       // USD
+  openInterest?: number;   // USD
+  
   url: string;
-  image?: string;       // Optional: Thumbnail URL
-  category?: string;    // Optional: Primary category (e.g., "Politics")
-  tags?: string[];      // Optional: Searchable tags
+  image?: string;
+  category?: string;
+  tags?: string[];
 }
 ```
+
+### `MarketOutcome`
+```typescript
+{
+  id: string;              // ⚠️ Use this for fetchOHLCV/fetchOrderBook/fetchTrades
+                           // Polymarket: CLOB Token ID
+                           // Kalshi: Market Ticker
+  label: string;           // "Trump", "Yes", etc.
+  price: number;           // 0.0 to 1.0 (probability)
+  priceChange24h?: number;
+  metadata?: {
+    clobTokenId?: string;  // Polymarket only
+  }
+}
+```
+
+### Other Types
+```typescript
+interface PriceCandle {
+  timestamp: number;       // Unix ms
+  open: number;            // 0.0 to 1.0
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}
+
+interface OrderBook {
+  bids: OrderLevel[];      // Sorted high to low
+  asks: OrderLevel[];      // Sorted low to high
+  timestamp?: number;
+}
+
+interface OrderLevel {
+  price: number;           // 0.0 to 1.0
+  size: number;            // Contracts
+}
+
+interface Trade {
+  id: string;
+  timestamp: number;       // Unix ms
+  price: number;           // 0.0 to 1.0
+  amount: number;
+  side: 'buy' | 'sell' | 'unknown';
+}
+```
+
+---
+
+## Complete Workflow Example
+
+```typescript
+// 1. Search for markets
+const markets = await polymarket.searchMarkets('Fed Chair');
+const market = markets[0];
+
+// 2. Get outcome details
+const outcome = market.outcomes[0];
+console.log(`${outcome.label}: ${(outcome.price * 100).toFixed(1)}%`);
+
+// 3. Fetch historical data (use outcome.id!)
+const candles = await polymarket.fetchOHLCV(outcome.id, {
+  resolution: '1d',
+  limit: 30
+});
+
+// 4. Get current order book
+const orderBook = await polymarket.fetchOrderBook(outcome.id);
+const spread = orderBook.asks[0].price - orderBook.bids[0].price;
+console.log(`Spread: ${(spread * 100).toFixed(2)}%`);
+```
+
+---
+
+## Exchange Differences
+
+| Feature | Polymarket | Kalshi |
+|---------|-----------|--------|
+| **Sorting** | Server-side | Client-side (slower for large sets) |
+| **Market ID** | UUID | Event Ticker (e.g., "PRES-2024") |
+| **Outcome ID** | CLOB Token ID | Market Ticker (e.g., "FED-25JAN") |
+| **OHLCV Quality** | Synthetic (O=H=L=C) | Native (distinct values) |
+| **Auth Required** | Only for `fetchTrades()` | No (all public) |
+| **Slug Format** | lowercase-with-hyphens | UPPERCASE (auto-normalized) |
+
+---
+
+## Error Handling
+
+```typescript
+try {
+  const markets = await kalshi.getMarketsBySlug('INVALID-TICKER');
+} catch (error) {
+  // Kalshi: "Event not found: INVALID-TICKER"
+  // Polymarket: Returns empty array []
+  console.error(error.message);
+}
+```
+
+**Common Errors**:
+- `404`: Market/event doesn't exist
+- `401`: Missing API key (Polymarket `fetchTrades`)
+- `429`: Rate limited
+- `500`: Exchange API issue
+
+---
+
+## Type Exports
+
+```typescript
+import pmxt, { 
+  UnifiedMarket,
+  MarketOutcome,
+  PriceCandle,
+  OrderBook,
+  Trade,
+  CandleInterval,
+  MarketFilterParams,
+  HistoryFilterParams
+} from 'pmxtjs';
+```
+
+---
+
+## Quick Reference
+
+- **Prices**: Always 0.0-1.0 (multiply by 100 for %)
+- **Timestamps**: Unix milliseconds
+- **Volumes**: USD
+- **IDs**: Use `outcome.id` for deep-dive methods, not `market.id`
+
+For more examples, see [`examples/`](examples/).
 
