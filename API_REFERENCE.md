@@ -31,10 +31,13 @@ const markets = await polymarket.fetchMarkets({
 ```
 
 ### `searchMarkets(query, params?)`
-Search markets by keyword.
+Search markets by keyword. By default, searches only in titles.
 
 ```typescript
-const results = await kalshi.searchMarkets('Fed rates', { limit: 10 });
+const results = await kalshi.searchMarkets('Fed rates', { 
+  limit: 10,
+  searchIn: 'title' // 'title' (default) | 'description' | 'both'
+});
 ```
 
 ### `getMarketsBySlug(slug)`

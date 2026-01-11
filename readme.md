@@ -54,33 +54,19 @@ Different prediction market platforms have different APIs, data formats, and con
 
 ## Quick Example
 
-Search for markets across Polymarket and Kalshi using the same API:
+Get the current price for any market in seconds:
 
 ```typescript
 import pmxt from 'pmxtjs';
 
-const query = process.argv[2] || 'Who will Trump nominate as Fed Chair?';
-console.log(`Searching for "${query}"...\n`);
+async function main() {
+  const poly = new pmxt.polymarket();
+  const [market] = await poly.searchMarkets('Trump');
 
-// Polymarket
-const polymarket = new pmxt.polymarket();
-const polyResults = await polymarket.searchMarkets(query, { sort: 'volume' });
+  console.log(`${market.title} - ${market.outcomes[0].label}: ${marketoutcomes[0].price * 100}%`);
+}
 
-console.log(`--- Polymarket Found ${polyResults.length} ---`);
-polyResults.slice(0, 10).forEach(m => {
-    const label = m.outcomes[0]?.label || 'Unknown';
-    console.log(`[${m.id}] ${m.title} - ${label} (Vol24h: $${m.volume24h.toLocaleString()})`);
-});
-
-// Kalshi
-const kalshi = new pmxt.kalshi();
-const kalshiResults = await kalshi.searchMarkets(query);
-
-console.log(`\n--- Kalshi Found ${kalshiResults.length} ---`);
-kalshiResults.slice(0, 10).forEach(m => {
-    const label = m.outcomes[0]?.label || 'Unknown';
-    console.log(`[${m.id}] ${m.title} - ${label} (Vol24h: $${m.volume24h.toLocaleString()})`);
-});
+main();
 ```
 
 ## Installation
