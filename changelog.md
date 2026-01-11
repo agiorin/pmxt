@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-01-11
+
+### Added
+- **Search Scope Control**: Added `searchIn` parameter to `searchMarkets` allowing 'title' (default), 'description', or 'both'.
+
+### Changed
+- **Default Search Behavior**: `searchMarkets` now defaults to searching only titles to reduce noise and improve relevance.
+- **Improved Search Coverage**: Increased search depth for both Polymarket and Kalshi to cover all active markets (up to 100,000) instead of just the top results.
+
+### Fixed
+- **Documentation**: Updated README Quick Example to be robust against empty results.
+
 ## [0.3.0] - 2026-01-09
 
 ### Breaking Changes
