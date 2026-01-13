@@ -279,17 +279,15 @@ describe('KalshiExchange - Trading Operations', () => {
 
             expect(positions[0]).toMatchObject({
                 marketId: 'PRES-2024',
-                side: 'long',
-                contracts: 10,
-                averagePrice: 0.55,  // 5500 / 10 / 100
-                realizedPnl: 10  // 1000 / 100
+                size: 10,
+                entryPrice: 0.55,
+                realizedPnL: 10
             });
 
             expect(positions[1]).toMatchObject({
                 marketId: 'SENATE-2024',
-                side: 'short',
-                contracts: 5,
-                realizedPnl: -5
+                size: -5,
+                realizedPnL: -5
             });
         });
     });
