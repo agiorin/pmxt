@@ -74,12 +74,13 @@ export class PolymarketExchange extends PredictionMarketExchange {
         // Map side to Polymarket enum
         const side = params.side.toUpperCase() === 'BUY' ? Side.BUY : Side.SELL;
 
-        // For simple limit orders:
+        // For limit orders, price is required
         if (params.type === 'limit' && !params.price) {
             throw new Error('Price is required for limit orders');
         }
 
-        const price = params.price || (side === Side.BUY ? 1.0 : 0.0);
+        // For market orders, use max slippage: 0.99 for BUY (willing to pay up to 99%), 0.01 for SELL (willing to accept down to 1%)
+        const price = params.price || (side === Side.BUY ? 0.99 : 0.01);
 
         try {
             // We use createAndPostOrder which handles signing and posting

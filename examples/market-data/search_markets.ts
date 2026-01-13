@@ -1,4 +1,4 @@
-import pmxt from '../src';
+import pmxt from '../../src';
 
 const main = async () => {
     const poly = new pmxt.polymarket();

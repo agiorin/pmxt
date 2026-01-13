@@ -1,16 +1,11 @@
-import pmxt from '../src';
+import pmxt from '../../src';
 
 const main = async () => {
     const api = new pmxt.polymarket();
     const markets = await api.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
     const warsh = markets.find(m => m.outcomes[0]?.label === 'Kevin Warsh');
 
-    const history = await api.fetchOHLCV(warsh!.outcomes[0].metadata.clobTokenId, {
-        resolution: '1h',
-        limit: 5
-    });
-
-    console.log(history);
+    console.log(warsh?.outcomes[0].price);
 };
 
 main();
