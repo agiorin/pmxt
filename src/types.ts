@@ -61,3 +61,49 @@ export interface Trade {
     amount: number;
     side: 'buy' | 'sell' | 'unknown';
 }
+
+// ----------------------------------------------------------------------------
+// Trading Data Models
+// ----------------------------------------------------------------------------
+
+export interface Order {
+    id: string;
+    marketId: string;
+    outcomeId: string;
+    side: 'buy' | 'sell';
+    type: 'market' | 'limit';
+    price?: number;  // For limit orders
+    amount: number;  // Size in contracts/shares
+    status: 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected';
+    filled: number;  // Amount filled
+    remaining: number;  // Amount remaining
+    timestamp: number;
+    fee?: number;
+}
+
+export interface Position {
+    marketId: string;
+    outcomeId: string;
+    outcomeLabel: string;
+    size: number;  // Positive for long, negative for short
+    entryPrice: number;
+    currentPrice: number;
+    unrealizedPnL: number;
+    realizedPnL?: number;
+}
+
+export interface Balance {
+    currency: string;  // e.g., 'USDC'
+    total: number;
+    available: number;
+    locked: number;  // In open orders
+}
+
+export interface CreateOrderParams {
+    marketId: string;
+    outcomeId: string;
+    side: 'buy' | 'sell';
+    type: 'market' | 'limit';
+    amount: number;
+    price?: number; // Required for limit orders
+}

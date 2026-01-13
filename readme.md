@@ -80,6 +80,40 @@ npm install pmxtjs
 - Polymarket
 - Kalshi
 
+## Trading
+pmxt supports trading functionality (placing and cancelling orders).
+
+### Setup
+To trade, you must provide your private credentials.
+
+- **Polymarket**: Requires your Polygon Private Key. [View Setup Guide](docs/SETUP_POLYMARKET.md)
+- **Kalshi**: Requires API Key & Private Key (Coming Soon).
+
+### Trading Example
+
+```typescript
+import pmxt from 'pmxtjs';
+
+const exchange = new pmxt.Polymarket({
+    privateKey: process.env.POLYMARKET_PRIVATE_KEY
+});
+
+// Check Balance
+const balance = await exchange.fetchBalance();
+console.log('Balance:', balance);
+
+// Place an Order
+const order = await exchange.createOrder({
+    marketId: 'market-123',
+    outcomeId: 'token-id-456',
+    side: 'buy',
+    type: 'limit',
+    price: 0.50,
+    amount: 100
+});
+console.log('Order:', order);
+```
+
 ## Documentation
 
 See the [API Reference](API_REFERENCE.md) for detailed documentation and more examples.

@@ -123,7 +123,7 @@ const trades = await kalshi.fetchTrades('FED-25JAN', {
 ### `MarketOutcome`
 ```typescript
 {
-  id: string;              // ⚠️ Use this for fetchOHLCV/fetchOrderBook/fetchTrades
+  id: string;              // Use this for fetchOHLCV/fetchOrderBook/fetchTrades
                            // Polymarket: CLOB Token ID
                            // Kalshi: Market Ticker
   label: string;           // "Trump", "Yes", etc.
