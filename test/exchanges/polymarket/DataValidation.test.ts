@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
+import { PolymarketExchange } from '../../../src/exchanges/polymarket';
 
 /**
  * Polymarket Data Validation Test

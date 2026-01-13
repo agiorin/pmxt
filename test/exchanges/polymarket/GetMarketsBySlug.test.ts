@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
+import { PolymarketExchange } from '../../../src/exchanges/polymarket';
 
 /**
  * Polymarket getMarketsBySlug() Test
@@ -46,7 +46,7 @@ describe('PolymarketExchange - getMarketsBySlug', () => {
 
         expect(markets.length).toBe(1);
         expect(markets[0].id).toBe('market-1');
-        expect(markets[0].title).toBe('Federal Reserve Rate Decision');
+        expect(markets[0].title).toBe('Federal Reserve Rate Decision - Rate cut in March?');
         expect(markets[0].outcomes.length).toBe(2);
     });
 

@@ -1,10 +1,10 @@
 export * from './BaseExchange';
 export * from './types';
-export * from './exchanges/Polymarket';
-export * from './exchanges/Kalshi';
+export * from './exchanges/polymarket';
+export * from './exchanges/kalshi';
 
-import { PolymarketExchange } from './exchanges/Polymarket';
-import { KalshiExchange } from './exchanges/Kalshi';
+import { PolymarketExchange } from './exchanges/polymarket';
+import { KalshiExchange } from './exchanges/kalshi';
 
 const pmxt = {
     polymarket: PolymarketExchange,
@@ -14,4 +14,3 @@ const pmxt = {
 };
 
 export default pmxt;
-

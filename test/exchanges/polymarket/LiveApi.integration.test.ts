@@ -1,4 +1,4 @@
-import { PolymarketExchange } from '../../../src/exchanges/Polymarket';
+import { PolymarketExchange } from '../../../src/exchanges/polymarket';
 
 /**
  * Polymarket Integration Test (Live API)

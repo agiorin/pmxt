@@ -1,4 +1,4 @@
-import { KalshiExchange } from '../../../src/exchanges/Kalshi';
+import { KalshiExchange } from '../../../src/exchanges/kalshi';
 
 /**
  * Kalshi Integration Test (Live API)

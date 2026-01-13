@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { KalshiExchange } from '../../../src/exchanges/Kalshi';
+import { KalshiExchange } from '../../../src/exchanges/kalshi';
 
 /**
  * Kalshi API Error Handling Test
