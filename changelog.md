@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-01-13
+
+### Added
+- **Trading Support**: Added full trading support for **Polymarket** and **Kalshi**, including:
+  - Order management: `createOrder`, `cancelOrder`, `fetchOrder`, `fetchOpenOrders`.
+  - Account management: `fetchBalance`, `fetchPositions`.
+- **Tests**: Added comprehensive unit and integration tests for all trading operations.
+- **Examples**: Added new examples for trading and account data (e.g., `list_positions`).
+
+### Changed
+- **Architecture**: Refactored monolithic `Exchange` classes into modular files for better maintainability and scalability.
+- **Authentication**: Simplified Polymarket authentication workflow.
+- **Documentation**: Updated `API_REFERENCE.md` with detailed trading and account management methods.
+
+### Fixed
+- **Jest Configuration**: Resolved issues with ES modules in dependencies for testing.
+- **Kalshi Implementation**: Fixed various bugs such as ticker formatting and signature generation.
+
+### CRITICAL NOTES
+- Polymarket has been tested manually, and works.
+- Kalshi HAS NOT been tested manually but has been implemented according to the kalshi docs.
+
 ## [0.3.1] - 2026-01-11
 
 ### Added
