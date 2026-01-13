@@ -243,12 +243,241 @@ import pmxt, {
 
 ---
 
+## Authentication & Trading
+
+Both Polymarket and Kalshi support authenticated trading operations. You must provide credentials when initializing the exchange.
+
+### Polymarket Authentication
+
+Requires your **Polygon Private Key**. See [Setup Guide](docs/SETUP_POLYMARKET.md) for details.
+
+```typescript
+import pmxt from 'pmxtjs';
+
+const polymarket = new pmxt.Polymarket({
+  privateKey: process.env.POLYMARKET_PRIVATE_KEY
+});
+```
+
+### Kalshi Authentication
+
+Requires **API Key** and **Private Key**.
+
+```typescript
+import pmxt from 'pmxtjs';
+
+const kalshi = new pmxt.Kalshi({
+  apiKey: process.env.KALSHI_API_KEY,
+  privateKey: process.env.KALSHI_PRIVATE_KEY
+});
+```
+
+---
+
+## Account Methods
+
+### `fetchBalance()`
+Get your account balance.
+
+```typescript
+const balances = await polymarket.fetchBalance();
+console.log(balances);
+// [{ currency: 'USDC', total: 1000, available: 950, locked: 50 }]
+```
+
+**Returns**: `Balance[]`
+```typescript
+interface Balance {
+  currency: string;   // e.g., 'USDC'
+  total: number;      // Total balance
+  available: number;  // Available for trading
+  locked: number;     // Locked in open orders
+}
+```
+
+### `fetchPositions()`
+Get your current positions across all markets.
+
+```typescript
+const positions = await kalshi.fetchPositions();
+positions.forEach(pos => {
+  console.log(`${pos.outcomeLabel}: ${pos.size} @ $${pos.entryPrice}`);
+  console.log(`Unrealized P&L: $${pos.unrealizedPnL}`);
+});
+```
+
+**Returns**: `Position[]`
+```typescript
+interface Position {
+  marketId: string;
+  outcomeId: string;
+  outcomeLabel: string;
+  size: number;           // Positive for long, negative for short
+  entryPrice: number;
+  currentPrice: number;
+  unrealizedPnL: number;
+  realizedPnL?: number;
+}
+```
+
+---
+
+## Trading Methods
+
+### `createOrder(params)`
+Place a new order (market or limit).
+
+**Limit Order Example**:
+```typescript
+const order = await polymarket.createOrder({
+  marketId: '663583',
+  outcomeId: '10991849228756847439673778874175365458450913336396982752046655649803657501964',
+  side: 'buy',
+  type: 'limit',
+  amount: 10,        // Number of contracts
+  price: 0.55        // Required for limit orders (0.0-1.0)
+});
+
+console.log(`Order ${order.id}: ${order.status}`);
+```
+
+**Market Order Example**:
+```typescript
+const order = await kalshi.createOrder({
+  marketId: 'FED-25JAN',
+  outcomeId: 'FED-25JAN-YES',
+  side: 'sell',
+  type: 'market',
+  amount: 5          // Price not needed for market orders
+});
+```
+
+**Parameters**: `CreateOrderParams`
+```typescript
+interface CreateOrderParams {
+  marketId: string;
+  outcomeId: string;      // Use outcome.id from market data
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit';
+  amount: number;         // Number of contracts/shares
+  price?: number;         // Required for limit orders (0.0-1.0)
+}
+```
+
+**Returns**: `Order`
+```typescript
+interface Order {
+  id: string;
+  marketId: string;
+  outcomeId: string;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit';
+  price?: number;
+  amount: number;
+  status: 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected';
+  filled: number;         // Amount filled so far
+  remaining: number;      // Amount remaining
+  timestamp: number;
+  fee?: number;
+}
+```
+
+### `cancelOrder(orderId)`
+Cancel an open order.
+
+```typescript
+const cancelledOrder = await polymarket.cancelOrder('order-123');
+console.log(cancelledOrder.status); // 'cancelled'
+```
+
+**Returns**: `Order` (with updated status)
+
+### `fetchOrder(orderId)`
+Get details of a specific order.
+
+```typescript
+const order = await kalshi.fetchOrder('order-456');
+console.log(`Filled: ${order.filled}/${order.amount}`);
+```
+
+**Returns**: `Order`
+
+### `fetchOpenOrders(marketId?)`
+Get all open orders, optionally filtered by market.
+
+```typescript
+// All open orders
+const allOrders = await polymarket.fetchOpenOrders();
+
+// Open orders for specific market
+const marketOrders = await kalshi.fetchOpenOrders('FED-25JAN');
+
+allOrders.forEach(order => {
+  console.log(`${order.side} ${order.amount} @ ${order.price}`);
+});
+```
+
+**Returns**: `Order[]`
+
+---
+
+## Complete Trading Workflow
+
+```typescript
+import pmxt from 'pmxtjs';
+
+const exchange = new pmxt.Polymarket({
+  privateKey: process.env.POLYMARKET_PRIVATE_KEY
+});
+
+// 1. Check balance
+const [balance] = await exchange.fetchBalance();
+console.log(`Available: $${balance.available}`);
+
+// 2. Search for a market
+const markets = await exchange.searchMarkets('Trump');
+const market = markets[0];
+const outcome = market.outcomes[0];
+
+// 3. Place a limit order
+const order = await exchange.createOrder({
+  marketId: market.id,
+  outcomeId: outcome.id,
+  side: 'buy',
+  type: 'limit',
+  amount: 10,
+  price: 0.50
+});
+
+console.log(`Order placed: ${order.id}`);
+
+// 4. Check order status
+const updatedOrder = await exchange.fetchOrder(order.id);
+console.log(`Status: ${updatedOrder.status}`);
+console.log(`Filled: ${updatedOrder.filled}/${updatedOrder.amount}`);
+
+// 5. Cancel if needed
+if (updatedOrder.status === 'open') {
+  await exchange.cancelOrder(order.id);
+  console.log('Order cancelled');
+}
+
+// 6. Check positions
+const positions = await exchange.fetchPositions();
+positions.forEach(pos => {
+  console.log(`${pos.outcomeLabel}: ${pos.unrealizedPnL > 0 ? '+' : ''}$${pos.unrealizedPnL.toFixed(2)}`);
+});
+```
+
+---
+
 ## Quick Reference
 
 - **Prices**: Always 0.0-1.0 (multiply by 100 for %)
 - **Timestamps**: Unix milliseconds
 - **Volumes**: USD
 - **IDs**: Use `outcome.id` for deep-dive methods, not `market.id`
+- **Authentication**: Required for all trading and account methods
 
 For more examples, see [`examples/`](examples/).
 
