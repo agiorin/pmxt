@@ -8,7 +8,7 @@
 <table>
 <tr>
 <td rowspan="3">
-<a href="https://www.producthunt.com/products/qoery-python-sdk?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-qoery-python-sdk" target="_blank" rel="noopener noreferrer"><img alt="Qoery Python SDK - 50% cheaper crypto data. Now in Python. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1056631&amp;theme=light&amp;t=1767263265752"></a>
+<a href="https://www.producthunt.com/products/ccxt-for-prediction-markets?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-ccxt-for-prediction-markets" target="_blank" rel="noopener noreferrer"><img alt="CCXT for Prediction Markets - A unified API for prediction market data across exchanges. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1060549&amp;theme=light&amp;t=1768206672608"></a>
 </td>
 <td>
 <img src="https://img.shields.io/github/watchers/qoery-com/pmxt?style=social" alt="GitHub watchers">
@@ -82,11 +82,11 @@ npm install pmxtjs
 
 ## Documentation
 
-See the [API Reference](pmxt/API_REFERENCE.md) for detailed documentation and more examples.
+See the [API Reference](API_REFERENCE.md) for detailed documentation and more examples.
 
 ## Examples
 
-Check out the [examples](pmxt/examples/) directory for more use cases:
+Check out the [examples](examples/) directory for more use cases:
 - Market search
 - Order book data
 - Historical prices
