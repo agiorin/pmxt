@@ -249,7 +249,7 @@ Both Polymarket and Kalshi support authenticated trading operations. You must pr
 
 ### Polymarket Authentication
 
-Requires your **Polygon Private Key**. See [Setup Guide](docs/SETUP_POLYMARKET.md) for details.
+Requires your **Polygon Private Key**. See [Setup Guide](https://github.com/qoery-com/pmxt/blob/main/docs/SETUP_POLYMARKET.md) for details.
 
 ```typescript
 import pmxt from 'pmxtjs';
