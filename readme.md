@@ -62,10 +62,10 @@ Get the current price for any market in seconds:
 import pmxt from 'pmxtjs';
 
 async function main() {
-  const poly = new pmxt.polymarket();
+  const poly = new pmxt.Polymarket();
   const [market] = await poly.searchMarkets('Trump');
 
-  console.log(`${market.title} - ${market.outcomes[0].label}: ${marketoutcomes[0].price * 100}%`);
+  console.log(`${market.title} - ${market.outcomes[0].label}: ${market.outcomes[0].price * 100}%`);
 }
 
 main();
@@ -76,6 +76,17 @@ main();
 ```bash
 npm install pmxtjs
 ```
+
+### Note for ESM Users
+
+**pmxt is currently CommonJS-only.** If you're using `"type": "module"` in your `package.json`, use the default import:
+
+```typescript
+import pmxt from 'pmxtjs';
+const poly = new pmxt.Polymarket();
+```
+
+Named exports like `import { Polymarket } from 'pmxtjs'` will **not work** in ESM projects. See the [API Reference](API_REFERENCE.md) for more details.
 
 ## Supported Exchanges
 

@@ -8,12 +8,37 @@ A unified interface for interacting with multiple prediction market exchanges (K
 npm install pmxtjs
 ```
 
+### Basic Import (CommonJS)
+
 ```typescript
 import pmxt from 'pmxtjs';
 
-const polymarket = new pmxt.polymarket();
-const kalshi = new pmxt.kalshi();
+// Both PascalCase and lowercase work
+const poly = new pmxt.Polymarket();
+const kalshi = new pmxt.Kalshi();
+
+// Or lowercase if you prefer
+const poly2 = new pmxt.polymarket();
+const kalshi2 = new pmxt.kalshi();
 ```
+
+### Note for ESM Users
+
+**pmxt is currently CommonJS-only.** If you're using `"type": "module"` in your `package.json`, you have two options:
+
+**Option 1: Default import (recommended)**
+```typescript
+import pmxt from 'pmxtjs';
+const poly = new pmxt.polymarket();
+```
+
+**Option 2: Dynamic import**
+```typescript
+const pmxt = await import('pmxtjs');
+const poly = new pmxt.default.polymarket();
+```
+
+**Note**: Named exports like `import { polymarket } from 'pmxtjs'` will **not work** in ESM projects.
 
 ---
 
@@ -47,9 +72,16 @@ Fetch markets by URL slug/ticker.
 // Polymarket: use URL slug
 const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
 
-// Kalshi: use event ticker (auto-uppercased)
-const kalshiMarkets = await kalshi.getMarketsBySlug('FED-25JAN');
+// Kalshi: use market ticker (auto-uppercased)
+const kalshiMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
 ```
+
+#### Universal Slug/Ticker Reference
+
+| Platform | Example Market URL | What to extract (Slug/Ticker) | Logic |
+|---|---|---|---|
+| **Kalshi** | `kalshi.com/markets/kxfedchairnom/.../kxfedchairnom-29` | `KXFEDCHAIRNOM-29` | The **last** path segment of the URL. |
+| **Polymarket** | `polymarket.com/event/who-will-trump-nominate-as-fed-chair` | `who-will-trump-nominate-as-fed-chair` | The slug immediately after `/event/`. |
 
 ---
 
