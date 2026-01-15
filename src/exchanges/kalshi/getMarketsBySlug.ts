@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { UnifiedMarket } from '../../types';
-import { mapMarketToUnified } from './utils';
+import { mapMarketToUnified, KALSHI_SERIES_URL } from './utils';
 
 /**
  * Fetch specific markets by their event ticker.
@@ -18,6 +18,22 @@ export async function getMarketsBySlug(eventTicker: string): Promise<UnifiedMark
 
         const event = response.data.event;
         if (!event) return [];
+
+        // Enrichment: Fetch series tags if they exist
+        if (event.series_ticker) {
+            try {
+                const seriesUrl = `${KALSHI_SERIES_URL}/${event.series_ticker}`;
+                const seriesResponse = await axios.get(seriesUrl);
+                const series = seriesResponse.data.series;
+                if (series && series.tags && series.tags.length > 0) {
+                    if (!event.tags || event.tags.length === 0) {
+                        event.tags = series.tags;
+                    }
+                }
+            } catch (e) {
+                // Ignore errors fetching series info - non-critical
+            }
+        }
 
         const unifiedMarkets: UnifiedMarket[] = [];
         const markets = event.markets || [];

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { MarketFilterParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
-import { KALSHI_API_URL, mapMarketToUnified } from './utils';
+import { KALSHI_API_URL, KALSHI_SERIES_URL, mapMarketToUnified } from './utils';
 
 async function fetchActiveEvents(targetMarketCount?: number): Promise<any[]> {
     let allEvents: any[] = [];
@@ -18,7 +18,7 @@ async function fetchActiveEvents(targetMarketCount?: number): Promise<any[]> {
 
     do {
         try {
-            // console.log(`Fetching Kalshi page ${page + 1}...`);
+
             const queryParams: any = {
                 limit: BATCH_SIZE,
                 with_nested_markets: true,
@@ -58,18 +58,48 @@ async function fetchActiveEvents(targetMarketCount?: number): Promise<any[]> {
     return allEvents;
 }
 
+async function fetchSeriesMap(): Promise<Map<string, string[]>> {
+    try {
+
+        const response = await axios.get(KALSHI_SERIES_URL);
+        const seriesList = response.data.series || [];
+        const map = new Map<string, string[]>();
+        for (const series of seriesList) {
+            if (series.tags && series.tags.length > 0) {
+                map.set(series.ticker, series.tags);
+            }
+        }
+
+        return map;
+    } catch (e) {
+        console.error("Error fetching Kalshi series:", e);
+        return new Map();
+    }
+}
+
 export async function fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 50;
 
     try {
         // Fetch active events with nested markets
-        // For small limits, we can optimize by fetching fewer pages
-        const allEvents = await fetchActiveEvents(limit);
+        // We also fetch Series metadata to get tags (tags are on Series, not Event)
+        const [allEvents, seriesMap] = await Promise.all([
+            fetchActiveEvents(limit),
+            fetchSeriesMap()
+        ]);
 
         // Extract ALL markets from all events
         const allMarkets: UnifiedMarket[] = [];
 
         for (const event of allEvents) {
+            // Enrich event with tags from Series
+            if (event.series_ticker && seriesMap.has(event.series_ticker)) {
+                // If event has no tags or empty tags, use series tags
+                if (!event.tags || event.tags.length === 0) {
+                    event.tags = seriesMap.get(event.series_ticker);
+                }
+            }
+
             const markets = event.markets || [];
             for (const market of markets) {
                 const unifiedMarket = mapMarketToUnified(event, market);

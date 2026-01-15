@@ -1,6 +1,7 @@
 import { UnifiedMarket, MarketOutcome, CandleInterval } from '../../types';
 
 export const KALSHI_API_URL = "https://api.elections.kalshi.com/trade-api/v2/events";
+export const KALSHI_SERIES_URL = "https://api.elections.kalshi.com/trade-api/v2/series";
 
 export function mapMarketToUnified(event: any, market: any): UnifiedMarket | null {
     if (!market) return null;
@@ -42,6 +43,23 @@ export function mapMarketToUnified(event: any, market: any): UnifiedMarket | nul
         }
     ];
 
+    // Combine category and tags into a unified tags array
+    const unifiedTags: string[] = [];
+
+    // Add category first (if it exists)
+    if (event.category) {
+        unifiedTags.push(event.category);
+    }
+
+    // Add tags (if they exist and avoid duplicates)
+    if (event.tags && Array.isArray(event.tags)) {
+        for (const tag of event.tags) {
+            if (!unifiedTags.includes(tag)) {
+                unifiedTags.push(tag);
+            }
+        }
+    }
+
     return {
         id: market.ticker,
         title: event.title,
@@ -54,7 +72,7 @@ export function mapMarketToUnified(event: any, market: any): UnifiedMarket | nul
         openInterest: Number(market.open_interest || 0),
         url: `https://kalshi.com/events/${event.event_ticker}`,
         category: event.category,
-        tags: event.tags || []
+        tags: unifiedTags
     };
 }
 
