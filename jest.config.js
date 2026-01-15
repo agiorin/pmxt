@@ -12,4 +12,5 @@ module.exports = {
   transformIgnorePatterns: [
     "node_modules/(?!(@polymarket|ethers|@ethersproject)/)"
   ],
+  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
 };
