@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
  
-## [0.4.1] - 2026-01-15
+## [0.4.2] - 2026-01-15
+
+### Fixed
+- **Kalshi Description Field**: Corrected a mapping issue where the unified `description` field was being populated with `event.sub_title` or `market.subtitle` (which typically only contain dates). It now correctly uses `market.rules_primary`, providing the actual resolution criteria as intended.
 
 ## [0.4.1] - 2026-01-15
 
