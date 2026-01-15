@@ -30,7 +30,9 @@
 <a href="https://github.com/qoery-com/pmxt/stargazers"><img src="https://img.shields.io/github/stars/qoery-com/pmxt?refresh=1" alt="GitHub stars"></a>
 </td>
 <td>
-<!-- Space for future badge -->
+<a href="https://www.npmjs.com/package/pmxtjs">
+  <img src="https://img.shields.io/npm/v/pmxtjs.svg" alt="npm version">
+</a>
 </td>
 </tr>
 </table>
