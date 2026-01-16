@@ -27,158 +27,131 @@ PMXT uses a **"Sidecar" architecture** for multi-language support:
 
 ### Why This Approach?
 
-1. **Single Source of Truth**: The Node.js implementation is the canonical version
+1. **Single Source of Truth**: The implementation in `core/` is the canonical version
 2. **Consistency**: All languages get identical behavior
 3. **Rapid Iteration**: Update the server, all SDKs update automatically
 4. **Quality**: We can write the core logic once, in TypeScript, with full testing
 
-## Directory Structure
+## General Directory Structure
+
+All SDKs follow this pattern:
 
 ```
 sdks/
-└── python/
+└── {language}/
     ├── pmxt/                    # Human-written wrapper (EDIT THIS)
-    │   ├── __init__.py
-    │   ├── client.py           # Main Exchange classes
-    │   └── models.py           # Clean dataclasses
-    ├── generated/               # Auto-generated (DO NOT EDIT)
-    │   └── pmxt_internal/      # Raw OpenAPI client
+    │   └── ...                 # Clean, idiomatic code
+    ├── {generated}/             # Auto-generated client (DO NOT EDIT)
+    │   └── ...                 # Raw OpenAPI client
     ├── examples/
-    │   └── basic_usage.py
-    ├── pyproject.toml
-    └── README.md
+    └── {package-manager-files}
 ```
 
 ### The Golden Rule
 
-**NEVER manually edit files in `generated/`**. They will be overwritten.
+**NEVER manually edit files in the generated directory**. They will be overwritten.
 
-All human code goes in `pmxt/` (the wrapper).
+All human logic goes in the `pmxt/` directory (the wrapper).
+
+## Supported Languages
+
+### 1. Python (`sdks/python`)
+
+- **Reference**: [sdks/python/README.md](./python/README.md)
+- **Generator**: `python`
+- **Generated Dir**: `sdks/python/generated/`
+- **Wrapper Dir**: `sdks/python/pmxt/`
+
+### 2. TypeScript (`sdks/typescript`)
+
+- **Reference**: [sdks/typescript/README.md](./typescript/README.md)
+- **Generator**: `typescript-fetch`
+- **Generated Dir**: `sdks/typescript/src/`
+- **Wrapper Dir**: `sdks/typescript/pmxt/`
 
 ## Generating SDKs
+
+To regenerate all SDKs after updating the server specification:
+
+```bash
+# In the root or core directory
+npm run generate:sdk:all
+```
+
+To generate a specific language:
+
+```bash
+# Python
+npm run generate:sdk:python
+
+# TypeScript
+npm run generate:sdk:typescript
+```
+
+## The Human Wrapper Pattern
+
+The "wrapper" is a handwritten layer that sits on top of the auto-generated code. Its job is to make the API feel native and clean for that language.
+
+### Responsibilities
+
+1.  **Hide the Ugly**: Generated code is often verbose. The wrapper hides this.
+2.  **Provide Idiomatic API**: Use language-specific features (e.g., Python properties, TypeScript interfaces).
+3.  **Manage Server Lifecycle**: Include the `ServerManager` to auto-start the sidecar.
+4.  **Simplify Models**: Convert complex generated schemas into simple data classes/interfaces.
+
+### Example: Python vs TypeScript
+
+**Python Wrapper (`sdks/python/pmxt/client.py`)**:
+
+```python
+class Exchange(ABC):
+    def search_markets(self, query):
+        # Calls self._api.search_markets()
+        # Converts response to UnifiedMarket dataclass
+        pass
+```
+
+**TypeScript Wrapper (`sdks/typescript/pmxt/client.ts`)**:
+
+```typescript
+export abstract class Exchange {
+  async searchMarkets(query: string): Promise<UnifiedMarket[]> {
+    // Calls this.api.searchMarkets()
+    // Converts response to UnifiedMarket interface
+    return markets;
+  }
+}
+```
+
+## Maintaining the SDKs
+
+When you add a new endpoint to the OpenAPI spec:
+
+1.  **Update `src/server/openapi.yaml`** with the new endpoint.
+2.  **Regenerate** SDKs: `npm run generate:sdk:all`.
+3.  **Update the wrappers**:
+    *   **Python**: Update `sdks/python/pmxt/client.py` & `models.py`.
+    *   **TypeScript**: Update `sdks/typescript/pmxt/client.ts` & `models.ts`.
+
+## Testing
+
+Always test your changes in **both** languages.
 
 ### Python
 
 ```bash
-# Generate the raw OpenAPI client
-npm run generate:sdk:python
-
-# Or manually:
-npx @openapitools/openapi-generator-cli generate \
-  -i src/server/openapi.yaml \
-  -g python \
-  -o sdks/python/generated \
-  --package-name pmxt_internal \
-  --additional-properties=projectName=pmxt-internal,packageVersion=0.4.4,library=urllib3
-```
-
-This creates the "ugly" auto-generated client in `sdks/python/generated/pmxt_internal/`.
-
-The human wrapper in `sdks/python/pmxt/` imports this and provides a clean API.
-
-### Future Languages
-
-When adding Go, Java, etc.:
-
-```bash
-# Go
-npm run generate:sdk:go
-
-# Java
-npm run generate:sdk:java
-```
-
-Each will follow the same pattern:
-- `sdks/{language}/generated/` - Auto-generated client
-- `sdks/{language}/pmxt/` - Human wrapper
-
-## The Human Wrapper Pattern
-
-The wrapper does three things:
-
-### 1. Clean Imports
-
-```python
-# User writes:
-import pmxt
-poly = pmxt.Polymarket()
-
-# Not:
-from pmxt_internal.api.default_api import DefaultApi
-from pmxt_internal.configuration import Configuration
-# ... etc
-```
-
-### 2. Pythonic API
-
-```python
-# User writes:
-markets = poly.search_markets("Trump", MarketFilterParams(limit=10))
-
-# Not:
-request = SearchMarketsRequest(args=["Trump", {"limit": 10}])
-response = api.search_markets(exchange="polymarket", search_markets_request=request)
-data = response.to_dict()["data"]
-```
-
-### 3. Clean Data Models
-
-```python
-# User gets:
-@dataclass
-class UnifiedMarket:
-    id: str
-    title: str
-    outcomes: List[MarketOutcome]
-    # ...
-
-# Not:
-class UnifiedMarket(BaseModel):
-    def __init__(self, id=None, title=None, outcomes=None, ...):
-        # 100 lines of generated code
-```
-
-## Maintaining the Wrapper
-
-When you add a new endpoint to the OpenAPI spec:
-
-1. **Update `src/server/openapi.yaml`** with the new endpoint
-2. **Regenerate**: `npm run generate:sdk:python`
-3. **Update the wrapper**:
-   - Add the method to `pmxt/client.py`
-   - Add any new models to `pmxt/models.py`
-   - Add a converter function if needed
-
-Example:
-
-```python
-# In pmxt/client.py
-def fetch_new_thing(self, thing_id: str) -> NewThing:
-    """Fetch a new thing."""
-    try:
-        request_body = {"args": [thing_id]}
-        
-        response = self._api.fetch_new_thing(
-            exchange=self.exchange_name,
-            fetch_new_thing_request=request_body,
-        )
-        
-        data = self._handle_response(response.to_dict())
-        return _convert_new_thing(data)
-    except ApiException as e:
-        raise Exception(f"Failed to fetch new thing: {e}")
-```
-
-## Testing
-
-```bash
 cd sdks/python
-
-# Install in development mode
 pip install -e ".[dev]"
+python examples/*
+```
 
-# Run the example (requires server running)
-python examples/basic_usage.py
+### TypeScript
+
+```bash
+cd sdks/typescript
+npm install
+npm run build
+npx tsx examples/*
 ```
 
 ## Publishing
@@ -187,56 +160,26 @@ python examples/basic_usage.py
 
 ```bash
 cd sdks/python
-
-# Build
 python -m build
-
-# Upload to PyPI
 python -m twine upload dist/*
 ```
 
-### Version Bumping
+### TypeScript (NPM)
+
+```bash
+cd sdks/typescript
+npm publish --access public
+```
+
+## Version Bumping
 
 When releasing a new version:
 
-1. Update `package.json` version
-2. Update `sdks/python/pyproject.toml` version
-3. Regenerate SDKs: `npm run generate:sdk:all`
-4. Commit and tag: `git tag v0.4.5`
-
-## Common Issues
-
-### "Module not found: pmxt_internal"
-
-The generated client isn't in the Python path. The wrapper adds it dynamically:
-
-```python
-# In pmxt/client.py
-_GENERATED_PATH = os.path.join(os.path.dirname(__file__), "..", "generated")
-sys.path.insert(0, _GENERATED_PATH)
-```
-
-### "OpenAPI validation error"
-
-Your `openapi.yaml` has a schema issue. Common problems:
-
-- Empty arrays without `items: {}`
-- Missing required fields
-- Invalid enum values
-
-Run the generator with `--skip-validate-spec` to see the raw error.
-
-### "Server not running"
-
-The Python SDK requires the sidecar server:
-
-```bash
-# Terminal 1: Start server
-npm run server
-
-# Terminal 2: Run Python code
-python examples/basic_usage.py
-```
+1.  Update `core/package.json` version.
+2.  Update `sdks/python/pyproject.toml` version.
+3.  Update `sdks/typescript/package.json` version.
+4.  Regenerate SDKs: `npm run generate:sdk:all`.
+5.  Commit and tag.
 
 ## Future: Native Bindings (v2.0.0)
 
@@ -244,4 +187,4 @@ Eventually, we'll move to native bindings (Rust + FFI) to eliminate the sidecar 
 
 ## Questions?
 
-See the main [ROADMAP.md](../../ROADMAP.md) for the overall project vision.
+See the main [ROADMAP.md](../ROADMAP.md) for the overall project vision.

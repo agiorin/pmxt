@@ -1,0 +1,48 @@
+{
+  "name": "pmxtjs",
+  "version": "0.0.1",
+  "description": "Unified prediction market data API - The ccxt for prediction markets",
+  "author": "PMXT Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/qoery-com/pmxt.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "pmxt",
+    "index.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
+    "build": "tsc && tsc -p tsconfig.esm.json",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "prediction-markets",
+    "polymarket",
+    "kalshi",
+    "trading",
+    "api",
+    "unified"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}
