@@ -49,6 +49,13 @@
 &nbsp;&nbsp;&nbsp;&nbsp;
 <img src="https://predictit.org/favicon.ico" alt="PredictIt" width="40" height="40">
 </p>
+<p align="center">
+
+<p align="center">
+  <a href="https://discord.gg/Pyn252Pg95">
+    <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  </a>
+</p>
 
 ## Why pmxt?
 
