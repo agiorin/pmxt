@@ -8,7 +8,7 @@ PMXT uses a **"Sidecar" architecture** for multi-language support:
 
 ```
 ┌─────────────────┐
-│  Python Client  │
+│  Language Client│
 │   (pmxt SDK)    │
 └────────┬────────┘
          │ HTTP
@@ -21,7 +21,7 @@ PMXT uses a **"Sidecar" architecture** for multi-language support:
     ┌────┴────┐
     ▼         ▼
 ┌────────┐ ┌────────┐
-│Polymarket│ │Kalshi  │
+│Polymarket│ │Kalshi│
 └────────┘ └────────┘
 ```
 
