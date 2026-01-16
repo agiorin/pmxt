@@ -19,7 +19,8 @@
   "include": [
     "src/**/*",
     "pmxt/**/*",
-    "index.ts"
+    "index.ts",
+    "tests/**/*"
   ],
   "exclude": [
     "dist",

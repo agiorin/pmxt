@@ -30,7 +30,8 @@
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
     "build": "tsc && tsc -p tsconfig.esm.json",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "jest"
   },
   "keywords": [
     "prediction-markets",
@@ -41,8 +42,10 @@
     "unified"
   ],
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.0.0"
-  },
-  "dependencies": {}
+  }
 }
