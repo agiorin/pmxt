@@ -76,4 +76,11 @@ pyContent = pyContent.replace(/^version = "[^"]*"/m, `version = "${pyVersion}"`)
 fs.writeFileSync(pyPath, pyContent);
 console.log(`[OK] Updated sdks/python/pyproject.toml to ${pyVersion}`);
 
+// Update sdks/python/pmxt/__init__.py
+const pyInitPath = path.join(__dirname, '..', 'sdks', 'python', 'pmxt', '__init__.py');
+let pyInitContent = fs.readFileSync(pyInitPath, 'utf8');
+pyInitContent = pyInitContent.replace(/^__version__ = "[^"]*"/m, `__version__ = "${pyVersion}"`);
+fs.writeFileSync(pyInitPath, pyInitContent);
+console.log(`[OK] Updated sdks/python/pmxt/__init__.py to ${pyVersion}`);
+
 console.log(`\n[SUCCESS] All packages updated.`);

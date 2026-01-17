@@ -33,7 +33,7 @@ from .models import (
     CreateOrderParams,
 )
 
-__version__ = "0.4.4"
+__version__ = "1.0.0b4"
 __all__ = [
     # Exchanges
     "Polymarket",
