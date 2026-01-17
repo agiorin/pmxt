@@ -240,3 +240,18 @@ class ServerManager:
             return json.loads(self.lock_path.read_text())
         except:
             return None
+    
+    def get_running_port(self) -> int:
+        """
+        Get the actual port the server is running on.
+        
+        This reads the lock file to determine the actual port,
+        which may differ from the default if the default port was busy.
+        
+        Returns:
+            Port number the server is running on, or DEFAULT_PORT if unknown
+        """
+        info = self.get_server_info()
+        if info and 'port' in info:
+            return info['port']
+        return self.DEFAULT_PORT

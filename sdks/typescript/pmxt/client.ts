@@ -172,32 +172,48 @@ export abstract class Exchange {
     protected privateKey?: string;
     protected api: DefaultApi;
     protected serverManager: ServerManager;
+    protected initPromise: Promise<void>;
 
     constructor(exchangeName: string, options: ExchangeOptions = {}) {
         this.exchangeName = exchangeName.toLowerCase();
         this.apiKey = options.apiKey;
         this.privateKey = options.privateKey;
 
-        const baseUrl = options.baseUrl || "http://localhost:3847";
+        let baseUrl = options.baseUrl || "http://localhost:3847";
         const autoStartServer = options.autoStartServer !== false;
 
         // Initialize server manager
         this.serverManager = new ServerManager({ baseUrl });
 
-        // Ensure server is running (unless disabled)
+        // Configure the API client with the initial base URL (will be updated if port changes)
+        const config = new Configuration({ basePath: baseUrl });
+        this.api = new DefaultApi(config);
+
+        // Initialize the server connection asynchronously
+        this.initPromise = this.initializeServer(autoStartServer);
+    }
+
+    private async initializeServer(autoStartServer: boolean): Promise<void> {
         if (autoStartServer) {
-            this.serverManager.ensureServerRunning().catch((error) => {
+            try {
+                await this.serverManager.ensureServerRunning();
+
+                // Get the actual port the server is running on
+                // (may differ from default if default port was busy)
+                const actualPort = this.serverManager.getRunningPort();
+                const newBaseUrl = `http://localhost:${actualPort}`;
+
+                // Update API client with actual base URL
+                const newConfig = new Configuration({ basePath: newBaseUrl });
+                this.api = new DefaultApi(newConfig);
+            } catch (error) {
                 throw new Error(
                     `Failed to start PMXT server: ${error}\n\n` +
                     `Please ensure 'pmxt-core' is installed: npm install -g pmxt-core\n` +
                     `Or start the server manually: pmxt-server`
                 );
-            });
+            }
         }
-
-        // Configure the API client
-        const config = new Configuration({ basePath: baseUrl });
-        this.api = new DefaultApi(config);
     }
 
     protected handleResponse(response: any): any {
@@ -232,6 +248,7 @@ export abstract class Exchange {
      * ```
      */
     async fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+        await this.initPromise;
         try {
             const args: any[] = [];
             if (params) {
@@ -271,6 +288,7 @@ export abstract class Exchange {
         query: string,
         params?: MarketFilterParams
     ): Promise<UnifiedMarket[]> {
+        await this.initPromise;
         try {
             const args: any[] = [query];
             if (params) {
@@ -310,6 +328,7 @@ export abstract class Exchange {
      * ```
      */
     async getMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
+        await this.initPromise;
         try {
             const requestBody: GetMarketsBySlugRequest = {
                 args: [slug],
@@ -353,6 +372,7 @@ export abstract class Exchange {
         outcomeId: string,
         params: HistoryFilterParams
     ): Promise<PriceCandle[]> {
+        await this.initPromise;
         try {
             const paramsDict: any = { resolution: params.resolution };
             if (params.start) {
@@ -396,6 +416,7 @@ export abstract class Exchange {
      * ```
      */
     async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        await this.initPromise;
         try {
             const requestBody: FetchOrderBookRequest = {
                 args: [outcomeId],
@@ -427,6 +448,7 @@ export abstract class Exchange {
         outcomeId: string,
         params: HistoryFilterParams
     ): Promise<Trade[]> {
+        await this.initPromise;
         try {
             const paramsDict: any = { resolution: params.resolution };
             if (params.limit) {
@@ -471,6 +493,7 @@ export abstract class Exchange {
      * ```
      */
     async createOrder(params: CreateOrderParams): Promise<Order> {
+        await this.initPromise;
         try {
             const paramsDict: any = {
                 marketId: params.marketId,
@@ -507,6 +530,7 @@ export abstract class Exchange {
      * @returns Cancelled order
      */
     async cancelOrder(orderId: string): Promise<Order> {
+        await this.initPromise;
         try {
             const requestBody: CancelOrderRequest = {
                 args: [orderId],
@@ -532,6 +556,7 @@ export abstract class Exchange {
      * @returns Order details
      */
     async fetchOrder(orderId: string): Promise<Order> {
+        await this.initPromise;
         try {
             const requestBody: CancelOrderRequest = {
                 args: [orderId],
@@ -557,6 +582,7 @@ export abstract class Exchange {
      * @returns List of open orders
      */
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
+        await this.initPromise;
         try {
             const args: any[] = [];
             if (marketId) {
@@ -588,6 +614,7 @@ export abstract class Exchange {
      * @returns List of positions
      */
     async fetchPositions(): Promise<Position[]> {
+        await this.initPromise;
         try {
             const requestBody: FetchPositionsRequest = {
                 args: [],
@@ -612,6 +639,7 @@ export abstract class Exchange {
      * @returns List of balances (by currency)
      */
     async fetchBalance(): Promise<Balance[]> {
+        await this.initPromise;
         try {
             const requestBody: FetchPositionsRequest = {
                 args: [],

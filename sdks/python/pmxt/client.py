@@ -182,6 +182,12 @@ class Exchange(ABC):
         if auto_start_server:
             try:
                 self._server_manager.ensure_server_running()
+                
+                # Get the actual port the server is running on
+                # (may differ from default if default port was busy)
+                actual_port = self._server_manager.get_running_port()
+                base_url = f"http://localhost:{actual_port}"
+                
             except Exception as e:
                 raise Exception(
                     f"Failed to start PMXT server: {e}\n\n"
@@ -189,7 +195,7 @@ class Exchange(ABC):
                     f"Or start the server manually: pmxt-server"
                 )
         
-        # Configure the API client
+        # Configure the API client with the actual base URL
         config = Configuration(host=base_url)
         self._api_client = ApiClient(configuration=config)
         self._api = DefaultApi(api_client=self._api_client)
