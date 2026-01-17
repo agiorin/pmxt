@@ -41,10 +41,22 @@ export interface UnifiedMarket {
     title?: string;
     /**
      * 
+     * @type {string}
+     * @memberof UnifiedMarket
+     */
+    description?: string;
+    /**
+     * 
      * @type {Array<MarketOutcome>}
      * @memberof UnifiedMarket
      */
     outcomes?: Array<MarketOutcome>;
+    /**
+     * 
+     * @type {Date}
+     * @memberof UnifiedMarket
+     */
+    resolutionDate?: Date;
     /**
      * 
      * @type {number}
@@ -56,13 +68,43 @@ export interface UnifiedMarket {
      * @type {number}
      * @memberof UnifiedMarket
      */
+    volume?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof UnifiedMarket
+     */
     liquidity?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof UnifiedMarket
+     */
+    openInterest?: number;
     /**
      * 
      * @type {string}
      * @memberof UnifiedMarket
      */
     url?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnifiedMarket
+     */
+    image?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof UnifiedMarket
+     */
+    category?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof UnifiedMarket
+     */
+    tags?: Array<string>;
 }
 
 /**
@@ -84,10 +126,17 @@ export function UnifiedMarketFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'id': json['id'] == null ? undefined : json['id'],
         'title': json['title'] == null ? undefined : json['title'],
+        'description': json['description'] == null ? undefined : json['description'],
         'outcomes': json['outcomes'] == null ? undefined : ((json['outcomes'] as Array<any>).map(MarketOutcomeFromJSON)),
+        'resolutionDate': json['resolutionDate'] == null ? undefined : (new Date(json['resolutionDate'])),
         'volume24h': json['volume24h'] == null ? undefined : json['volume24h'],
+        'volume': json['volume'] == null ? undefined : json['volume'],
         'liquidity': json['liquidity'] == null ? undefined : json['liquidity'],
+        'openInterest': json['openInterest'] == null ? undefined : json['openInterest'],
         'url': json['url'] == null ? undefined : json['url'],
+        'image': json['image'] == null ? undefined : json['image'],
+        'category': json['category'] == null ? undefined : json['category'],
+        'tags': json['tags'] == null ? undefined : json['tags'],
     };
 }
 
@@ -104,10 +153,17 @@ export function UnifiedMarketToJSONTyped(value?: UnifiedMarket | null, ignoreDis
         
         'id': value['id'],
         'title': value['title'],
+        'description': value['description'],
         'outcomes': value['outcomes'] == null ? undefined : ((value['outcomes'] as Array<any>).map(MarketOutcomeToJSON)),
+        'resolutionDate': value['resolutionDate'] == null ? value['resolutionDate'] : value['resolutionDate'].toISOString(),
         'volume24h': value['volume24h'],
+        'volume': value['volume'],
         'liquidity': value['liquidity'],
+        'openInterest': value['openInterest'],
         'url': value['url'],
+        'image': value['image'],
+        'category': value['category'],
+        'tags': value['tags'],
     };
 }
 

@@ -9,6 +9,8 @@ Name | Type
 `id` | string
 `label` | string
 `price` | number
+`priceChange24h` | number
+`metadata` | { [key: string]: any; }
 
 ## Example
 
@@ -20,6 +22,8 @@ const example = {
   "id": null,
   "label": null,
   "price": null,
+  "priceChange24h": null,
+  "metadata": null,
 } satisfies MarketOutcome
 
 console.log(example)

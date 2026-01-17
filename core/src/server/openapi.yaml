@@ -532,16 +532,33 @@ components:
           type: string
         title:
           type: string
+        description:
+          type: string
         outcomes:
           type: array
           items:
             $ref: '#/components/schemas/MarketOutcome'
+        resolutionDate:
+          type: string
+          format: date-time
         volume24h:
+          type: number
+        volume:
           type: number
         liquidity:
           type: number
+        openInterest:
+          type: number
         url:
           type: string
+        image:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
 
     MarketOutcome:
       type: object
@@ -552,6 +569,12 @@ components:
           type: string
         price:
           type: number
+        priceChange24h:
+          type: number
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Exchange-specific metadata (e.g., clobTokenId for Polymarket)
 
     PriceCandle:
       type: object
@@ -580,6 +603,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrderLevel'
+        timestamp:
+          type: integer
 
     OrderLevel:
       type: object
@@ -629,12 +654,15 @@ components:
           type: number
         status:
           type: string
+          enum: [pending, open, filled, cancelled, rejected]
         filled:
           type: number
         remaining:
           type: number
         timestamp:
           type: integer
+        fee:
+          type: number
 
     Position:
       type: object

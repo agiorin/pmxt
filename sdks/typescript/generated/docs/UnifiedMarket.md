@@ -8,10 +8,17 @@ Name | Type
 ------------ | -------------
 `id` | string
 `title` | string
+`description` | string
 `outcomes` | [Array&lt;MarketOutcome&gt;](MarketOutcome.md)
+`resolutionDate` | Date
 `volume24h` | number
+`volume` | number
 `liquidity` | number
+`openInterest` | number
 `url` | string
+`image` | string
+`category` | string
+`tags` | Array&lt;string&gt;
 
 ## Example
 
@@ -22,10 +29,17 @@ import type { UnifiedMarket } from 'pmxtjs'
 const example = {
   "id": null,
   "title": null,
+  "description": null,
   "outcomes": null,
+  "resolutionDate": null,
   "volume24h": null,
+  "volume": null,
   "liquidity": null,
+  "openInterest": null,
   "url": null,
+  "image": null,
+  "category": null,
+  "tags": null,
 } satisfies UnifiedMarket
 
 console.log(example)

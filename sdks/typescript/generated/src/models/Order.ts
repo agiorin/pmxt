@@ -66,7 +66,7 @@ export interface Order {
      * @type {string}
      * @memberof Order
      */
-    status?: string;
+    status?: OrderStatusEnum;
     /**
      * 
      * @type {number}
@@ -85,6 +85,12 @@ export interface Order {
      * @memberof Order
      */
     timestamp?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof Order
+     */
+    fee?: number;
 }
 
 
@@ -105,6 +111,18 @@ export const OrderTypeEnum = {
     Market: 'market'
 } as const;
 export type OrderTypeEnum = typeof OrderTypeEnum[keyof typeof OrderTypeEnum];
+
+/**
+ * @export
+ */
+export const OrderStatusEnum = {
+    Pending: 'pending',
+    Open: 'open',
+    Filled: 'filled',
+    Cancelled: 'cancelled',
+    Rejected: 'rejected'
+} as const;
+export type OrderStatusEnum = typeof OrderStatusEnum[keyof typeof OrderStatusEnum];
 
 
 /**
@@ -135,6 +153,7 @@ export function OrderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ord
         'filled': json['filled'] == null ? undefined : json['filled'],
         'remaining': json['remaining'] == null ? undefined : json['remaining'],
         'timestamp': json['timestamp'] == null ? undefined : json['timestamp'],
+        'fee': json['fee'] == null ? undefined : json['fee'],
     };
 }
 
@@ -160,6 +179,7 @@ export function OrderToJSONTyped(value?: Order | null, ignoreDiscriminator: bool
         'filled': value['filled'],
         'remaining': value['remaining'],
         'timestamp': value['timestamp'],
+        'fee': value['fee'],
     };
 }
 

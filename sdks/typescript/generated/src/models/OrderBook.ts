@@ -39,6 +39,12 @@ export interface OrderBook {
      * @memberof OrderBook
      */
     asks?: Array<OrderLevel>;
+    /**
+     * 
+     * @type {number}
+     * @memberof OrderBook
+     */
+    timestamp?: number;
 }
 
 /**
@@ -60,6 +66,7 @@ export function OrderBookFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         
         'bids': json['bids'] == null ? undefined : ((json['bids'] as Array<any>).map(OrderLevelFromJSON)),
         'asks': json['asks'] == null ? undefined : ((json['asks'] as Array<any>).map(OrderLevelFromJSON)),
+        'timestamp': json['timestamp'] == null ? undefined : json['timestamp'],
     };
 }
 
@@ -76,6 +83,7 @@ export function OrderBookToJSONTyped(value?: OrderBook | null, ignoreDiscriminat
         
         'bids': value['bids'] == null ? undefined : ((value['bids'] as Array<any>).map(OrderLevelToJSON)),
         'asks': value['asks'] == null ? undefined : ((value['asks'] as Array<any>).map(OrderLevelToJSON)),
+        'timestamp': value['timestamp'],
     };
 }
 

@@ -37,6 +37,18 @@ export interface MarketOutcome {
      * @memberof MarketOutcome
      */
     price?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof MarketOutcome
+     */
+    priceChange24h?: number;
+    /**
+     * Exchange-specific metadata (e.g., clobTokenId for Polymarket)
+     * @type {{ [key: string]: any; }}
+     * @memberof MarketOutcome
+     */
+    metadata?: { [key: string]: any; };
 }
 
 /**
@@ -59,6 +71,8 @@ export function MarketOutcomeFromJSONTyped(json: any, ignoreDiscriminator: boole
         'id': json['id'] == null ? undefined : json['id'],
         'label': json['label'] == null ? undefined : json['label'],
         'price': json['price'] == null ? undefined : json['price'],
+        'priceChange24h': json['priceChange24h'] == null ? undefined : json['priceChange24h'],
+        'metadata': json['metadata'] == null ? undefined : json['metadata'],
     };
 }
 
@@ -76,6 +90,8 @@ export function MarketOutcomeToJSONTyped(value?: MarketOutcome | null, ignoreDis
         'id': value['id'],
         'label': value['label'],
         'price': value['price'],
+        'priceChange24h': value['priceChange24h'],
+        'metadata': value['metadata'],
     };
 }
 

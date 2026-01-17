@@ -17,6 +17,7 @@ Name | Type
 `filled` | number
 `remaining` | number
 `timestamp` | number
+`fee` | number
 
 ## Example
 
@@ -36,6 +37,7 @@ const example = {
   "filled": null,
   "remaining": null,
   "timestamp": null,
+  "fee": null,
 } satisfies Order
 
 console.log(example)

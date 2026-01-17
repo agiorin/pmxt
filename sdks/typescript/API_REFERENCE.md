@@ -467,10 +467,17 @@ positions.forEach(pos &#x3D;&gt; {
 interface UnifiedMarket {
   id: string; // 
   title: string; // 
+  description: string; // 
   outcomes: MarketOutcome[]; // 
+  resolutionDate: string; // 
   volume24h: number; // 
+  volume: number; // 
   liquidity: number; // 
+  openInterest: number; // 
   url: string; // 
+  image: string; // 
+  category: string; // 
+  tags: string[]; // 
 }
 ```
 
@@ -484,6 +491,8 @@ interface MarketOutcome {
   id: string; // 
   label: string; // 
   price: number; // 
+  priceChange24h: number; // 
+  metadata: object; // Exchange-specific metadata (e.g., clobTokenId for Polymarket)
 }
 ```
 
@@ -512,6 +521,7 @@ interface PriceCandle {
 interface OrderBook {
   bids: OrderLevel[]; // 
   asks: OrderLevel[]; // 
+  timestamp: number; // 
 }
 ```
 
@@ -560,6 +570,7 @@ interface Order {
   filled: number; // 
   remaining: number; // 
   timestamp: number; // 
+  fee: number; // 
 }
 ```
 
@@ -596,9 +607,34 @@ interface Balance {
 ```
 
 ---
+### `ExchangeCredentials`
+
+Optional authentication credentials for exchange operations
+
+```typescript
+interface ExchangeCredentials {
+  apiKey: string; // API key for the exchange
+  privateKey: string; // Private key for signing transactions
+  apiSecret: string; // API secret (if required by exchange)
+  passphrase: string; // Passphrase (if required by exchange)
+}
+```
+
+---
 
 ## Filter Parameters
 
+### `BaseRequest`
+
+Base request structure with optional credentials
+
+```typescript
+interface BaseRequest {
+  credentials?: ExchangeCredentials; // 
+}
+```
+
+---
 ### `MarketFilterParams`
 
 

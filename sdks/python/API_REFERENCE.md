@@ -467,10 +467,17 @@ for pos in positions:
 class UnifiedMarket:
 id: str # 
 title: str # 
+description: str # 
 outcomes: List[MarketOutcome] # 
+resolution_date: str # 
 volume24h: float # 
+volume: float # 
 liquidity: float # 
+open_interest: float # 
 url: str # 
+image: str # 
+category: str # 
+tags: List[string] # 
 ```
 
 ---
@@ -484,6 +491,8 @@ class MarketOutcome:
 id: str # 
 label: str # 
 price: float # 
+price_change24h: float # 
+metadata: object # Exchange-specific metadata (e.g., clobTokenId for Polymarket)
 ```
 
 ---
@@ -512,6 +521,7 @@ volume: float #
 class OrderBook:
 bids: List[OrderLevel] # 
 asks: List[OrderLevel] # 
+timestamp: int # 
 ```
 
 ---
@@ -560,6 +570,7 @@ status: str #
 filled: float # 
 remaining: float # 
 timestamp: int # 
+fee: float # 
 ```
 
 ---
@@ -595,9 +606,34 @@ locked: float #
 ```
 
 ---
+### `ExchangeCredentials`
+
+Optional authentication credentials for exchange operations
+
+```python
+@dataclass
+class ExchangeCredentials:
+api_key: str # API key for the exchange
+private_key: str # Private key for signing transactions
+api_secret: str # API secret (if required by exchange)
+passphrase: str # Passphrase (if required by exchange)
+```
+
+---
 
 ## Filter Parameters
 
+### `BaseRequest`
+
+Base request structure with optional credentials
+
+```python
+@dataclass
+class BaseRequest:
+credentials: ExchangeCredentials # 
+```
+
+---
 ### `MarketFilterParams`
 
 

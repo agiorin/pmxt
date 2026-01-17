@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `bids` | [Array&lt;OrderLevel&gt;](OrderLevel.md)
 `asks` | [Array&lt;OrderLevel&gt;](OrderLevel.md)
+`timestamp` | number
 
 ## Example
 
@@ -18,6 +19,7 @@ import type { OrderBook } from 'pmxtjs'
 const example = {
   "bids": null,
   "asks": null,
+  "timestamp": null,
 } satisfies OrderBook
 
 console.log(example)
