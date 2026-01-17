@@ -31,7 +31,7 @@
 </td>
 <td>
 <a href="https://www.npmjs.com/package/pmxtjs">
-  <img src="https://img.shields.io/npm/v/pmxtjs.svg" alt="npm version">
+  <img src="https://img.shields.io/npm/v/pmxtjs?label=version" alt="version">
 </a>
 </td>
 </tr>
