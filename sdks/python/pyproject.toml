@@ -49,9 +49,9 @@ Repository = "https://github.com/qoery-com/pmxt"
 Issues = "https://github.com/qoery-com/pmxt/issues"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["pmxt*"]
-exclude = ["tests*", "generated*"]
+where = [".", "generated"]
+include = ["pmxt*", "pmxt_internal*"]
+exclude = ["tests*"]
 
 [tool.black]
 line-length = 100

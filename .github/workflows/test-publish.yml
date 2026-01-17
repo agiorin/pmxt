@@ -23,9 +23,20 @@ jobs:
       - name: Install dependencies (Root)
         run: npm ci
 
+      - name: Generate SDKs
+        run: npm run generate:sdk:all --workspace=pmxt-core
+
       - name: Build All Workspaces
         run: npm run build --workspaces
         
+      - name: Start PMXT Server
+        run: |
+          npm run server --workspace=pmxt-core &
+          # Wait for server to be ready
+          echo "Waiting for server to start..."
+          timeout 30 bash -c 'until curl -s http://localhost:3000/health > /dev/null; do sleep 1; done'
+          echo "Server is ready!"
+
       - name: Test All Workspaces
         run: npm test --workspaces
 
@@ -52,6 +63,19 @@ jobs:
           pip install .
         working-directory: sdks/python
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies & Start Server
+        run: |
+          npm ci
+          npm run generate:sdk:all --workspace=pmxt-core
+          npm run build --workspace=pmxt-core
+          npm run server --workspace=pmxt-core &
+          # Wait for server
+          timeout 30 bash -c 'until curl -s http://localhost:3000/health > /dev/null; do sleep 1; done'
+        
       - name: Run Tests
         run: pytest
         working-directory: sdks/python
