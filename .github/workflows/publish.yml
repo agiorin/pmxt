@@ -26,6 +26,17 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
+          
+          # Detect if this is a pre-release (beta, alpha, rc)
+          if [[ "$VERSION" =~ (alpha|beta|rc|a|b) ]]; then
+            echo "npm_tag=beta" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Pre-release detected - will publish with 'beta' tag"
+          else
+            echo "npm_tag=latest" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Stable release - will publish with 'latest' tag"
+          fi
       
       - name: Update package versions
         run: node scripts/update-versions.js ${{ steps.get_version.outputs.version }}
@@ -51,12 +62,12 @@ jobs:
         run: npm run build --workspaces
         
       - name: Publish pmxt-core
-        run: npm publish --workspace=pmxt-core --provenance --access public
+        run: npm publish --workspace=pmxt-core --provenance --access public --tag ${{ steps.get_version.outputs.npm_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
       - name: Publish pmxtjs
-        run: npm publish --workspace=pmxtjs --provenance --access public
+        run: npm publish --workspace=pmxtjs --provenance --access public --tag ${{ steps.get_version.outputs.npm_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
