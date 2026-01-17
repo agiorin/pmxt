@@ -29,7 +29,7 @@
     "clean": "rm -rf dist",
     "generate": "npm run generate:sdk:typescript --workspace=pmxt-core",
     "prebuild": "npm run clean",
-    "build": "tsc && tsc -p tsconfig.esm.json && echo '{ \"type\": \"module\" }' > dist/esm/package.json",
+    "build": "tsc && tsc -p tsconfig.esm.json && node scripts/fix-esm.js && echo '{ \"type\": \"module\" }' > dist/esm/package.json",
     "prepack": "npm run build",
     "test": "jest"
   },
