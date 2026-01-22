@@ -69,15 +69,62 @@ class ServerManager:
         Raises:
             Exception: If server fails to start or become healthy
         """
-        # Step 1: Check if server is already running
+        # Step 1: Check if force restart is requested (DEV MODE)
+        if os.getenv('PMXT_ALWAYS_RESTART') == '1':
+            self._kill_old_server()
+
+        # Step 2: Check if server is already running and matches version
         if self.is_server_alive():
-            return
+            if self._is_version_mismatch():
+                # print("PMXT: Version mismatch detected. Restarting server...")
+                self._kill_old_server()
+            else:
+                return
         
-        # Step 2: Start server via launcher
+        # Step 3: Start server via launcher
         self._start_server_via_launcher()
         
-        # Step 3: Wait for health check
+        # Step 4: Wait for health check
         self._wait_for_health()
+
+    def _is_version_mismatch(self) -> bool:
+        """Check if running server version matches expected version."""
+        server_info = self.get_server_info()
+        if not server_info or 'version' not in server_info:
+            return True # Old server without version
+        
+        # Get expected version
+        try:
+            # 1. Check production path (bundled)
+            pkg_path = Path(__file__).parent / '_server' / 'package.json'
+            
+            # 2. Check dev path (monorepo)
+            if not pkg_path.exists():
+                # Traverse up to find core/package.json
+                pkg_path = Path(__file__).parent.parent.parent.parent / 'core' / 'package.json'
+
+            if pkg_path.exists():
+                data = json.loads(pkg_path.read_text())
+                expected_version = data.get('version')
+                if expected_version and not server_info['version'].startswith(expected_version):
+                     return True
+        except:
+            pass
+            
+        return False
+
+    def _kill_old_server(self) -> None:
+        """Kill the currently running server."""
+        server_info = self.get_server_info()
+        if server_info and 'pid' in server_info:
+            import signal
+            try:
+                os.kill(server_info['pid'], signal.SIGTERM)
+                # Brief wait for cleanup
+                time.sleep(0.5)
+            except:
+                pass
+        self._remove_stale_lock()
     
     def is_server_alive(self) -> bool:
         """

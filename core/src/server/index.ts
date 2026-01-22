@@ -4,16 +4,57 @@ import { startServer } from './app';
 import { PortManager } from './utils/port-manager';
 import { LockFile } from './utils/lock-file';
 
+import { randomUUID } from 'crypto';
+
+import { createHash } from 'crypto';
+import { readFileSync, statSync } from 'fs';
+import { join } from 'path';
+
+function getServerVersion(): string {
+    const packageCtx = readFileSync(join(__dirname, '../../package.json'), 'utf-8');
+    const packageJson = JSON.parse(packageCtx);
+    const baseVersion = packageJson.version;
+
+    // Check if we're in development mode or if generic forced restart is requested
+    const isDev = process.env.NODE_ENV === 'development' ||
+        process.env.PMXT_ALWAYS_RESTART === '1' ||
+        __dirname.includes('/core/src/') ||
+        __dirname.includes('/core/dist/');
+
+    if (!isDev) {
+        return baseVersion;
+    }
+
+    // Development: append code hash based on this file's stats
+    try {
+        const serverFile = __filename;
+        const stats = statSync(serverFile);
+        const hash = createHash('md5')
+            .update(stats.mtime.toISOString())
+            .digest('hex')
+            .substring(0, 8);
+
+        return `${baseVersion}-dev.${hash}`;
+    } catch {
+        return `${baseVersion}-dev.${Date.now()}`;
+    }
+}
+
 async function main() {
     const portManager = new PortManager();
     const port = await portManager.findAvailablePort(3847); // Default port
+    const accessToken = process.env.PMXT_ACCESS_TOKEN || randomUUID();
+    const version = getServerVersion();
 
     const lockFile = new LockFile();
-    await lockFile.create(port, process.pid);
+    await lockFile.create(port, process.pid, accessToken, version);
 
-    const server = await startServer(port);
+    const server = await startServer(port, accessToken);
 
-    console.log(`PMXT Sidecar Server running on http://localhost:${port}`);
+    console.log(`PMXT Sidecar Server v${version} running on http://localhost:${port}`);
+    if (version.includes('-dev.')) {
+        console.log('Running in Development Mode (auto-restart enabled)');
+    }
     console.log(`Lock file created at ${lockFile.lockPath}`);
 
     // Graceful shutdown

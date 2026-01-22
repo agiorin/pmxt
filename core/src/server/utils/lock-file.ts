@@ -9,15 +9,15 @@ export class LockFile {
         this.lockPath = path.join(os.homedir(), '.pmxt', 'server.lock');
     }
 
-    async create(port: number, pid: number): Promise<void> {
+    async create(port: number, pid: number, accessToken: string, version: string): Promise<void> {
         await fs.mkdir(path.dirname(this.lockPath), { recursive: true });
         await fs.writeFile(
             this.lockPath,
-            JSON.stringify({ port, pid, timestamp: Date.now() }, null, 2)
+            JSON.stringify({ port, pid, accessToken, version, timestamp: Date.now() }, null, 2)
         );
     }
 
-    async read(): Promise<{ port: number; pid: number; timestamp: number } | null> {
+    async read(): Promise<{ port: number; pid: number; accessToken?: string; version?: string; timestamp: number } | null> {
         try {
             const data = await fs.readFile(this.lockPath, 'utf-8');
             return JSON.parse(data);

@@ -198,6 +198,12 @@ class Exchange(ABC):
         # Configure the API client with the actual base URL
         config = Configuration(host=base_url)
         self._api_client = ApiClient(configuration=config)
+        
+        # Add access token from lock file
+        server_info = self._server_manager.get_server_info()
+        if server_info and 'accessToken' in server_info:
+            self._api_client.default_headers['x-pmxt-access-token'] = server_info['accessToken']
+            
         self._api = DefaultApi(api_client=self._api_client)
     
     def _handle_response(self, response: Dict[str, Any]) -> Any:

@@ -31,11 +31,30 @@ npm run server
 
 See the [Python SDK Development Guide](./sdks/SDK_DEVELOPMENT.md) for detailed instructions on generating and testing the Python client.
 
-## Workflow
+## Development Workflow
 
-1.  Make changes in `core/` (if updating the API).
-2.  Update the OpenAPI spec if necessary.
-3.  Run `npm run generate` to update the Python SDK.
-4.  Test your changes using the examples in `sdks/python/examples`.
+This project uses a **Sidecar Architecture**: the core logic is in TypeScript (`core/`), which SDKs spawn as a background process.
 
-Thank you for helping us make prediction markets accessible to everyone!
+### 1. Active Development (Auto-Restart)
+To have the server automatically update when you change TypeScript code:
+
+```bash
+# In one terminal
+cd core && npm run build -- --watch
+```
+
+The SDKs detect these changes via a version hash and will **auto-restart** the server on the next request.
+
+### 2. Manual Forced Restart
+If you need a guaranteed fresh server state:
+```bash
+export PMXT_ALWAYS_RESTART=1
+# Run your SDK script
+```
+
+## Summary Workflow
+1. Modify code in `core/src`.
+2. Ensure `npm run build -- --watch` is running in the background.
+3. Run your Python/TS scripts; the server will hot-swap automatically.
+
+Thank you for helping us build the future of prediction markets!

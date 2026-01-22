@@ -203,8 +203,17 @@ export abstract class Exchange {
                 const actualPort = this.serverManager.getRunningPort();
                 const newBaseUrl = `http://localhost:${actualPort}`;
 
+                const accessToken = this.serverManager.getAccessToken();
+                const headers: any = {};
+                if (accessToken) {
+                    headers['x-pmxt-access-token'] = accessToken;
+                }
+
                 // Update API client with actual base URL
-                const newConfig = new Configuration({ basePath: newBaseUrl });
+                const newConfig = new Configuration({
+                    basePath: newBaseUrl,
+                    headers
+                });
                 this.api = new DefaultApi(newConfig);
             } catch (error) {
                 throw new Error(

@@ -18,6 +18,8 @@ export interface ServerManagerOptions {
 interface ServerLockInfo {
     port: number;
     pid: number;
+    accessToken?: string;
+    version?: string;
     timestamp: number;
 }
 
@@ -66,8 +68,13 @@ export class ServerManager {
     }
 
     /**
-     * Check if the server is running.
+     * Get the access token from the lock file.
      */
+    getAccessToken(): string | undefined {
+        const info = this.getServerInfo();
+        return info?.accessToken;
+    }
+
     /**
      * Check if the server is running.
      */
@@ -108,9 +115,18 @@ export class ServerManager {
      * Ensure the server is running, starting it if necessary.
      */
     async ensureServerRunning(): Promise<void> {
-        // Check if already running
+        // Check for force restart
+        if (process.env.PMXT_ALWAYS_RESTART === '1') {
+            await this.killOldServer();
+        }
+
+        // Check if already running and version matches
         if (await this.isServerRunning()) {
-            return;
+            if (await this.isVersionMismatch()) {
+                await this.killOldServer();
+            } else {
+                return;
+            }
         }
 
         // Locate pmxt-ensure-server
@@ -152,5 +168,56 @@ export class ServerManager {
             );
         }
     }
-}
 
+    private async isVersionMismatch(): Promise<boolean> {
+        const info = this.getServerInfo();
+        if (!info || !info.version) {
+            return true; // Old server without version
+        }
+
+        try {
+            // 1. Try to find package.json relative to the installed location (Production)
+            let corePackageJsonPath: string | undefined;
+            try {
+                corePackageJsonPath = require.resolve('pmxt-core/package.json');
+            } catch {
+                // 2. Try dev path (Monorepo)
+                const devPath = join(dirname(__dirname), '../../core/package.json');
+                if (existsSync(devPath)) {
+                    corePackageJsonPath = devPath;
+                }
+            }
+
+            if (corePackageJsonPath && existsSync(corePackageJsonPath)) {
+                const content = readFileSync(corePackageJsonPath, 'utf-8');
+                const pkg = JSON.parse(content);
+                // Check if running version starts with package version
+                // (Server version might have extra hash in dev mode)
+                if (pkg.version && !info.version.startsWith(pkg.version)) {
+                    return true;
+                }
+            }
+        } catch {
+            // Ignore errors
+        }
+        return false;
+    }
+
+    private async killOldServer(): Promise<void> {
+        const info = this.getServerInfo();
+        if (info && info.pid) {
+            try {
+                process.kill(info.pid, 'SIGTERM');
+                // Brief wait
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch {
+                // Ignore
+            }
+        }
+        // Remove lock file (best effort)
+        try {
+            const { unlinkSync } = await import('fs');
+            unlinkSync(this.lockPath);
+        } catch { }
+    }
+}

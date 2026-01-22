@@ -10,15 +10,25 @@ const defaultExchanges: Record<string, any> = {
     kalshi: null
 };
 
-export async function startServer(port: number) {
+export async function startServer(port: number, accessToken: string) {
     const app: Express = express();
 
     app.use(cors());
     app.use(express.json());
 
-    // Health check
+    // Health check (public)
     app.get('/health', (req, res) => {
         res.json({ status: 'ok', timestamp: Date.now() });
+    });
+
+    // Auth Middleware
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        const token = req.headers['x-pmxt-access-token'];
+        if (!token || token !== accessToken) {
+            res.status(401).json({ success: false, error: 'Unauthorized: Invalid or missing access token' });
+            return;
+        }
+        next();
     });
 
     // API endpoint: POST /api/:exchange/:method
@@ -70,7 +80,7 @@ export async function startServer(port: number) {
         });
     });
 
-    return app.listen(port);
+    return app.listen(port, '127.0.0.1');
 }
 
 function createExchange(name: string, credentials?: ExchangeCredentials) {
