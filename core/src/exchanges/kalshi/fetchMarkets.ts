@@ -98,25 +98,32 @@ export function resetCache(): void {
 
 export async function fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 50;
+    const offset = params?.offset || 0;
     const now = Date.now();
 
     try {
         let events: any[];
         let seriesMap: Map<string, string[]>;
 
+        // Check if we have valid cached data
         if (cachedEvents && cachedSeriesMap && (now - lastCacheTime < CACHE_TTL)) {
             events = cachedEvents;
             seriesMap = cachedSeriesMap;
         } else {
-            // Fetch active events with nested markets
-            // We also fetch Series metadata to get tags (tags are on Series, not Event)
+            // Fetch ALL active markets to enable client-side pagination and sorting
+            // We set a high limit to capture the entire active market set
+            // Kalshi active markets are generally in the hundreds, manageable in memory
+            const fetchLimit = 1000;
+
             const [allEvents, fetchedSeriesMap] = await Promise.all([
-                fetchActiveEvents(limit),
+                fetchActiveEvents(fetchLimit),
                 fetchSeriesMap()
             ]);
 
             events = allEvents;
             seriesMap = fetchedSeriesMap;
+
+            // Cache the FULL dataset
             cachedEvents = allEvents;
             cachedSeriesMap = fetchedSeriesMap;
             lastCacheTime = now;
@@ -151,7 +158,7 @@ export async function fetchMarkets(params?: MarketFilterParams): Promise<Unified
             allMarkets.sort((a, b) => b.liquidity - a.liquidity);
         }
 
-        return allMarkets.slice(0, limit);
+        return allMarkets.slice(offset, offset + limit);
 
     } catch (error) {
         console.error("Error fetching Kalshi data:", error);

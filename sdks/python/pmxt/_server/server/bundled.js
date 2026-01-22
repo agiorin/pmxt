@@ -83381,6 +83381,7 @@ var require_fetchMarkets2 = __commonJS({
     }
     async function fetchMarkets(params) {
       const limit = params?.limit || 50;
+      const offset = params?.offset || 0;
       const now = Date.now();
       try {
         let events;
@@ -83389,8 +83390,9 @@ var require_fetchMarkets2 = __commonJS({
           events = cachedEvents;
           seriesMap = cachedSeriesMap;
         } else {
+          const fetchLimit = 1e3;
           const [allEvents, fetchedSeriesMap] = await Promise.all([
-            fetchActiveEvents(limit),
+            fetchActiveEvents(fetchLimit),
             fetchSeriesMap()
           ]);
           events = allEvents;
@@ -83419,7 +83421,7 @@ var require_fetchMarkets2 = __commonJS({
         } else if (params?.sort === "liquidity") {
           allMarkets.sort((a, b) => b.liquidity - a.liquidity);
         }
-        return allMarkets.slice(0, limit);
+        return allMarkets.slice(offset, offset + limit);
       } catch (error) {
         console.error("Error fetching Kalshi data:", error);
         return [];
