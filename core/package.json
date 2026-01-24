@@ -46,6 +46,7 @@
     "dotenv": "^17.2.3",
     "ethers": "^5.8.0",
     "express": "^5.2.1",
+    "isows": "^1.0.6",
     "jest": "^30.2.0",
     "tsx": "^4.21.0"
   },
@@ -60,5 +61,13 @@
     "js-yaml": "^3.14.2",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@nevuamarkets/poly-websockets": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nevuamarkets/poly-websockets": {
+      "optional": true
+    }
   }
 }

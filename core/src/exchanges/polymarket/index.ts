@@ -9,12 +9,36 @@ import { fetchTrades } from './fetchTrades';
 import { fetchPositions } from './fetchPositions';
 import { PolymarketAuth } from './auth';
 import { Side, OrderType, AssetType } from '@polymarket/clob-client';
+import { PolymarketWebSocket, PolymarketWebSocketConfig } from './websocket';
+
+// Re-export for external use
+export { PolymarketWebSocketConfig };
+
+export interface PolymarketExchangeOptions {
+    credentials?: ExchangeCredentials;
+    websocket?: PolymarketWebSocketConfig;
+}
 
 export class PolymarketExchange extends PredictionMarketExchange {
     private auth?: PolymarketAuth;
+    private wsConfig?: PolymarketWebSocketConfig;
 
-    constructor(credentials?: ExchangeCredentials) {
+    constructor(options?: ExchangeCredentials | PolymarketExchangeOptions) {
+        // Support both old signature (credentials only) and new signature (options object)
+        let credentials: ExchangeCredentials | undefined;
+        let wsConfig: PolymarketWebSocketConfig | undefined;
+
+        if (options && 'credentials' in options) {
+            // New signature: PolymarketExchangeOptions
+            credentials = options.credentials;
+            wsConfig = options.websocket;
+        } else {
+            // Old signature: ExchangeCredentials directly
+            credentials = options as ExchangeCredentials | undefined;
+        }
+
         super(credentials);
+        this.wsConfig = wsConfig;
 
         // Initialize auth if credentials are provided
         if (credentials?.privateKey) {
@@ -239,6 +263,33 @@ export class PolymarketExchange extends PredictionMarketExchange {
         } catch (error: any) {
             console.error("Polymarket fetchBalance error:", error);
             throw error;
+        }
+    }
+
+    // ----------------------------------------------------------------------------
+    // WebSocket Methods
+    // ----------------------------------------------------------------------------
+
+    private ws?: PolymarketWebSocket;
+
+    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+        if (!this.ws) {
+            this.ws = new PolymarketWebSocket(this.wsConfig);
+        }
+        return this.ws.watchOrderBook(id);
+    }
+
+    async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]> {
+        if (!this.ws) {
+            this.ws = new PolymarketWebSocket(this.wsConfig);
+        }
+        return this.ws.watchTrades(id);
+    }
+
+    async close(): Promise<void> {
+        if (this.ws) {
+            this.ws.close();
+            this.ws = undefined;
         }
     }
 }

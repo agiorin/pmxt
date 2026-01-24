@@ -121,4 +121,64 @@ export abstract class PredictionMarketExchange {
     async fetchBalance(): Promise<Balance[]> {
         throw new Error("Method fetchBalance not implemented.");
     }
+
+    // ----------------------------------------------------------------------------
+    // WebSocket Streaming Methods
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Watch orderbook updates in real-time via WebSocket.
+     * Returns a promise that resolves with the latest orderbook state.
+     * The orderbook is maintained internally with incremental updates.
+     * 
+     * Usage (async iterator pattern):
+     * ```typescript
+     * while (true) {
+     *     const orderbook = await exchange.watchOrderBook(outcomeId);
+     *     console.log(orderbook);
+     * }
+     * ```
+     * 
+     * @param id - The Outcome ID to watch
+     * @param limit - Optional limit for orderbook depth
+     * @returns Promise that resolves with the current orderbook state
+     */
+    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+        throw new Error(`watchOrderBook() is not supported by ${this.name}`);
+    }
+
+    /**
+     * Watch trade executions in real-time via WebSocket.
+     * Returns a promise that resolves with an array of recent trades.
+     * 
+     * Usage (async iterator pattern):
+     * ```typescript
+     * while (true) {
+     *     const trades = await exchange.watchTrades(outcomeId);
+     *     console.log(trades);
+     * }
+     * ```
+     * 
+     * @param id - The Outcome ID to watch
+     * @param since - Optional timestamp to filter trades from
+     * @param limit - Optional limit for number of trades
+     * @returns Promise that resolves with recent trades
+     */
+    async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]> {
+        throw new Error(`watchTrades() is not supported by ${this.name}`);
+    }
+
+    /**
+     * Close all WebSocket connections and clean up resources.
+     * Should be called when done with real-time data to prevent memory leaks.
+     * 
+     * Usage:
+     * ```typescript
+     * await exchange.close();
+     * ```
+     */
+    async close(): Promise<void> {
+        // Default implementation: no-op
+        // Exchanges with WebSocket support should override this
+    }
 }
