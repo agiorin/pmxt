@@ -11,15 +11,23 @@ import { readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 function getServerVersion(): string {
-    const packageCtx = readFileSync(join(__dirname, '../../package.json'), 'utf-8');
-    const packageJson = JSON.parse(packageCtx);
-    const baseVersion = packageJson.version;
+    let baseVersion = '1.0.0';
+    let packageJson;
+
+    try {
+        const packageCtx = readFileSync(join(__dirname, '../../package.json'), 'utf-8');
+        packageJson = JSON.parse(packageCtx);
+        baseVersion = packageJson.version;
+    } catch (e) {
+        // Fallback for bundled environments where package.json might not exist relative to __dirname
+        baseVersion = '1.0.0';
+    }
 
     // Check if we're in development mode or if generic forced restart is requested
     const isDev = process.env.NODE_ENV === 'development' ||
         process.env.PMXT_ALWAYS_RESTART === '1' ||
-        __dirname.includes('/core/src/') ||
-        __dirname.includes('/core/dist/');
+        (__dirname.includes('/core/src/') && !!packageJson) ||
+        (__dirname.includes('/core/dist/') && !!packageJson);
 
     if (!isDev) {
         return baseVersion;

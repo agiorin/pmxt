@@ -104733,6 +104733,7 @@ var require_polymarket = __commonJS({
             timestamp: o.created_at * 1e3
           }));
         } catch (error) {
+          console.error("Error fetching Polymarket open orders:", error);
           return [];
         }
       }
@@ -105366,6 +105367,290 @@ var require_auth2 = __commonJS({
   }
 });
 
+// dist/exchanges/kalshi/websocket.js
+var require_websocket4 = __commonJS({
+  "dist/exchanges/kalshi/websocket.js"(exports2) {
+    "use strict";
+    var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.KalshiWebSocket = void 0;
+    var ws_1 = __importDefault(require_ws());
+    var KalshiWebSocket = class {
+      constructor(auth, config = {}) {
+        this.orderBookResolvers = /* @__PURE__ */ new Map();
+        this.tradeResolvers = /* @__PURE__ */ new Map();
+        this.orderBooks = /* @__PURE__ */ new Map();
+        this.subscribedTickers = /* @__PURE__ */ new Set();
+        this.messageIdCounter = 1;
+        this.isConnecting = false;
+        this.isConnected = false;
+        this.auth = auth;
+        this.config = {
+          wsUrl: config.wsUrl || "wss://api.elections.kalshi.com/trade-api/ws/v2",
+          reconnectIntervalMs: config.reconnectIntervalMs || 5e3
+        };
+      }
+      async connect() {
+        if (this.isConnected || this.isConnecting) {
+          return;
+        }
+        this.isConnecting = true;
+        return new Promise((resolve, reject) => {
+          try {
+            const url2 = new URL(this.config.wsUrl);
+            const path = url2.pathname;
+            console.log(`Kalshi WS: Connecting to ${this.config.wsUrl} (using path ${path} for signature)`);
+            const headers = this.auth.getHeaders("GET", path);
+            this.ws = new ws_1.default(this.config.wsUrl, { headers });
+            this.ws.on("open", () => {
+              this.isConnected = true;
+              this.isConnecting = false;
+              console.log("Kalshi WebSocket connected");
+              if (this.subscribedTickers.size > 0) {
+                this.subscribeToOrderbook(Array.from(this.subscribedTickers));
+              }
+              resolve();
+            });
+            this.ws.on("message", (data) => {
+              try {
+                const message = JSON.parse(data.toString());
+                this.handleMessage(message);
+              } catch (error) {
+                console.error("Error parsing Kalshi WebSocket message:", error);
+              }
+            });
+            this.ws.on("error", (error) => {
+              console.error("Kalshi WebSocket error:", error);
+              this.isConnecting = false;
+              reject(error);
+            });
+            this.ws.on("close", () => {
+              console.log("Kalshi WebSocket closed");
+              this.isConnected = false;
+              this.isConnecting = false;
+              this.scheduleReconnect();
+            });
+          } catch (error) {
+            this.isConnecting = false;
+            reject(error);
+          }
+        });
+      }
+      scheduleReconnect() {
+        if (this.reconnectTimer) {
+          clearTimeout(this.reconnectTimer);
+        }
+        this.reconnectTimer = setTimeout(() => {
+          console.log("Attempting to reconnect Kalshi WebSocket...");
+          this.connect().catch(console.error);
+        }, this.config.reconnectIntervalMs);
+      }
+      subscribeToOrderbook(marketTickers) {
+        if (!this.ws || !this.isConnected) {
+          return;
+        }
+        const subscription = {
+          id: this.messageIdCounter++,
+          cmd: "subscribe",
+          params: {
+            channels: ["orderbook_delta"],
+            market_tickers: marketTickers
+          }
+        };
+        this.ws.send(JSON.stringify(subscription));
+      }
+      subscribeToTrades(marketTickers) {
+        if (!this.ws || !this.isConnected) {
+          return;
+        }
+        const subscription = {
+          id: this.messageIdCounter++,
+          cmd: "subscribe",
+          params: {
+            channels: ["trade"],
+            market_tickers: marketTickers
+          }
+        };
+        this.ws.send(JSON.stringify(subscription));
+      }
+      handleMessage(message) {
+        const msgType = message.type;
+        const data = message.data || message.msg;
+        if (!data && msgType !== "subscribed" && msgType !== "pong") {
+          return;
+        }
+        if (data && typeof data === "object" && !data.ts && !data.created_time) {
+          data.message_ts = message.ts || message.time;
+        }
+        switch (msgType) {
+          case "orderbook_snapshot":
+            this.handleOrderbookSnapshot(data);
+            break;
+          case "orderbook_delta":
+          case "orderbook_update":
+            this.handleOrderbookDelta(data);
+            break;
+          case "trade":
+            this.handleTrade(data);
+            break;
+          case "error":
+            console.error("Kalshi WebSocket error:", message.msg || message.error || message.data);
+            break;
+          case "subscribed":
+            console.log("Kalshi subscription confirmed:", JSON.stringify(message));
+            break;
+          case "pong":
+            break;
+          default:
+            break;
+        }
+      }
+      handleOrderbookSnapshot(data) {
+        const ticker = data.market_ticker;
+        const bids = (data.yes || []).map((level) => {
+          const price = (level.price || level[0]) / 100;
+          const size2 = (level.quantity !== void 0 ? level.quantity : level.size !== void 0 ? level.size : level[1]) || 0;
+          return { price, size: size2 };
+        }).sort((a, b) => b.price - a.price);
+        const asks = (data.no || []).map((level) => {
+          const price = (100 - (level.price || level[0])) / 100;
+          const size2 = (level.quantity !== void 0 ? level.quantity : level.size !== void 0 ? level.size : level[1]) || 0;
+          return { price, size: size2 };
+        }).sort((a, b) => a.price - b.price);
+        const orderBook = {
+          bids,
+          asks,
+          timestamp: Date.now()
+        };
+        this.orderBooks.set(ticker, orderBook);
+        this.resolveOrderBook(ticker, orderBook);
+      }
+      handleOrderbookDelta(data) {
+        const ticker = data.market_ticker;
+        const existing = this.orderBooks.get(ticker);
+        if (!existing) {
+          return;
+        }
+        const price = data.price / 100;
+        const delta = data.delta !== void 0 ? data.delta : data.quantity !== void 0 ? data.quantity : 0;
+        const side = data.side;
+        if (side === "yes") {
+          this.applyDelta(existing.bids, price, delta, "desc");
+        } else {
+          const yesPrice = (100 - data.price) / 100;
+          this.applyDelta(existing.asks, yesPrice, delta, "asc");
+        }
+        existing.timestamp = Date.now();
+        this.resolveOrderBook(ticker, existing);
+      }
+      applyDelta(levels, price, delta, sortOrder) {
+        const existingIndex = levels.findIndex((l) => Math.abs(l.price - price) < 1e-3);
+        if (delta === 0) {
+          if (existingIndex !== -1) {
+            levels.splice(existingIndex, 1);
+          }
+        } else {
+          if (existingIndex !== -1) {
+            levels[existingIndex].size += delta;
+            if (levels[existingIndex].size <= 0) {
+              levels.splice(existingIndex, 1);
+            }
+          } else {
+            levels.push({ price, size: delta });
+            if (sortOrder === "desc") {
+              levels.sort((a, b) => b.price - a.price);
+            } else {
+              levels.sort((a, b) => a.price - b.price);
+            }
+          }
+        }
+      }
+      handleTrade(data) {
+        const ticker = data.market_ticker;
+        let timestamp = Date.now();
+        const rawTime = data.created_time || data.created_at || data.ts || data.time || data.message_ts;
+        if (rawTime) {
+          const parsed = new Date(rawTime).getTime();
+          if (!isNaN(parsed)) {
+            timestamp = parsed;
+            if (timestamp < 1e10) {
+              timestamp *= 1e3;
+            }
+          } else if (typeof rawTime === "number") {
+            timestamp = rawTime;
+            if (timestamp < 1e10) {
+              timestamp *= 1e3;
+            }
+          }
+        }
+        const trade = {
+          id: data.trade_id || `${timestamp}-${Math.random()}`,
+          timestamp,
+          price: data.yes_price || data.price ? (data.yes_price || data.price) / 100 : 0.5,
+          amount: data.count || data.size || 0,
+          side: data.taker_side === "yes" || data.side === "buy" ? "buy" : data.taker_side === "no" || data.side === "sell" ? "sell" : "unknown"
+        };
+        const resolvers = this.tradeResolvers.get(ticker);
+        if (resolvers && resolvers.length > 0) {
+          resolvers.forEach((r) => r.resolve([trade]));
+          this.tradeResolvers.set(ticker, []);
+        }
+      }
+      resolveOrderBook(ticker, orderBook) {
+        const resolvers = this.orderBookResolvers.get(ticker);
+        if (resolvers && resolvers.length > 0) {
+          resolvers.forEach((r) => r.resolve(orderBook));
+          this.orderBookResolvers.set(ticker, []);
+        }
+      }
+      async watchOrderBook(ticker) {
+        if (!this.isConnected) {
+          await this.connect();
+        }
+        if (!this.subscribedTickers.has(ticker)) {
+          this.subscribedTickers.add(ticker);
+          this.subscribeToOrderbook([ticker]);
+        }
+        return new Promise((resolve, reject) => {
+          if (!this.orderBookResolvers.has(ticker)) {
+            this.orderBookResolvers.set(ticker, []);
+          }
+          this.orderBookResolvers.get(ticker).push({ resolve, reject });
+        });
+      }
+      async watchTrades(ticker) {
+        if (!this.isConnected) {
+          await this.connect();
+        }
+        if (!this.subscribedTickers.has(ticker)) {
+          this.subscribedTickers.add(ticker);
+          this.subscribeToTrades([ticker]);
+        }
+        return new Promise((resolve, reject) => {
+          if (!this.tradeResolvers.has(ticker)) {
+            this.tradeResolvers.set(ticker, []);
+          }
+          this.tradeResolvers.get(ticker).push({ resolve, reject });
+        });
+      }
+      async close() {
+        if (this.reconnectTimer) {
+          clearTimeout(this.reconnectTimer);
+        }
+        if (this.ws) {
+          this.ws.close();
+          this.ws = void 0;
+        }
+        this.isConnected = false;
+        this.isConnecting = false;
+      }
+    };
+    exports2.KalshiWebSocket = KalshiWebSocket;
+  }
+});
+
 // dist/exchanges/kalshi/index.js
 var require_kalshi = __commonJS({
   "dist/exchanges/kalshi/index.js"(exports2) {
@@ -105384,9 +105669,19 @@ var require_kalshi = __commonJS({
     var fetchOrderBook_1 = require_fetchOrderBook2();
     var fetchTrades_1 = require_fetchTrades2();
     var auth_1 = require_auth2();
+    var websocket_1 = require_websocket4();
     var KalshiExchange = class extends BaseExchange_1.PredictionMarketExchange {
-      constructor(credentials) {
+      constructor(options) {
+        let credentials;
+        let wsConfig;
+        if (options && "credentials" in options) {
+          credentials = options.credentials;
+          wsConfig = options.websocket;
+        } else {
+          credentials = options;
+        }
         super(credentials);
+        this.wsConfig = wsConfig;
         if (credentials?.apiKey && credentials?.privateKey) {
           this.auth = new auth_1.KalshiAuth(credentials);
         }
@@ -105618,6 +105913,26 @@ var require_kalshi = __commonJS({
             return "filled";
           default:
             return "open";
+        }
+      }
+      async watchOrderBook(id, limit) {
+        const auth = this.ensureAuth();
+        if (!this.ws) {
+          this.ws = new websocket_1.KalshiWebSocket(auth, this.wsConfig);
+        }
+        return this.ws.watchOrderBook(id);
+      }
+      async watchTrades(id, since, limit) {
+        const auth = this.ensureAuth();
+        if (!this.ws) {
+          this.ws = new websocket_1.KalshiWebSocket(auth, this.wsConfig);
+        }
+        return this.ws.watchTrades(id);
+      }
+      async close() {
+        if (this.ws) {
+          await this.ws.close();
+          this.ws = void 0;
         }
       }
     };
@@ -105888,10 +106203,16 @@ var crypto_2 = require("crypto");
 var fs_1 = require("fs");
 var path_1 = require("path");
 function getServerVersion() {
-  const packageCtx = (0, fs_1.readFileSync)((0, path_1.join)(__dirname, "../../package.json"), "utf-8");
-  const packageJson = JSON.parse(packageCtx);
-  const baseVersion = packageJson.version;
-  const isDev = process.env.NODE_ENV === "development" || process.env.PMXT_ALWAYS_RESTART === "1" || __dirname.includes("/core/src/") || __dirname.includes("/core/dist/");
+  let baseVersion = "1.0.0";
+  let packageJson;
+  try {
+    const packageCtx = (0, fs_1.readFileSync)((0, path_1.join)(__dirname, "../../package.json"), "utf-8");
+    packageJson = JSON.parse(packageCtx);
+    baseVersion = packageJson.version;
+  } catch (e) {
+    baseVersion = "1.0.0";
+  }
+  const isDev = process.env.NODE_ENV === "development" || process.env.PMXT_ALWAYS_RESTART === "1" || __dirname.includes("/core/src/") && !!packageJson || __dirname.includes("/core/dist/") && !!packageJson;
   if (!isDev) {
     return baseVersion;
   }
