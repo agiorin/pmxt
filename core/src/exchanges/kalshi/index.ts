@@ -8,12 +8,37 @@ import { fetchOHLCV } from './fetchOHLCV';
 import { fetchOrderBook } from './fetchOrderBook';
 import { fetchTrades } from './fetchTrades';
 import { KalshiAuth } from './auth';
+import { KalshiWebSocket, KalshiWebSocketConfig } from './websocket';
+
+// Re-export for external use
+export { KalshiWebSocketConfig };
+
+export interface KalshiExchangeOptions {
+    credentials?: ExchangeCredentials;
+    websocket?: KalshiWebSocketConfig;
+}
 
 export class KalshiExchange extends PredictionMarketExchange {
     private auth?: KalshiAuth;
+    private wsConfig?: KalshiWebSocketConfig;
 
-    constructor(credentials?: ExchangeCredentials) {
+    constructor(options?: ExchangeCredentials | KalshiExchangeOptions) {
+        // Support both old signature (credentials only) and new signature (options object)
+        let credentials: ExchangeCredentials | undefined;
+        let wsConfig: KalshiWebSocketConfig | undefined;
+
+        if (options && 'credentials' in options) {
+            // New signature: KalshiExchangeOptions
+            credentials = options.credentials;
+            wsConfig = options.websocket;
+        } else {
+            // Old signature: ExchangeCredentials directly
+            credentials = options as ExchangeCredentials | undefined;
+        }
+
         super(credentials);
+        this.wsConfig = wsConfig;
+
         if (credentials?.apiKey && credentials?.privateKey) {
             this.auth = new KalshiAuth(credentials);
         }
@@ -298,6 +323,37 @@ export class KalshiExchange extends PredictionMarketExchange {
                 return 'filled';
             default:
                 return 'open';
+        }
+    }
+
+    // ----------------------------------------------------------------------------
+    // WebSocket Methods
+    // ----------------------------------------------------------------------------
+
+    private ws?: KalshiWebSocket;
+
+    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+        const auth = this.ensureAuth();
+
+        if (!this.ws) {
+            this.ws = new KalshiWebSocket(auth, this.wsConfig);
+        }
+        return this.ws.watchOrderBook(id);
+    }
+
+    async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]> {
+        const auth = this.ensureAuth();
+
+        if (!this.ws) {
+            this.ws = new KalshiWebSocket(auth, this.wsConfig);
+        }
+        return this.ws.watchTrades(id);
+    }
+
+    async close(): Promise<void> {
+        if (this.ws) {
+            await this.ws.close();
+            this.ws = undefined;
         }
     }
 }

@@ -156,3 +156,4 @@ env/
 # SDK Generated Files (DO NOT COMMIT - regenerate from OpenAPI spec)
 # We commit the generated code so users don't need the generator
 # But mark it clearly as auto-generated
+pmxt dev.txt

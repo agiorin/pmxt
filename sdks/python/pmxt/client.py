@@ -206,6 +206,10 @@ class Exchange(ABC):
             
         self._api = DefaultApi(api_client=self._api_client)
     
+    def close(self):
+        """No-op for now, kept for API compatibility with TS."""
+        pass
+    
     def _handle_response(self, response: Dict[str, Any]) -> Any:
         """Handle API response and extract data."""
         if not response.get("success"):
