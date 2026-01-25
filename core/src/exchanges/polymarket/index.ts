@@ -136,7 +136,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 timestamp: Date.now()
             };
         } catch (error: any) {
-            console.error("Polymarket createOrder error:", error);
             throw error;
         }
     }
@@ -161,7 +160,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 timestamp: Date.now()
             };
         } catch (error: any) {
-            console.error("Polymarket cancelOrder error:", error);
             throw error;
         }
     }
@@ -186,7 +184,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 timestamp: order.created_at * 1000
             };
         } catch (error: any) {
-            console.error("Polymarket fetchOrder error:", error);
             throw error;
         }
     }
@@ -214,7 +211,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 timestamp: o.created_at * 1000
             }));
         } catch (error: any) {
-            console.error("Polymarket fetchOpenOrders error:", error);
             return [];
         }
     }
@@ -261,7 +257,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 locked: locked
             }];
         } catch (error: any) {
-            console.error("Polymarket fetchBalance error:", error);
             throw error;
         }
     }

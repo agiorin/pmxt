@@ -101,7 +101,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 locked: locked          // Value locked in positions
             }];
         } catch (error: any) {
-            console.error("Kalshi fetchBalance error:", error?.response?.data || error.message);
             throw error;
         }
     }
@@ -157,7 +156,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 timestamp: new Date(order.created_time).getTime()
             };
         } catch (error: any) {
-            console.error("Kalshi createOrder error:", error?.response?.data || error.message);
             throw error;
         }
     }
@@ -186,7 +184,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 timestamp: new Date(order.created_time).getTime()
             };
         } catch (error: any) {
-            console.error("Kalshi cancelOrder error:", error?.response?.data || error.message);
             throw error;
         }
     }
@@ -216,7 +213,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 timestamp: new Date(order.created_time).getTime()
             };
         } catch (error: any) {
-            console.error("Kalshi fetchOrder error:", error?.response?.data || error.message);
             throw error;
         }
     }
@@ -253,7 +249,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 timestamp: new Date(order.created_time).getTime()
             }));
         } catch (error: any) {
-            console.error("Kalshi fetchOpenOrders error:", error?.response?.data || error.message);
             return [];
         }
     }
@@ -286,7 +281,6 @@ export class KalshiExchange extends PredictionMarketExchange {
                 };
             });
         } catch (error: any) {
-            console.error("Kalshi fetchPositions error:", error?.response?.data || error.message);
             return [];
         }
     }

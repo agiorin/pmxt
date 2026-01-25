@@ -51,6 +51,7 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
+    "@nevuamarkets/poly-websockets": "^1.0.0",
     "@openapitools/openapi-generator-cli": "^2.27.0",
     "@types/cors": "^2.8.19",
     "@types/jest": "^30.0.0",
