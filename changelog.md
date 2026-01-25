@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-01-22
+
+### Added
+- **Sidecar Security**: Implemented a secure handshake protocol between the SDK and the Node.js sidecar server to prevent unauthorized access.
+- **Auto-Restart Handshake**: Added logic to automatically detect sidecar crashes and restart the process seamlessly.
+
+### Fixed
+- **Kalshi Pagination**: Fixed a critical bug in `fetchMarkets` where the `offset` parameter was incorrectly ignored, enabling full traversal of Kalshi's market catalog.
+- **Metadata Management**: Improved reliability of internal metadata enrichment for Polymarket results.
+
 ## [1.0.3] - 2026-01-17
 
 ### Added
