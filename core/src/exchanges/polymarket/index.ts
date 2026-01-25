@@ -211,6 +211,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 timestamp: o.created_at * 1000
             }));
         } catch (error: any) {
+            console.error('Error fetching Polymarket open orders:', error);
             return [];
         }
     }
