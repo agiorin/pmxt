@@ -65,6 +65,13 @@ def bundle_server():
     
     # Create __init__.py to make it a package
     (target_dir / '__init__.py').touch()
+    
+    # Copy package.json for version detection
+    pkg_json = core_dir / 'package.json'
+    if pkg_json.exists():
+        print(f"Copying package.json from {pkg_json}...")
+        shutil.copy(pkg_json, target_dir / 'package.json')
+        
     return True
 
 

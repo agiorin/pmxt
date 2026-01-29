@@ -124,10 +124,11 @@ class TestCrossExchangeConsistency:
 
     def test_both_exchanges_return_same_structure(self):
         """Verify Polymarket and Kalshi return identically structured data"""
+        # Initialize one at a time to ensure valid tokens
         poly = pmxt.Polymarket()
-        kalshi = pmxt.Kalshi()
-        
         poly_markets = poly.fetch_markets()
+        
+        kalshi = pmxt.Kalshi()
         kalshi_markets = kalshi.fetch_markets()
         
         # Both should return lists

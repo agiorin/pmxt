@@ -112,6 +112,11 @@ jobs:
           pytest
         working-directory: sdks/python
 
+      - name: Bundle Server for Python
+        run: |
+          npm run bundle:server --workspace=pmxt-core
+          python sdks/python/bundle_server.py
+
       - name: Build package
         run: python -m build
         working-directory: sdks/python
