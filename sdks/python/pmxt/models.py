@@ -87,6 +87,11 @@ class UnifiedMarket:
     down: Optional[MarketOutcome] = None
     """Convenience access to the Down outcome for binary markets."""
 
+    @property
+    def question(self) -> str:
+        """Alias for title."""
+        return self.title
+
 
 @dataclass
 class PriceCandle:
@@ -109,6 +114,39 @@ class PriceCandle:
     
     volume: Optional[float] = None
     """Trading volume"""
+
+
+@dataclass
+class UnifiedEvent:
+    """A grouped collection of related markets."""
+    
+    id: str
+    """Event ID"""
+    
+    title: str
+    """Event title"""
+    
+    description: str
+    """Event description"""
+    
+    slug: str
+    """Event slug"""
+    
+    markets: List[UnifiedMarket]
+    """Related markets in this event"""
+    
+    url: str
+    """Event URL"""
+    
+    image: Optional[str] = None
+    """Event image URL"""
+    
+    category: Optional[str] = None
+    """Event category"""
+    
+    tags: Optional[List[str]] = None
+    """Event tags"""
+
 
 
 @dataclass

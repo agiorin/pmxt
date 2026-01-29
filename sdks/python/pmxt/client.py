@@ -23,6 +23,7 @@ from pmxt_internal import models as internal_models
 
 from .models import (
     UnifiedMarket,
+    UnifiedEvent,
     MarketOutcome,
     PriceCandle,
     OrderBook,
@@ -71,6 +72,23 @@ def _convert_market(raw: Dict[str, Any]) -> UnifiedMarket:
         no=_convert_outcome(raw["no"]) if raw.get("no") else None,
         up=_convert_outcome(raw["up"]) if raw.get("up") else None,
         down=_convert_outcome(raw["down"]) if raw.get("down") else None,
+    )
+
+
+def _convert_event(raw: Dict[str, Any]) -> UnifiedEvent:
+    """Convert raw API response to UnifiedEvent."""
+    markets = [_convert_market(m) for m in raw.get("markets", [])]
+    
+    return UnifiedEvent(
+        id=raw.get("id"),
+        title=raw.get("title"),
+        description=raw.get("description"),
+        slug=raw.get("slug"),
+        markets=markets,
+        url=raw.get("url"),
+        image=raw.get("image"),
+        category=raw.get("category"),
+        tags=raw.get("tags"),
     )
 
 
@@ -220,6 +238,8 @@ class Exchange(ABC):
         """Handle API response and extract data."""
         if not response.get("success"):
             error = response.get("error", {})
+            if isinstance(error, str):
+                raise Exception(error)
             raise Exception(error.get("message", "Unknown error"))
         return response.get("data")
     
@@ -307,6 +327,61 @@ class Exchange(ABC):
             return [_convert_market(m) for m in data]
         except ApiException as e:
             raise Exception(f"Failed to search markets: {e}")
+
+    def search_events(
+        self,
+        query: str,
+        params: Optional[MarketFilterParams] = None,
+    ) -> List[UnifiedEvent]:
+        """
+        Search events (groups of related markets) by keyword.
+        
+        Args:
+            query: Search query
+            params: Optional filter parameters
+            
+        Returns:
+            List of matching events
+            
+        Example:
+            >>> events = exchange.search_events("Trump")
+        """
+        try:
+            # Manual implementation since generated client is missing this
+            params_dict = params.__dict__ if params else None
+            
+            args = [query]
+            if params_dict:
+                args.append(params_dict)
+                
+            body = {"args": args}
+            
+            # Add credentials if available
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+            
+            # Use raw api_client since generated method is missing
+            url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/searchEvents"
+            
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._api_client.default_headers)
+            
+            response = self._api_client.call_api(
+                method="POST",
+                url=url,
+                body=body,
+                header_params=headers
+            )
+            
+            response.read()
+            import json
+            data_json = json.loads(response.data)
+            
+            data = self._handle_response(data_json)
+            return [_convert_event(e) for e in data]
+        except Exception as e:
+            raise Exception(f"Failed to search events: {e}")
     
     def get_markets_by_slug(self, slug: str) -> List[UnifiedMarket]:
         """
