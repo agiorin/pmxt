@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.0] - 2026-01-29
+## [1.3.1] - 2026-01-29
 
 ### Added
 - **Hierarchical Search API**: Introduced a new, cleaner way to discover markets via the `searchEvents` method.
