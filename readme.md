@@ -14,7 +14,7 @@
 <img src="https://img.shields.io/github/watchers/pmxt-dev/pmxt?style=social" alt="GitHub watchers">
 </td>
 <td>
-<a href="https://github.com/pmxt-dev/pmxt"><img src="https://img.shields.io/badge/downloads-10.6k-blue" alt="Total Downloads"></a>
+<a href="https://github.com/qoery-com/pmxt"><img src="https://img.shields.io/badge/downloads-10.6k-blue" alt="Total Downloads"></a>
 </td>
 </tr>
 <tr>
