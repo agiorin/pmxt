@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-01-30
+
+### Added
+- **Best Execution Price Helper**: Introduced new helper methods to both Python and TypeScript SDKs to calculate volume-weighted average prices based on current order book liquidity.
+  - `getExecutionPrice(orderBook, side, amount)`: Returns the average price for a specific size.
+  - `getExecutionPriceDetailed(...)`: Returns structured data including total filled amount and whether the order could be fully filled.
+- **Universal `getMarketsBySlug`**: Added a reliable way to fetch markets using URL slugs (Polymarket) or event tickers (Kalshi). This simplifies deep-linking and integration with external sources.
+- **Execution Price Examples**: Added comprehensive examples in `examples/market-data/` for both languages (`execution_price.py` and `execution_price.ts`).
+- **New Data Models**: Added `ExecutionPriceResult` (TS) and `ExecutionPriceResult` (Python) models for strongly typed price calculation results.
+
+### Improved
+- **Financial Math Logic**: Implemented robust floating-point handling and sorting for execution price calculations to ensure consistency across exchanges.
+- **Base Exchange Class**: Promoted `getMarketsBySlug` to the base `PredictionMarketExchange` class for improved code sharing and API consistency.
+- **OpenAPI Synchronization**: Updated the sidecar's OpenAPI specification to include the new execution price endpoints.
+
+### Fixed
+- **Precision Errors**: Resolved subtle floating-point precision issues in cumulative volume calculations when traversing deep order books.
+
 ## [1.3.4] - 2026-01-29
 
 ### Added
