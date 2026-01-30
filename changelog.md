@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2] - 2026-01-30
+
+### Fixed
+- **Limitless Group Markets**: Resolved an issue where hierarchical `searchEvents` on Limitless failed to discover nested markets within "Group" structures.
+- **Search Robustness**: Added safety checks for missing market descriptions during search to prevent runtime errors.
+
 ## [1.5.1] - 2026-01-30
 
 ### Added
