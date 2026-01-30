@@ -55,6 +55,14 @@ def bundle_server():
         shutil.rmtree(target_dir / 'bin')
     shutil.copytree(bin_dir, target_dir / 'bin')
     
+    # Ensure Windows compatibility by creating .js copy of launcher
+    # This is needed because the Python SDK on Windows looks for .js
+    launcher_source = target_dir / 'bin' / 'pmxt-ensure-server'
+    launcher_js = target_dir / 'bin' / 'pmxt-ensure-server.js'
+    if launcher_source.exists() and not launcher_js.exists():
+        print(f"Creating Windows-compatible launcher: {launcher_js}")
+        shutil.copy(launcher_source, launcher_js)
+    
     # Clean up any extra files in server directory (we only need bundled.js)
     for item in server_target.iterdir():
         if item.name != 'bundled.js' and item.name != '__pycache__':
