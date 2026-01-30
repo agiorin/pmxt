@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-01-30
+
+### Added
+- **Limitless Exchange**: Full integration with Limitless API, including market fetching, trading, and order book management.
+  - Features consolidated endpoints and dynamic tick size handling.
+- **Example Updates**: Refactored examples to remove boilerplate and use the new search DX.
+
+### Fixed
+- **Limitless Tests**: Resolved test failures for Limitless exchange integration.
+- **Limitless WebSockets**: Explicitly disabled WebSockets for Limitless (not supported in v1) to prevent runtime errors.
+- **Limitless Tick Size**: Implemented dynamic tick size to support various markets on Limitless.
+
 ## [1.4.1] - 2026-01-30
 
 ### Fixed

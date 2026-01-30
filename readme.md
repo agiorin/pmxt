@@ -119,6 +119,7 @@ console.log(`Price: ${warsh.yes?.price}`);
 
 - Polymarket
 - Kalshi
+- Limitless
 
 ## Trading
 pmxt supports unified trading across exchanges.
@@ -128,6 +129,7 @@ To trade, you must provide your private credentials.
 
 - **Polymarket**: Requires your Polygon Private Key. [View Setup Guide](core/docs/SETUP_POLYMARKET.md)
 - **Kalshi**: Requires API Key & Private Key.
+- **Limitless**: Requires Private Key. [View Setup Guide](core/docs/SETUP_LIMITLESS.md)
 
 ### Example (Python)
 
