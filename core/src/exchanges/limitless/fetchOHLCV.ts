@@ -1,0 +1,44 @@
+import axios from 'axios';
+import { HistoryFilterParams } from '../../BaseExchange';
+import { PriceCandle } from '../../types';
+import { LIMITLESS_API_URL, mapIntervalToFidelity } from './utils';
+
+/**
+ * Fetch historical price data (candles) for a specific market.
+ * @param id - The market slug
+ */
+export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    try {
+        const fidelity = mapIntervalToFidelity(params.resolution);
+
+        // New API endpoint: /markets/{slug}/historical-price
+        const url = `${LIMITLESS_API_URL}/markets/${id}/historical-price`;
+
+        const response = await axios.get(url, {
+            params: { fidelity }
+        });
+
+        const data = response.data;
+        const prices = data.prices || [];
+
+        // Map price points to pmxt PriceCandle format
+        // The API returns price points, so we treat each point as a candle
+        return prices.map((p: any) => {
+            const price = Number(p.price);
+            const ts = Number(p.timestamp);
+
+            return {
+                timestamp: ts,
+                open: price,
+                high: price,
+                low: price,
+                close: price,
+                volume: 0 // Volume not provided in this specific endpoint
+            };
+        }).sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+    } catch (error: any) {
+        console.error(`Error fetching Limitless history for ${id}:`, error);
+        return [];
+    }
+}

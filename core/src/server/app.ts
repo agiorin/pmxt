@@ -1,12 +1,14 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PolymarketExchange } from '../exchanges/polymarket';
+import { LimitlessExchange } from '../exchanges/limitless';
 import { KalshiExchange } from '../exchanges/kalshi';
 import { ExchangeCredentials } from '../BaseExchange';
 
 // Singleton instances for local usage (when no credentials provided)
 const defaultExchanges: Record<string, any> = {
     polymarket: null,
+    limitless: null,
     kalshi: null
 };
 
@@ -91,6 +93,13 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
                 apiKey: credentials?.apiKey || process.env.POLYMARKET_API_KEY,
                 apiSecret: credentials?.apiSecret || process.env.POLYMARKET_API_SECRET,
                 passphrase: credentials?.passphrase || process.env.POLYMARKET_PASSPHRASE
+            });
+        case 'limitless':
+            return new LimitlessExchange({
+                privateKey: credentials?.privateKey || process.env.LIMITLESS_PK || process.env.LIMITLESS_PRIVATE_KEY,
+                apiKey: credentials?.apiKey || process.env.LIMITLESS_API_KEY,
+                apiSecret: credentials?.apiSecret || process.env.LIMITLESS_API_SECRET,
+                passphrase: credentials?.passphrase || process.env.LIMITLESS_PASSPHRASE
             });
         case 'kalshi':
             return new KalshiExchange({
