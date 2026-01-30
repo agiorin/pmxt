@@ -15,8 +15,16 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
         const markets = response.data?.markets || [];
 
         return markets.map((market: any) => {
-            const unifiedMarket = mapMarketToUnified(market);
-            const marketsList: UnifiedMarket[] = unifiedMarket ? [unifiedMarket] : [];
+            let marketsList: UnifiedMarket[] = [];
+
+            if (market.markets && Array.isArray(market.markets)) {
+                marketsList = market.markets
+                    .map((child: any) => mapMarketToUnified(child))
+                    .filter((m: any): m is UnifiedMarket => m !== null);
+            } else {
+                const unifiedMarket = mapMarketToUnified(market);
+                if (unifiedMarket) marketsList = [unifiedMarket];
+            }
 
             return {
                 id: market.slug,
@@ -32,7 +40,7 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
                     const lowerMarketQuery = marketQuery.toLowerCase();
                     return this.markets.filter(m =>
                         m.title.toLowerCase().includes(lowerMarketQuery) ||
-                        m.description.toLowerCase().includes(lowerMarketQuery)
+                        (m.description && m.description.toLowerCase().includes(lowerMarketQuery))
                     );
                 }
             } as UnifiedEvent;

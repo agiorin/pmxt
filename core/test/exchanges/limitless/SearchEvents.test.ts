@@ -79,4 +79,41 @@ describe('LimitlessExchange - searchEvents', () => {
         const events = await exchange.searchEvents('Test');
         expect(events).toEqual([]);
     });
+
+    it('should correctly parse Group Markets with nested markets', async () => {
+        mockedAxios.get.mockResolvedValue({
+            data: {
+                markets: [
+                    {
+                        slug: 'oscars-2026-best-picture',
+                        title: 'Oscars 2026: Best Picture Winner',
+                        marketType: 'group',
+                        markets: [
+                            {
+                                slug: 'marty-supreme',
+                                title: 'Marty Supreme',
+                                tokens: { yes: 't1', no: 't2' },
+                                prices: [0.03, 0.97]
+                            },
+                            {
+                                slug: 'hamnet',
+                                title: 'Hamnet',
+                                tokens: { yes: 't3', no: 't4' },
+                                prices: [0.05, 0.95]
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        const events = await exchange.searchEvents('Best Picture');
+        expect(events.length).toBe(1);
+        expect(events[0].title).toBe('Oscars 2026: Best Picture Winner');
+        expect(events[0].markets.length).toBe(2);
+
+        const marty = events[0].searchMarkets('Marty')[0];
+        expect(marty).toBeDefined();
+        expect(marty.title).toBe('Marty Supreme');
+    });
 });
