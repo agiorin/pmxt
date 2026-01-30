@@ -32,8 +32,8 @@ export async function fetchOrderBook(id: string): Promise<OrderBook> {
             timestamp: Date.now() // API doesn't seem to return a specific timestamp in the root anymore
         };
 
-    } catch (error) {
-        console.error(`Error fetching Limitless orderbook for ${id}:`, error);
+    } catch (error: any) {
+        console.error(`Error fetching Limitless orderbook for ${id}:`, error.message);
         return { bids: [], asks: [] };
     }
 }

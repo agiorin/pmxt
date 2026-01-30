@@ -19,8 +19,13 @@ export async function fetchPositions(userAddress: string): Promise<Position[]> {
             unrealizedPnL: parseFloat(p.cashPnl || '0'),
             realizedPnL: parseFloat(p.realizedPnl || '0')
         }));
-    } catch (error) {
-        console.error(`Error fetching Limitless positions for ${userAddress}:`, error);
+    } catch (error: any) {
+        // Limitless returns 404 if the user has no history on the platform.
+        // We treat this as an empty portfolio rather than an error.
+        if (error.response?.status === 404) {
+            return [];
+        }
+        console.error(`Error fetching Limitless positions: ${error.message}`);
         return [];
     }
 }

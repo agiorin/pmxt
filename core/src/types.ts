@@ -51,6 +51,7 @@ export interface UnifiedMarket {
 
     category?: string;
     tags?: string[];
+    tickSize?: number; // Minimum price increment (e.g., 0.01, 0.001)
 
     // Convenience getters for binary markets
     yes?: MarketOutcome;
@@ -133,4 +134,5 @@ export interface CreateOrderParams {
     type: 'market' | 'limit';
     amount: number;
     price?: number; // Required for limit orders
+    tickSize?: number; // Optional override for Limitless/Polymarket
 }

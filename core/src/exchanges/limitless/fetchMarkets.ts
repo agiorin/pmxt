@@ -39,8 +39,8 @@ export async function fetchMarkets(params?: MarketFilterParams): Promise<Unified
 
         return unifiedMarkets.slice(offset, offset + limit);
 
-    } catch (error) {
-        console.error("Error fetching Limitless data:", error);
+    } catch (error: any) {
+        console.error("Error fetching Limitless markets:", error.message);
         return [];
     }
 }

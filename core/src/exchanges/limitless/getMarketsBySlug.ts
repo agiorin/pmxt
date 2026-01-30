@@ -16,8 +16,8 @@ export async function getMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
         const unifiedMarket = mapMarketToUnified(market);
         return unifiedMarket ? [unifiedMarket] : [];
 
-    } catch (error) {
-        console.error(`Error fetching Limitless slug ${slug}:`, error);
+    } catch (error: any) {
+        console.error(`Error fetching Limitless slug ${slug}:`, error.message);
         return [];
     }
 }

@@ -38,8 +38,8 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
             } as UnifiedEvent;
         });
 
-    } catch (error) {
-        console.error("Error searching Limitless events:", error);
+    } catch (error: any) {
+        console.error("Error searching Limitless events:", error.message);
         return [];
     }
 }

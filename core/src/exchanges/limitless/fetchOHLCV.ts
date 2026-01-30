@@ -38,7 +38,7 @@ export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promi
         }).sort((a: any, b: any) => a.timestamp - b.timestamp);
 
     } catch (error: any) {
-        console.error(`Error fetching Limitless history for ${id}:`, error);
+        console.error(`Error fetching Limitless history for ${id}:`, error.message);
         return [];
     }
 }

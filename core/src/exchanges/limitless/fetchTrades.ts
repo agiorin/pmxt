@@ -30,7 +30,7 @@ export async function fetchTrades(id: string, params: HistoryFilterParams): Prom
         }));
 
     } catch (error: any) {
-        console.error(`Error fetching Limitless trades for ${id}:`, error);
+        console.error(`Error fetching Limitless trades for ${id}:`, error.message);
         return [];
     }
 }
