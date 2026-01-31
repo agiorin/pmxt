@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.3] - 2026-01-31
+
+### Added
+- **Limitless Order Cancellation**: Implemented `cancelOrder` support for Limitless exchange.
+- **Compliance Hardening**: Comprehensive update to compliance testing suite:
+  - Added dynamic skipping for tests requiring missing credentials.
+  - Implemented real `createOrder` tests for all exchanges.
+  - Removed mocks in favor of live API verification.
+
+### Fixed
+- **Polymarket Trades**: Switched `fetchTrades` to use the public Data API (`/activity`), resolving 503 errors and parameter mismatches.
+- **Limitless Reliability**:
+  - Filtered out invalid "outcome-less" markets in `fetchMarkets`.
+  - Fixed `fetchTrades` to return empty list instead of throwing when no trades exist.
+  - Fixed `fetchOHLCV` compliance test and status.
+  - Explicitly disabled WebSocket tests as they are not supported.
+- **Kalshi Configuration**: Updated default API endpoint to `api.elections.kalshi.com`.
+
 ## [1.5.2] - 2026-01-30
 
 ### Fixed
