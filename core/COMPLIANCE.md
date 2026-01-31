@@ -24,7 +24,6 @@ This document details the feature support and compliance status for each exchang
 | | `getExecutionPriceDetailed` | ✅ | ✅ | ✅ | |
 | **Real-time** | `watchOrderBook` | ✅ | ✅ | ❌ | Limitless not supported |
 | | `watchTrades` | ✅ | ✅ | ❌ | Limitless not supported |
-| **Lifecycle** | `close` | ⚠️ | ⚠️ | ⚠️ | No compliance tests yet |
 
 ## Legend
 - ✅ Compliance Verified (Strict Test Passed)
