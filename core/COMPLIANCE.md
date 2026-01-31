@@ -13,22 +13,22 @@ This document details the feature support and compliance status for each exchang
 | | `searchEvents` | ✅ | ✅ | ✅ | |
 | **Public Data** | `fetchOHLCV` | ✅ | ✅ | ✅ | |
 | | `fetchOrderBook` | ✅ | ✅ | ✅ | |
-| | `fetchTrades` | ✅ | ✅ | ⚠️ | Limitless: Not Implemented (No public API) |
+| | `fetchTrades` | ✅ | ✅ | ❌ | Limitless: No public trades API/Fails on live markets |
 | **Private Data** | `fetchBalance` | ✅ | ✅ | ✅ | Verified (Real API calls, balances fetched) |
 | | `fetchPositions` | ✅ | ✅ | ✅ | |
 | **Trading** | `createOrder` | ✅ | ✅ | ✅ | All Exchange verified (Mock/Rejected due to funds) |
 | | `cancelOrder` | ✅ | ✅ | ✅ | Verified (Interface correct, returns Not Found for dummy IDs) |
-| | `fetchOrder` | ⚠️ | ⚠️ | ❌ | Limitless: Req market slug, not supported in generic ID interface. Use fetchOpenOrders |
+| | `fetchOrder` | ❌ | ❌ | ❌ | All failing. Poly: TypeError, Kalshi: 400, Limitless: Slug required |
 | | `fetchOpenOrders` | ✅ | ✅ | ✅ | Verified (Empty results pass for private data) |
 | **Calculations** | `getExecutionPrice` | ✅ | ✅ | ✅ | |
 | | `getExecutionPriceDetailed` | ✅ | ✅ | ✅ | |
-| **Real-time** | `watchOrderBook` | ✅ | ✅ | ⚠️ | Limitless not Implemented (No websocket support) |
-| | `watchTrades` | ✅ | ✅ | ⚠️ |  Limitless not Implemented (No websocket support) |
+| **Real-time** | `watchOrderBook` | ✅ | ✅ | ⚠️ | Limitless: No websocket support |
+| | `watchTrades` | ❌ | ❌ | ⚠️ | Poly/Kalshi: Timeouts (No live trades during test) |
 
 ## Legend
 - ✅ Compliance Verified (Strict Test Passed)
-- ⚠️ No tests
-- ❌ No Compliance Test
+- ❌ Compliance Failure (Test Failed or Feature Broken)
+- ⚠️ Partial Support / Skipped (e.g., Missing API/Websocket)
 
 ## Compliance Policy
 - **Failure over Warning**: Tests must fail if no relevant data (markets, events, candles) is found. This ensures that we catch API breakages or unexpected empty responses.
