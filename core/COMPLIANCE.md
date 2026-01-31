@@ -11,7 +11,7 @@ This document details the feature support and compliance status for each exchang
 | | `searchMarkets` | ✅ | ✅ | ✅ | |
 | | `getMarketsBySlug` | ✅ | ✅ | ✅ | |
 | | `searchEvents` | ✅ | ✅ | ✅ | |
-| **Public Data** | `fetchOHLCV` | ✅ | ✅ | ❌ | Limitless fails if no candles found |
+| **Public Data** | `fetchOHLCV` | ✅ | ✅ | ✅ | |
 | | `fetchOrderBook` | ✅ | ✅ | ✅ | |
 | | `fetchTrades` | ❌ | ✅ | ❌ | Polymarket/Limitless fail if no trades found |
 | **Private Data** | `fetchBalance` | ✅ | ✅ | ✅ | Verified (Real API calls, balances fetched) |

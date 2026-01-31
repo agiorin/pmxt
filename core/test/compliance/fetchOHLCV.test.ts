@@ -7,38 +7,77 @@ describe('Compliance: fetchOHLCV', () => {
         try {
             console.info(`[Compliance] Testing ${name}.fetchOHLCV`);
 
-            // 1. Get a market to find an outcome ID
-            const markets = await exchange.fetchMarkets({ limit: 1 });
+            // 1. Get multiple markets to increase odds of finding one with history
+            // Fetch more markets to ensure we find one with volume
+            const markets = await exchange.fetchMarkets({ limit: 50 });
             if (!markets || markets.length === 0) {
                 throw new Error(`${name}: No markets found to test fetchOHLCV`);
             }
 
-            const market = markets[0];
             let candles: any[] = [];
             let lastError: Error | undefined;
-
-            // Try the first 3 outcomes to find one with history
-            const outcomesToTest = market.outcomes.slice(0, 3);
             let testedOutcomeId = '';
+            let foundData = false;
 
-            for (const outcome of outcomesToTest) {
-                try {
-                    console.info(`[Compliance] ${name}: fetching OHLCV for outcome ${outcome.id} (${outcome.label})`);
-                    candles = await exchange.fetchOHLCV(outcome.id, {
-                        resolution: '1h',
-                        limit: 10
-                    });
-                    if (candles && candles.length > 0) {
-                        testedOutcomeId = outcome.id;
-                        break;
+            // Sort markets by volume (descending) to prioritize active ones
+            const activeMarkets = markets.sort((a: any, b: any) => (b.volume || 0) - (a.volume || 0));
+
+            // Iterate through markets until we find meaningful data
+            marketLoop:
+            for (const market of activeMarkets) {
+                // For Limitless, fetchOHLCV expects the market slug (market.id), not outcome ID
+                const isLimitless = name.toLowerCase().includes('limitless');
+
+                if (isLimitless) {
+                    try {
+                        console.info(`[Compliance] ${name}: fetching OHLCV for market ${market.id}`);
+                        const result = await exchange.fetchOHLCV(market.id, {
+                            resolution: '1h',
+                            limit: 10
+                        });
+
+                        if (result && result.length > 0) {
+                            candles = result;
+                            testedOutcomeId = market.id;
+                            foundData = true;
+                            break marketLoop;
+                        }
+                    } catch (error: any) {
+                        lastError = error;
                     }
-                } catch (error: any) {
-                    lastError = error;
-                    console.warn(`[Compliance] ${name}: Failed to fetch OHLCV for outcome ${outcome.id}: ${error.message}`);
+                    continue;
+                }
+
+                // Try the first few outcomes of each market
+                const outcomesToTest = market.outcomes.slice(0, 3);
+
+                for (const outcome of outcomesToTest) {
+                    try {
+                        console.info(`[Compliance] ${name}: fetching OHLCV for market ${market.id} outcome ${outcome.id}`);
+                        const result = await exchange.fetchOHLCV(outcome.id, {
+                            resolution: '1h',
+                            limit: 10
+                        });
+
+                        if (result && result.length > 0) {
+                            candles = result;
+                            testedOutcomeId = outcome.id;
+                            foundData = true;
+                            break marketLoop;
+                        }
+                    } catch (error: any) {
+                        lastError = error;
+                        // Continue searching
+                    }
                 }
             }
 
             // Verify candles are returned
+            if (!foundData) {
+                console.warn(`[Compliance] ${name}: Could not find OHLCV data in ${markets.length} markets. Last Error: ${lastError?.message}`);
+            }
+
+            expect(foundData).toBe(true);
             expect(candles).toBeDefined();
             expect(Array.isArray(candles)).toBe(true);
             expect(candles.length).toBeGreaterThan(0);
@@ -55,5 +94,5 @@ describe('Compliance: fetchOHLCV', () => {
             }
             throw error;
         }
-    }, 60000);
+    }, 120000); // Increased timeout for market scanning
 });
