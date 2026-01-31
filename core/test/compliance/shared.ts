@@ -5,7 +5,10 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 // Load .env from root
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
+dotenv.config({
+    path: path.join(__dirname, '../../../.env'),
+    override: true
+});
 
 /**
  * PMXT Compliance Shared Validation Logic

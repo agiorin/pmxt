@@ -1,15 +1,13 @@
 import axios from 'axios';
 import { HistoryFilterParams } from '../../BaseExchange';
 import { Trade } from '../../types';
-import { CLOB_API_URL } from './utils';
+import { DATA_API_URL } from './utils';
 
 /**
  * Fetch raw trade history for a specific token.
  * @param id - The CLOB token ID
  * 
- * NOTE: Polymarket's /trades endpoint currently requires L2 Authentication (API Key).
- * This method will return an empty array if an API key is not provided in headers.
- * Use fetchOHLCV for public historical price data instead.
+ * NOTE: Uses Polymarket Data API (public) to fetch trades.
  */
 export async function fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
     // ID Validation
@@ -19,7 +17,7 @@ export async function fetchTrades(id: string, params: HistoryFilterParams): Prom
 
     try {
         const queryParams: any = {
-            market: id
+            asset_id: id // Uses asset_id for Token ID on Data API
         };
 
         // Add time filters if provided
@@ -30,7 +28,7 @@ export async function fetchTrades(id: string, params: HistoryFilterParams): Prom
             queryParams.before = Math.floor(params.end.getTime() / 1000);
         }
 
-        const response = await axios.get(`${CLOB_API_URL}/trades`, {
+        const response = await axios.get(`${DATA_API_URL}/trades`, {
             params: queryParams
         });
 
@@ -47,19 +45,17 @@ export async function fetchTrades(id: string, params: HistoryFilterParams): Prom
 
         // Apply limit if specified
         if (params.limit && mappedTrades.length > params.limit) {
-            return mappedTrades.slice(-params.limit); // Return most recent N trades
+            return mappedTrades.slice(0, params.limit); // Return most recent N trades
         }
 
         return mappedTrades;
 
     } catch (error: any) {
-        if (axios.isAxiosError(error) && error.response) {
-            if (error.response.status === 401) {
-                console.warn(`[Polymarket] fetchTrades requires API Key (L2 Authentication). Returning empty array.`);
-                return [];
-            }
-            const apiError = error.response.data?.error || error.response.data?.message || "Unknown API Error";
-            throw new Error(`Polymarket Trades API Error (${error.response.status}): ${apiError}. Used ID: ${id}`);
+        if (axios.isAxiosError(error)) {
+            // Log error but throw formatted
+            const apiError = error.response?.data?.error || error.response?.data?.message || error.message;
+            console.error(`[Polymarket] fetchTrades failed for ID ${id}: ${apiError}`);
+            throw new Error(`Polymarket Trades API Error: ${apiError}`);
         }
         console.error(`Unexpected error fetching Polymarket trades for ${id}:`, error);
         throw error;
