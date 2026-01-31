@@ -7,24 +7,24 @@ This document details the feature support and compliance status for each exchang
 | Category | Function | Polymarket | Kalshi | Limitless | Notes |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Identity** | `name` | ✅ | ✅ | ✅ | |
-| **Market Data** | `fetchMarkets` | ✅ | ✅ | ❌ | |
+| **Market Data** | `fetchMarkets` | ✅ | ✅ | ❌ | Limitless fails if no outcomes found |
 | | `searchMarkets` | ✅ | ✅ | ✅ | |
 | | `getMarketsBySlug` | ✅ | ✅ | ✅ | |
 | | `searchEvents` | ✅ | ✅ | ✅ | |
-| **Public Data** | `fetchOHLCV` | ✅ | ✅ | ❌ | |
+| **Public Data** | `fetchOHLCV` | ✅ | ✅ | ❌ | Limitless fails if no candles found |
 | | `fetchOrderBook` | ✅ | ✅ | ✅ | |
-| | `fetchTrades` | ⚠️ | ✅ | ⚠️ | Requires API Key / Authentication to fetch public trade history |
-| **Private Data** | `fetchBalance` | ❌ | ❌ | ❌ | Fails without real Auth  |
-| | `fetchPositions` | ❌ | ❌ | ❌ | Fails without real Auth  |
-| **Trading** | `createOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
-| | `cancelOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
-| | `fetchOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
-| | `fetchOpenOrders` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| | `fetchTrades` | ❌ | ✅ | ❌ | Polymarket/Limitless fail if no trades found |
+| **Private Data** | `fetchBalance` | ✅ | ❌ | ❌ | Kalshi 401, Limitless config error |
+| | `fetchPositions` | ✅ | ✅ | ✅ | Verified (Empty results pass for private data) |
+| **Trading** | `createOrder` | ❌ | ❌ | ❌ | All fail (Auth/Config/TickSize issues) |
+| | `cancelOrder` | ✅ | ❌ | ❌ | Kalshi 401, Limitless config error |
+| | `fetchOrder` | ❌ | ❌ | ❌ | All fail (Data mapping/Auth issues) |
+| | `fetchOpenOrders` | ✅ | ✅ | ✅ | Verified (Empty results pass for private data) |
 | **Calculations** | `getExecutionPrice` | ✅ | ✅ | ✅ | |
 | | `getExecutionPriceDetailed` | ✅ | ✅ | ✅ | |
-| **Real-time** | `watchOrderBook` | ✅ | ⚠️ | ❌ | Requires Authentication / WebSocket doesn't exist |
+| **Real-time** | `watchOrderBook` | ✅ | ✅ | ❌ | Limitless not supported |
 | | `watchTrades` | ✅ | ✅ | ❌ | Limitless not supported |
-| **Lifecycle** | `close` | ⚠️ | ⚠️ | ⚠️ | |
+| **Lifecycle** | `close` | ⚠️ | ⚠️ | ⚠️ | No compliance tests yet |
 
 ## Legend
 - ✅ Compliance Verified (Strict Test Passed)
