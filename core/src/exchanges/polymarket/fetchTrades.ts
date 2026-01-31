@@ -54,6 +54,10 @@ export async function fetchTrades(id: string, params: HistoryFilterParams): Prom
 
     } catch (error: any) {
         if (axios.isAxiosError(error) && error.response) {
+            if (error.response.status === 401) {
+                console.warn(`[Polymarket] fetchTrades requires API Key (L2 Authentication). Returning empty array.`);
+                return [];
+            }
             const apiError = error.response.data?.error || error.response.data?.message || "Unknown API Error";
             throw new Error(`Polymarket Trades API Error (${error.response.status}): ${apiError}. Used ID: ${id}`);
         }

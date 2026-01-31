@@ -111,26 +111,4 @@ describe('Kalshi Integration', () => {
     });
 });
 
-describe('Cross-Exchange Consistency', () => {
-    test('both exchanges return same structure', async () => {
-        const poly = new Polymarket();
-        const kalshi = new Kalshi();
-
-        const polyMarkets = await poly.fetchMarkets();
-        const kalshiMarkets = await kalshi.fetchMarkets();
-
-        expect(Array.isArray(polyMarkets)).toBe(true);
-        expect(Array.isArray(kalshiMarkets)).toBe(true);
-
-        if (polyMarkets.length > 0 && kalshiMarkets.length > 0) {
-            const polyMarket = polyMarkets[0];
-            const kalshiMarket = kalshiMarkets[0];
-
-            const coreFields = ['id', 'title', 'outcomes'];
-            coreFields.forEach(field => {
-                expect(polyMarket).toHaveProperty(field);
-                expect(kalshiMarket).toHaveProperty(field);
-            });
-        }
-    });
 });

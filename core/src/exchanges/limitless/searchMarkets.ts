@@ -12,11 +12,24 @@ export async function searchMarkets(query: string, params?: MarketFilterParams):
             }
         });
 
-        const markets = response.data?.markets || [];
+        const rawResults = response.data?.markets || [];
+        const allMarkets: UnifiedMarket[] = [];
 
-        return markets
-            .map((m: any) => mapMarketToUnified(m))
-            .filter((m: any): m is UnifiedMarket => m !== null)
+        for (const res of rawResults) {
+            if (res.markets && Array.isArray(res.markets)) {
+                // It's a group market, extract individual markets
+                for (const child of res.markets) {
+                    const mapped = mapMarketToUnified(child);
+                    if (mapped) allMarkets.push(mapped);
+                }
+            } else {
+                const mapped = mapMarketToUnified(res);
+                if (mapped) allMarkets.push(mapped);
+            }
+        }
+
+        return allMarkets
+            .filter((m: any): m is UnifiedMarket => m !== null && m.outcomes.length > 0)
             .slice(0, params?.limit || 20);
 
     } catch (error: any) {

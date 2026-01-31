@@ -4,9 +4,9 @@ import { fetchMarkets as fetchMarketsFn } from './fetchMarkets';
 
 export async function searchMarkets(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
     // We must fetch ALL markets to search them locally since we don't have server-side search
-    const fetchLimit = 100000;
+    const searchLimit = 5000;
     try {
-        const markets = await fetchMarketsFn({ ...params, limit: fetchLimit });
+        const markets = await fetchMarketsFn({ ...params, limit: searchLimit });
         const lowerQuery = query.toLowerCase();
         const searchIn = params?.searchIn || 'title'; // Default to title-only search
 

@@ -5,7 +5,7 @@ import { fetchMarkets as fetchMarketsFn } from './fetchMarkets';
 export async function searchMarkets(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
     // Polymarket Gamma API doesn't support native search
     // Fetch all active markets and filter client-side
-    const searchLimit = 100000; // Fetch all markets for comprehensive search
+    const searchLimit = 5000; // Fetch enough markets for a good search pool
 
     try {
         // Fetch markets with a higher limit
