@@ -14,12 +14,12 @@ This document details the feature support and compliance status for each exchang
 | **Public Data** | `fetchOHLCV` | ✅ | ✅ | ❌ | |
 | | `fetchOrderBook` | ✅ | ✅ | ✅ | |
 | | `fetchTrades` | ⚠️ | ✅ | ⚠️ | Requires API Key / Authentication to fetch public trade history |
-| **Private Data** | `fetchBalance` | ✅ | ✅ | ✅ | |
-| | `fetchPositions` | ✅ | ✅ | ✅ | |
-| **Trading** | `createOrder` | ✅ | ✅ | ✅ | |
-| | `cancelOrder` | ✅ | ✅ | ✅ | |
-| | `fetchOrder` | ❌ | ✅ | ❌ | Status casing mismatch (returns UPPERCASE) |
-| | `fetchOpenOrders` | ✅ | ✅ | ✅ | |
+| **Private Data** | `fetchBalance` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| | `fetchPositions` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| **Trading** | `createOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| | `cancelOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| | `fetchOrder` | ❌ | ❌ | ❌ | Fails without real Auth  |
+| | `fetchOpenOrders` | ❌ | ❌ | ❌ | Fails without real Auth  |
 | **Calculations** | `getExecutionPrice` | ✅ | ✅ | ✅ | |
 | | `getExecutionPriceDetailed` | ✅ | ✅ | ✅ | |
 | **Real-time** | `watchOrderBook` | ✅ | ⚠️ | ❌ | Requires Authentication / WebSocket doesn't exist |

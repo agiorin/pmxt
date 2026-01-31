@@ -1,90 +1,44 @@
-import { exchangeClasses, getMockCredentials } from './shared';
-import axios from 'axios';
+import { exchangeClasses } from './shared';
 
 describe('Compliance: fetchBalance', () => {
     test.each(exchangeClasses)('$name should comply with fetchBalance standards', async ({ name, cls }) => {
         let exchange: any;
 
         try {
-            const mockCreds = getMockCredentials();
-
-            try {
-                if (name === 'PolymarketExchange') {
-                    const pk = process.env.POLYMARKET_PRIVATE_KEY || mockCreds.ethPrivateKey;
-                    exchange = new cls({
-                        privateKey: pk,
-                        apiKey: "dummy_key",
-                        apiSecret: "dummy_secret",
-                        passphrase: "dummy_passphrase"
-                    });
-                } else if (name === 'KalshiExchange') {
-                    exchange = new cls({
-                        apiKey: process.env.KALSHI_API_KEY || "dummy_api_key",
-                        privateKey: process.env.KALSHI_PRIVATE_KEY || mockCreds.kalshiPrivateKey
-                    });
-                } else if (name === 'LimitlessExchange') {
-                    const pk = process.env.LIMITLESS_PRIVATE_KEY || mockCreds.ethPrivateKey;
-                    exchange = new cls({
-                        privateKey: pk,
-                        apiKey: "dummy_key",
-                        apiSecret: "dummy_secret",
-                        passphrase: "dummy_passphrase"
-                    });
+            // Initialize with environment variables if available
+            if (name === 'PolymarketExchange') {
+                const pk = process.env.POLYMARKET_PRIVATE_KEY;
+                // Only init if we have a key, or try with dummy to see it fail?
+                // The user wants to confirm it FAILS "if no relevant data is found" (which implies auth failure).
+                // So we init with what we have. If undefined, the exchange might throw or work in read-only.
+                // But fetchBalance is private.
+                if (pk) {
+                    exchange = new cls({ privateKey: pk });
+                } else {
+                    exchange = new cls(); // Public only
+                }
+            } else if (name === 'KalshiExchange') {
+                exchange = new cls({
+                    apiKey: process.env.KALSHI_API_KEY,
+                    privateKey: process.env.KALSHI_PRIVATE_KEY
+                });
+            } else if (name === 'LimitlessExchange') {
+                const pk = process.env.LIMITLESS_PRIVATE_KEY;
+                if (pk) {
+                    exchange = new cls({ privateKey: pk });
                 } else {
                     exchange = new cls();
                 }
-            } catch (e) {
-                console.warn(`Error initializing ${name}:`, e);
-                throw e;
+            } else {
+                exchange = new cls();
             }
 
             console.info(`[Compliance] Testing ${name}.fetchBalance`);
-            let balances: any[] = [];
-            let usedMock = false;
 
-            try {
-                balances = await exchange.fetchBalance();
-            } catch (error: any) {
-                console.warn(`[Compliance] Real fetchBalance failed for ${name}: ${error.message}. Attempting fallback mock.`);
-            }
+            // Real call execution
+            const balances = await exchange.fetchBalance();
 
-            if (!balances || balances.length === 0) {
-                console.info(`[Compliance] No balances found for ${name}. Injecting mock network response to verify mapping logic.`);
-                usedMock = true;
-
-                try {
-                    if (name === 'PolymarketExchange' || name === 'LimitlessExchange') {
-                        // Mock ensureAuth to return a mocked auth object with a mocked CLOB client
-                        const mockClobClient = {
-                            getBalanceAllowance: jest.fn().mockResolvedValue({
-                                balance: "1000500000", // 1000.50 USDC (6 decimals)
-                                allowance: "1000000000000"
-                            }),
-                            getOpenOrders: jest.fn().mockResolvedValue([])
-                        };
-
-                        const mockAuth = {
-                            getClobClient: jest.fn().mockResolvedValue(mockClobClient),
-                            getAddress: jest.fn().mockReturnValue("0x2c7536E3605D9C16a7a3D7b1898e529396a65c23")
-                        };
-
-                        jest.spyOn(exchange as any, 'ensureAuth').mockReturnValue(mockAuth);
-                    } else if (name === 'KalshiExchange') {
-                        const spy = jest.spyOn(axios, 'get');
-                        spy.mockResolvedValue({
-                            data: {
-                                balance: 10000, // 100.00 USD
-                                portfolio_value: 15000 // 150.00 USD
-                            }
-                        });
-                    }
-
-                    balances = await exchange.fetchBalance();
-                } finally {
-                    jest.restoreAllMocks();
-                }
-            }
-
+            // Verification
             expect(Array.isArray(balances)).toBe(true);
 
             if (balances.length > 0) {
@@ -95,20 +49,22 @@ describe('Compliance: fetchBalance', () => {
                     expect(typeof balance.locked).toBe('number');
                     expect(balance.total).toBeGreaterThanOrEqual(0);
                 }
-                if (usedMock) {
-                    console.info(`[Compliance] ${name}: Validated using MOCKED balances successfully.`);
-                }
             } else {
-                // If it's implemented but returned empty, it's still technically successful?
-                // But for compliance we expect some balance.
-                throw new Error(`[Compliance] ${name}: Failed to produce balances even with mocks.`);
+                // If the array is empty, it's technically a valid return (no balances),
+                // but usually implies we couldn't verify the structure fully.
+                // However, without mocks, we accept empty array or throw if it's undefined.
+                if (balances === undefined) {
+                    throw new Error(`[Compliance] ${name}: fetchBalance returned undefined.`);
+                }
             }
 
         } catch (error: any) {
-            if (error.message.toLowerCase().includes('not implemented')) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes('not implemented')) {
                 console.info(`[Compliance] ${name}.fetchBalance not implemented.`);
                 return;
             }
+            // If it fails due to auth, let it fail.
             throw error;
         }
     }, 60000);
