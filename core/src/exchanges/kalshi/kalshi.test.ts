@@ -103,7 +103,7 @@ describe('KalshiExchange', () => {
                 const order = await exchange.createOrder(orderParams);
 
                 expect(mockedAxios.post).toHaveBeenCalledWith(
-                    'https://trading-api.kalshi.com/trade-api/v2/portfolio/orders',
+                    'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders',
                     expect.objectContaining({
                         ticker: 'TEST-MARKET',
                         side: 'yes',
@@ -148,7 +148,7 @@ describe('KalshiExchange', () => {
                 await exchange.createOrder(orderParams);
 
                 expect(mockedAxios.post).toHaveBeenCalledWith(
-                    'https://trading-api.kalshi.com/trade-api/v2/portfolio/orders',
+                    'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders',
                     expect.objectContaining({
                         ticker: 'TEST-MARKET',
                         side: 'no',
@@ -187,7 +187,7 @@ describe('KalshiExchange', () => {
 
                 // Verify the request URL includes query params
                 expect(mockedAxios.get).toHaveBeenCalledWith(
-                    'https://trading-api.kalshi.com/trade-api/v2/portfolio/orders?status=resting',
+                    'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders?status=resting',
                     expect.any(Object)
                 );
 
@@ -205,7 +205,7 @@ describe('KalshiExchange', () => {
                 await exchange.fetchOpenOrders('TEST-MARKET');
 
                 expect(mockedAxios.get).toHaveBeenCalledWith(
-                    'https://trading-api.kalshi.com/trade-api/v2/portfolio/orders?status=resting&ticker=TEST-MARKET',
+                    'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders?status=resting&ticker=TEST-MARKET',
                     expect.any(Object)
                 );
             });
