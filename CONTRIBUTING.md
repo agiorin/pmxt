@@ -1,5 +1,7 @@
 # Contributing to pmxt
 
+If you contribute, you'll get the Contributor rank on the Discord!
+
 Welcome! We love contributors. This project is a monorepo setup to support multiple languages while keeping the core logic centralized.
 
 ## Repository Structure
