@@ -1000,6 +1000,8 @@ components:
           type: number
         price:
           type: number
+        fee:
+          type: number
 
     ExchangeCredentials:
       type: object

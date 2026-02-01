@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.7] - 2026-02-01
+
+### Added
+- **Fee Support for CreateOrder**: Added a `fee` parameter to `CreateOrderParams`.
+- **Polymarket Fee Handling**: Implemented mandatory fee rates (e.g., 1000 for 0.1%) for Polymarket orders. This enables trading on high-frequency markets like "Bitcoin Up/Down" which require a fee rate.
+
+### Fixed
+- **API Parity**: Ensured `fee` field consistency across Python SDK, TypeScript SDK, and core sidecar server.
+
 ## [1.5.6] - 2026-02-01
 
 ### Added

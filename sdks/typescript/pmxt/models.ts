@@ -315,6 +315,9 @@ export interface CreateOrderParams {
 
     /** Limit price (required for limit orders, 0.0-1.0) */
     price?: number;
+
+    /** Optional fee rate (e.g., 1000 for 0.1%) */
+    fee?: number;
 }
 /**
  * A grouped collection of related markets (e.g., "Who will be Fed Chair?" contains multiple candidate markets)

@@ -494,6 +494,62 @@ console.log(balances);
 
 
 ---
+### `getExecutionPrice`
+
+Get Execution Price
+
+Get Execution Price
+
+**Signature:**
+
+```typescript
+async getExecutionPrice(orderBook: string, side: OrderBook, amount: OrderBook): Promise<any>
+```
+
+**Parameters:**
+
+- `orderBook` (string): orderBook
+- `side` (OrderBook): side
+- `amount` (OrderBook): amount
+
+**Returns:** `Promise<any>` - Average execution price
+
+**Example:**
+
+```typescript
+// No example available
+```
+
+
+---
+### `getExecutionPriceDetailed`
+
+Get Detailed Execution Price
+
+Get Detailed Execution Price
+
+**Signature:**
+
+```typescript
+async getExecutionPriceDetailed(orderBook: string, side: OrderBook, amount: OrderBook): Promise<ExecutionPriceResult>
+```
+
+**Parameters:**
+
+- `orderBook` (string): orderBook
+- `side` (OrderBook): side
+- `amount` (OrderBook): amount
+
+**Returns:** `Promise<ExecutionPriceResult>` - Detailed execution result
+
+**Example:**
+
+```typescript
+// No example available
+```
+
+
+---
 
 ## Complete Trading Workflow
 
@@ -716,6 +772,19 @@ interface Balance {
 ```
 
 ---
+### `ExecutionPriceResult`
+
+
+
+```typescript
+interface ExecutionPriceResult {
+  price: number; // 
+  filledAmount: number; // 
+  fullyFilled: boolean; // 
+}
+```
+
+---
 ### `ExchangeCredentials`
 
 Optional authentication credentials for exchange operations
@@ -726,6 +795,8 @@ interface ExchangeCredentials {
   privateKey: string; // Private key for signing transactions
   apiSecret: string; // API secret (if required by exchange)
   passphrase: string; // Passphrase (if required by exchange)
+  funderAddress: string; // The address funding the trades (Proxy address)
+  signatureType: any; // Signature type (0&#x3D;EOA, 1&#x3D;Poly Proxy, 2&#x3D;Gnosis Safe, or names like &#x27;gnosis_safe&#x27;)
 }
 ```
 
@@ -784,6 +855,7 @@ interface CreateOrderParams {
   type: string; // 
   amount: number; // 
   price?: number; // 
+  fee?: number; // 
 }
 ```
 

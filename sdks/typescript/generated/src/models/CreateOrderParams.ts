@@ -55,6 +55,12 @@ export interface CreateOrderParams {
      * @memberof CreateOrderParams
      */
     price?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof CreateOrderParams
+     */
+    fee?: number;
 }
 
 
@@ -98,13 +104,14 @@ export function CreateOrderParamsFromJSONTyped(json: any, ignoreDiscriminator: b
         return json;
     }
     return {
-        
+
         'marketId': json['marketId'],
         'outcomeId': json['outcomeId'],
         'side': json['side'],
         'type': json['type'],
         'amount': json['amount'],
         'price': json['price'] == null ? undefined : json['price'],
+        'fee': json['fee'] == null ? undefined : json['fee'],
     };
 }
 
@@ -118,13 +125,14 @@ export function CreateOrderParamsToJSONTyped(value?: CreateOrderParams | null, i
     }
 
     return {
-        
+
         'marketId': value['marketId'],
         'outcomeId': value['outcomeId'],
         'side': value['side'],
         'type': value['type'],
         'amount': value['amount'],
         'price': value['price'],
+        'fee': value['fee'],
     };
 }
 

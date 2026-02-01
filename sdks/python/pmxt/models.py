@@ -395,3 +395,6 @@ class CreateOrderParams:
     
     price: Optional[float] = None
     """Limit price (required for limit orders, 0.0-1.0)"""
+    
+    fee: Optional[int] = None
+    """Optional fee rate (e.g., 1000 for 0.1%)"""

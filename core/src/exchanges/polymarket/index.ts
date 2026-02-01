@@ -127,14 +127,19 @@ export class PolymarketExchange extends PredictionMarketExchange {
         }
 
         try {
-            // We use createAndPostOrder which handles signing and posting
-            const response = await client.createAndPostOrder({
+            const orderArgs: any = {
                 tokenID: params.outcomeId,
                 price: price,
                 side: side,
                 size: params.amount,
-                feeRateBps: 0,
-            }, {
+            };
+
+            if (params.fee !== undefined && params.fee !== null) {
+                orderArgs.feeRateBps = params.fee;
+            }
+
+            // We use createAndPostOrder which handles signing and posting
+            const response = await client.createAndPostOrder(orderArgs, {
                 tickSize: tickSize as any
             });
 
@@ -153,6 +158,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 status: 'open',
                 filled: 0,
                 remaining: params.amount,
+                fee: params.fee,
                 timestamp: Date.now()
             };
         } catch (error: any) {

@@ -719,6 +719,9 @@ export abstract class Exchange {
             if (params.price !== undefined) {
                 paramsDict.price = params.price;
             }
+            if (params.fee !== undefined) {
+                paramsDict.fee = params.fee;
+            }
 
             const requestBody: CreateOrderRequest = {
                 args: [paramsDict],

@@ -678,6 +678,8 @@ class Exchange(ABC):
             }
             if params.price is not None:
                 params_dict["price"] = params.price
+            if params.fee is not None:
+                params_dict["fee"] = params.fee
             
             request_body_dict = {"args": [params_dict]}
             

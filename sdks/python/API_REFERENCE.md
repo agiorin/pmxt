@@ -491,6 +491,62 @@ print(balances)
 
 
 ---
+### `get_execution_price`
+
+Get Execution Price
+
+Get Execution Price
+
+**Signature:**
+
+```python
+def get_execution_price(order_book: str, side: OrderBook, amount: OrderBook) -> Any:
+```
+
+**Parameters:**
+
+- `order_book` (str): orderBook
+- `side` (OrderBook): side
+- `amount` (OrderBook): amount
+
+**Returns:** `Any` - Average execution price
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
+### `get_execution_price_detailed`
+
+Get Detailed Execution Price
+
+Get Detailed Execution Price
+
+**Signature:**
+
+```python
+def get_execution_price_detailed(order_book: str, side: OrderBook, amount: OrderBook) -> ExecutionPriceResult:
+```
+
+**Parameters:**
+
+- `order_book` (str): orderBook
+- `side` (OrderBook): side
+- `amount` (OrderBook): amount
+
+**Returns:** `ExecutionPriceResult` - Detailed execution result
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
 
 ## Complete Trading Workflow
 
@@ -715,6 +771,19 @@ locked: float #
 ```
 
 ---
+### `ExecutionPriceResult`
+
+
+
+```python
+@dataclass
+class ExecutionPriceResult:
+price: float # 
+filled_amount: float # 
+fully_filled: bool # 
+```
+
+---
 ### `ExchangeCredentials`
 
 Optional authentication credentials for exchange operations
@@ -726,6 +795,8 @@ api_key: str # API key for the exchange
 private_key: str # Private key for signing transactions
 api_secret: str # API secret (if required by exchange)
 passphrase: str # Passphrase (if required by exchange)
+funder_address: str # The address funding the trades (Proxy address)
+signature_type: Any # Signature type (0&#x3D;EOA, 1&#x3D;Poly Proxy, 2&#x3D;Gnosis Safe, or names like &#x27;gnosis_safe&#x27;)
 ```
 
 ---
@@ -784,6 +855,7 @@ side: str #
 type: str # 
 amount: float # 
 price: float # 
+fee: float # 
 ```
 
 ---
