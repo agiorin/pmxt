@@ -13,7 +13,7 @@ This document details the feature support and compliance status for each exchang
 | | `searchEvents` | ✅ | ✅ | ✅ | |
 | **Public Data** | `fetchOHLCV` | ✅ | ✅ | ✅ | |
 | | `fetchOrderBook` | ✅ | ✅ | ✅ | |
-| | `fetchTrades` | ✅ | ✅ | ❌ | Limitless: No public trades API/Fails on live markets |
+| | `fetchTrades` | ✅ | ✅ | ⚠️ | Limitless: No public trades API |
 | **Private Data** | `fetchBalance` | ✅ | ✅ | ✅ | Verified (Real API calls, balances fetched) |
 | | `fetchPositions` | ✅ | ✅ | ✅ | |
 | **Trading** | `createOrder` | ✅ | ✅ | ✅ | All Exchange verified (Mock/Rejected due to funds) |

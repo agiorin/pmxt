@@ -27,7 +27,10 @@ describe('Compliance: fetchTrades', () => {
                                 testedOutcomeId = outcome.id;
                                 break;
                             }
-                        } catch (error) {
+                        } catch (error: any) {
+                            if (error.message && error.message.toLowerCase().includes('not implemented')) {
+                                throw error;
+                            }
                             // Skip and try next
                         }
                     }
