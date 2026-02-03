@@ -122,15 +122,14 @@ export class LimitlessExchange extends PredictionMarketExchange {
             // See utils.ts mapMarketToUnified: id = market.slug
             const marketSlug = params.marketId;
 
-            if (!params.price) {
-                throw new Error("Limit orders require a price");
-            }
+            // Limitless (USDC on Base) supports 6 decimals max.
+            const price = Math.round(params.price * 1_000_000) / 1_000_000;
 
             const response = await client.createOrder({
                 marketSlug: marketSlug,
                 outcomeId: params.outcomeId,
                 side: side,
-                price: params.price,
+                price: price,
                 amount: params.amount,
                 type: params.type
             });
@@ -210,7 +209,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             return orders.map((o: any) => ({
                 id: o.id,
                 marketId: marketId,
-                outcomeId: "unknown", // API might not return this in the simplified list, need to check response
+                outcomeId: o.tokenId || "unknown", 
                 side: o.side.toLowerCase() as 'buy' | 'sell',
                 type: 'limit',
                 price: parseFloat(o.price),
@@ -233,30 +232,21 @@ export class LimitlessExchange extends PredictionMarketExchange {
     }
 
     async fetchBalance(): Promise<Balance[]> {
-        const auth = this.ensureAuth();
-        const client = await auth.getClobClient();
+        // Use LimitlessClient (Base chain) instead of ClobClient (Polygon)
+        const client = this.ensureClient();
 
         try {
-            // 1. Fetch raw collateral balance (USDC)
-            // Limitless relies strictly on USDC (Polygon) which has 6 decimals.
-            // Note: This needs to be updated for Base chain!
-            const USDC_DECIMALS = 6;
-            const balRes = await client.getBalanceAllowance({
-                asset_type: "COLLATERAL" as any
-            });
-            const rawBalance = parseFloat(balRes.balance);
-            const total = rawBalance / Math.pow(10, USDC_DECIMALS);
+            const total = await client.getBalance();
 
             return [{
                 currency: 'USDC',
                 total: total,
-                available: total, // Approximate
-                locked: 0
+                available: total, // Funds are in wallet, effectively available until filled
+                locked: 0         // Basic implementation: does not subtract open order value
             }];
         } catch (error: any) {
-            // Fallback to 0 if fails, to avoid breaking everything
-            console.warn("fetchBalance failed via CLOB client", error.message);
-            return [{ currency: 'USDC', total: 0, available: 0, locked: 0 }];
+            console.warn("fetchBalance failed:", error.message);
+            throw error;
         }
     }
 

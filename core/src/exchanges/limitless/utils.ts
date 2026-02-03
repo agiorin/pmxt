@@ -11,10 +11,13 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
     // The new API provides 'tokens' and 'prices'
     // tokens: { no: "...", yes: "..." }
     // prices: [noPrice, yesPrice]
-    if (market.tokens && market.prices) {
+    if (market.tokens) {
         const tokenEntries = Object.entries(market.tokens);
+        // Ensure prices array exists, otherwise default to empty
+        const prices = Array.isArray(market.prices) ? market.prices : [];
+        
         tokenEntries.forEach(([label, tokenId], index) => {
-            const outcomePrice = market.prices[index] || 0;
+            const outcomePrice = prices[index] || 0;
 
             outcomes.push({
                 id: tokenId as string,

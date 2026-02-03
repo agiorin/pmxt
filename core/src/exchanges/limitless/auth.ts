@@ -24,7 +24,13 @@ export class LimitlessAuth {
         }
 
         // Initialize the signer
-        this.signer = new Wallet(credentials.privateKey);
+        let privateKey = credentials.privateKey;
+        // Fix for common .env issue where newlines are escaped
+        if (privateKey.includes('\\n')) {
+            privateKey = privateKey.replace(/\\n/g, '\n');
+        }
+
+        this.signer = new Wallet(privateKey);
     }
 
     /**

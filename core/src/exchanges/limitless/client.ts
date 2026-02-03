@@ -1,6 +1,6 @@
 
 import axios, { AxiosInstance } from 'axios';
-import { Wallet, utils } from 'ethers';
+import { Wallet, utils, providers, Contract } from 'ethers';
 import { TypedDataDomain, TypedDataField } from '@ethersproject/abstract-signer';
 
 const LIMITLESS_API_URL = 'https://api.limitless.exchange';
@@ -42,6 +42,11 @@ export class LimitlessClient {
     private userData: any;
 
     constructor(privateKey: string) {
+        // Fix for common .env issue where newlines are escaped
+        if (privateKey.includes('\\n')) {
+            privateKey = privateKey.replace(/\\n/g, '\n');
+        }
+        
         this.signer = new Wallet(privateKey);
         this.api = axios.create({
             baseURL: LIMITLESS_API_URL,
@@ -209,5 +214,20 @@ export class LimitlessClient {
         }
         const res = await this.api.get(`/markets/${marketSlug}/user-orders`, { params });
         return res.data.orders || [];
+    }
+
+    async getBalance(): Promise<number> {
+        // USDC on Base
+        const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+        const ABI = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)"];
+        
+        // Use a public RPC for Base
+        const provider = new providers.JsonRpcProvider('https://mainnet.base.org');
+        const contract = new Contract(USDC_ADDRESS, ABI, provider);
+        
+        const balance = await contract.balanceOf(this.signer.address);
+        const decimals = await contract.decimals(); // Should be 6
+        
+        return parseFloat(utils.formatUnits(balance, decimals));
     }
 }
