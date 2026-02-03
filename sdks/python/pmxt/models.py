@@ -21,13 +21,13 @@ OutcomeType = Literal["yes", "no", "up", "down"]
 @dataclass
 class MarketOutcome:
     """A single tradeable outcome within a market."""
-    
-    id: str
-    """Outcome ID. Use this for fetchOHLCV/fetchOrderBook/fetchTrades.
+
+    outcome_id: str
+    """Outcome ID for trading operations. Use this for fetchOHLCV/fetchOrderBook/fetchTrades.
     - Polymarket: CLOB Token ID
     - Kalshi: Market Ticker
     """
-    
+
     label: str
     """Human-readable label (e.g., "Trump", "Yes")"""
     
@@ -44,10 +44,10 @@ class MarketOutcome:
 @dataclass
 class UnifiedMarket:
     """A unified market representation across exchanges."""
-    
-    id: str
-    """Market ID"""
-    
+
+    market_id: str
+    """The unique identifier for this market"""
+
     title: str
     """Market title"""
     

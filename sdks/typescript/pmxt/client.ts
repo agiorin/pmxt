@@ -336,135 +336,6 @@ export abstract class Exchange {
     }
 
     /**
-     * Search markets by keyword.
-     * 
-     * @param query - Search query
-     * @param params - Optional filter parameters
-     * @returns List of matching markets
-     * 
-     * @example
-     * ```typescript
-     * const markets = await exchange.searchMarkets("Trump", { limit: 10 });
-     * ```
-     */
-    async searchMarkets(
-        query: string,
-        params?: MarketFilterParams
-    ): Promise<UnifiedMarket[]> {
-        await this.initPromise;
-        try {
-            const args: any[] = [query];
-            if (params) {
-                args.push(params);
-            }
-
-            const requestBody: SearchMarketsRequest = {
-                args,
-                credentials: this.getCredentials()
-            };
-
-            const response = await this.api.searchMarkets({
-                exchange: this.exchangeName as any,
-                searchMarketsRequest: requestBody,
-            });
-
-            const data = this.handleResponse(response);
-            return data.map(convertMarket);
-        } catch (error) {
-            throw new Error(`Failed to search markets: ${error}`);
-        }
-    }
-
-    /**
-     * Search events (groups of related markets) by keyword.
-     * 
-     * @param query - Search query
-     * @param params - Optional filter parameters
-     * @returns List of matching events
-     * 
-     * @example
-     * ```typescript
-     * const events = await exchange.searchEvents("Trump");
-     * ```
-     */
-    async searchEvents(
-        query: string,
-        params?: MarketFilterParams
-    ): Promise<UnifiedEvent[]> {
-        await this.initPromise;
-        try {
-            const args: any[] = [query];
-            if (params) {
-                args.push(params);
-            }
-
-            const body: any = { args };
-            const credentials = this.getCredentials();
-            if (credentials) {
-                body.credentials = credentials;
-            }
-
-            // Manual implementation since generated client is missing this
-            const url = `${this.config.basePath}/api/${this.exchangeName}/searchEvents`;
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...this.config.headers
-                },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.error?.message || response.statusText);
-            }
-
-            const json = await response.json();
-            const data = this.handleResponse(json);
-            return data.map(convertEvent);
-        } catch (error) {
-            throw new Error(`Failed to search events: ${error}`);
-        }
-    }
-
-    /**
-     * Fetch markets by URL slug/ticker.
-     * 
-     * @param slug - Market slug (Polymarket) or ticker (Kalshi)
-     * @returns List of matching markets
-     * 
-     * @example
-     * ```typescript
-     * // Polymarket
-     * const markets = await poly.getMarketsBySlug("who-will-trump-nominate-as-fed-chair");
-     * 
-     * // Kalshi
-     * const markets = await kalshi.getMarketsBySlug("KXFEDCHAIRNOM-29");
-     * ```
-     */
-    async getMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
-        await this.initPromise;
-        try {
-            const requestBody: GetMarketsBySlugRequest = {
-                args: [slug],
-                credentials: this.getCredentials()
-            };
-
-            const response = await this.api.getMarketsBySlug({
-                exchange: this.exchangeName as any,
-                getMarketsBySlugRequest: requestBody,
-            });
-
-            const data = this.handleResponse(response);
-            return data.map(convertMarket);
-        } catch (error) {
-            throw new Error(`Failed to get markets by slug: ${error}`);
-        }
-    }
-
-    /**
      * Get historical price candles.
      * 
      * **CRITICAL**: Use outcome.id, not market.id.
@@ -477,8 +348,8 @@ export abstract class Exchange {
      * 
      * @example
      * ```typescript
-     * const markets = await exchange.searchMarkets("Trump");
-     * const outcomeId = markets[0].outcomes[0].id;
+     * const markets = await exchange.fetchMarkets({ query: "Trump" });
+     * const outcomeId = markets[0].outcomes[0].outcomeId;
      * const candles = await exchange.fetchOHLCV(outcomeId, {
      *   resolution: "1h",
      *   limit: 100

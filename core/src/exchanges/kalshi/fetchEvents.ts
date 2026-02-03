@@ -1,10 +1,10 @@
-import { MarketFilterParams } from '../../BaseExchange';
+import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
 import axios from 'axios';
 import { KALSHI_API_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
 
-export async function searchEvents(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     try {
         const queryParams: any = {
             limit: 200, // Reasonable batch for search
@@ -15,7 +15,7 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
         const response = await axios.get(KALSHI_API_URL, { params: queryParams });
         const events = response.data.events || [];
 
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = params.query.toLowerCase();
 
         const filtered = events.filter((event: any) => {
             return (event.title || '').toLowerCase().includes(lowerQuery);

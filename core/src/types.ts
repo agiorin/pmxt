@@ -4,8 +4,6 @@
 // ----------------------------------------------------------------------------
 
 export interface MarketOutcome {
-    /** @deprecated Use outcomeId instead. Will be removed in v2.0 */
-    id: string;
     /** Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi) */
     outcomeId: string;
     label: string;
@@ -36,8 +34,6 @@ export interface UnifiedEvent {
 }
 
 export interface UnifiedMarket {
-    /** @deprecated Use marketId instead. Will be removed in v2.0 */
-    id: string;
     /** The unique identifier for this market */
     marketId: string;
     title: string;

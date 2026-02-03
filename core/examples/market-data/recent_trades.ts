@@ -5,7 +5,7 @@ const main = async () => {
     const kalshi = new pmxt.Kalshi();
     const kMarkets = await kalshi.fetchMarkets({ slug: 'KXFEDCHAIRNOM-29' });
     const kWarsh = kMarkets.find(m => m.outcomes[0]?.label === 'Kevin Warsh');
-    const kTrades = await kalshi.fetchTrades(kWarsh!.id, { limit: 10 });
+    const kTrades = await kalshi.fetchTrades(kWarsh!.outcomes[0].outcomeId, { limit: 10 });
     console.log('Kalshi:', kTrades);
 
     // Polymarket

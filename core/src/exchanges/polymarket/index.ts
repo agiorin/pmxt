@@ -1,9 +1,7 @@
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, ExchangeCredentials } from '../../BaseExchange';
+import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
-import { searchMarkets } from './searchMarkets';
-import { searchEvents } from './searchEvents';
-import { getMarketsBySlug } from './getMarketsBySlug';
+import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
 import { fetchOrderBook } from './fetchOrderBook';
 import { fetchTrades } from './fetchTrades';
@@ -61,16 +59,8 @@ export class PolymarketExchange extends PredictionMarketExchange {
         return fetchMarkets(params);
     }
 
-    protected async searchMarketsImpl(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return searchMarkets(query, params);
-    }
-
-    protected async fetchMarketsBySlugImpl(slug: string): Promise<UnifiedMarket[]> {
-        return getMarketsBySlug(slug);
-    }
-
-    protected async searchEventsImpl(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
-        return searchEvents(query, params);
+    protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
+        return fetchEvents(params);
     }
 
     async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {

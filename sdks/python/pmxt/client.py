@@ -48,7 +48,7 @@ from .server_manager import ServerManager
 def _convert_outcome(raw: Dict[str, Any]) -> MarketOutcome:
     """Convert raw API response to MarketOutcome."""
     return MarketOutcome(
-        id=raw.get("id"),
+        outcome_id=raw.get("outcomeId"),
         label=raw.get("label"),
         price=raw.get("price"),
         price_change_24h=raw.get("priceChange24h"),
@@ -59,9 +59,9 @@ def _convert_outcome(raw: Dict[str, Any]) -> MarketOutcome:
 def _convert_market(raw: Dict[str, Any]) -> UnifiedMarket:
     """Convert raw API response to UnifiedMarket."""
     outcomes = [_convert_outcome(o) for o in raw.get("outcomes", [])]
-    
+
     return UnifiedMarket(
-        id=raw.get("id"),
+        market_id=raw.get("marketId"),
         title=raw.get("title"),
         outcomes=outcomes,
         volume_24h=raw.get("volume24h", 0),
@@ -314,128 +314,6 @@ class Exchange(ABC):
             return [_convert_market(m) for m in data]
         except ApiException as e:
             raise Exception(f"Failed to fetch markets: {e}")
-    
-    def search_markets(
-        self,
-        query: str,
-        params: Optional[MarketFilterParams] = None,
-    ) -> List[UnifiedMarket]:
-        """
-        Search markets by keyword.
-        
-        Args:
-            query: Search query
-            params: Optional filter parameters
-            
-        Returns:
-            List of matching markets
-            
-        Example:
-            >>> markets = exchange.search_markets("Trump", MarketFilterParams(limit=10))
-        """
-        try:
-            args = [query]
-            if params:
-                args.append(params.__dict__)
-            
-            body_dict = {"args": args}
-            request_body = internal_models.SearchMarketsRequest.from_dict(body_dict)
-            
-            response = self._api.search_markets(
-                exchange=self.exchange_name,
-                search_markets_request=request_body,
-            )
-            
-            data = self._handle_response(response.to_dict())
-            return [_convert_market(m) for m in data]
-        except ApiException as e:
-            raise Exception(f"Failed to search markets: {e}")
-
-    def search_events(
-        self,
-        query: str,
-        params: Optional[MarketFilterParams] = None,
-    ) -> List[UnifiedEvent]:
-        """
-        Search events (groups of related markets) by keyword.
-        
-        Args:
-            query: Search query
-            params: Optional filter parameters
-            
-        Returns:
-            List of matching events
-            
-        Example:
-            >>> events = exchange.search_events("Trump")
-        """
-        try:
-            # Manual implementation since generated client is missing this
-            params_dict = params.__dict__ if params else None
-            
-            args = [query]
-            if params_dict:
-                args.append(params_dict)
-                
-            body = {"args": args}
-            
-            # Add credentials if available
-            creds = self._get_credentials_dict()
-            if creds:
-                body["credentials"] = creds
-            
-            # Use raw api_client since generated method is missing
-            url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/searchEvents"
-            
-            headers = {"Content-Type": "application/json", "Accept": "application/json"}
-            headers.update(self._api_client.default_headers)
-            
-            response = self._api_client.call_api(
-                method="POST",
-                url=url,
-                body=body,
-                header_params=headers
-            )
-            
-            response.read()
-            import json
-            data_json = json.loads(response.data)
-            
-            data = self._handle_response(data_json)
-            return [_convert_event(e) for e in data]
-        except Exception as e:
-            raise Exception(f"Failed to search events: {e}")
-    
-    def get_markets_by_slug(self, slug: str) -> List[UnifiedMarket]:
-        """
-        Fetch markets by URL slug/ticker.
-        
-        Args:
-            slug: Market slug (Polymarket) or ticker (Kalshi)
-            
-        Returns:
-            List of matching markets
-            
-        Example:
-            >>> # Polymarket
-            >>> markets = poly.get_markets_by_slug("who-will-trump-nominate-as-fed-chair")
-            >>> 
-            >>> # Kalshi
-            >>> markets = kalshi.get_markets_by_slug("KXFEDCHAIRNOM-29")
-        """
-        try:
-            body_dict = {"args": [slug]}
-            request_body = internal_models.GetMarketsBySlugRequest.from_dict(body_dict)
-            
-            response = self._api.get_markets_by_slug(
-                exchange=self.exchange_name,
-                get_markets_by_slug_request=request_body,
-            )
-            
-            data = self._handle_response(response.to_dict())
-            return [_convert_market(m) for m in data]
-        except ApiException as e:
-            raise Exception(f"Failed to get markets by slug: {e}")
 
     # ----------------------------------------------------------------------------
     # Filtering Methods

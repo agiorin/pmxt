@@ -1,13 +1,14 @@
-import { MarketFilterParams } from '../../BaseExchange';
+import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
 import axios from 'axios';
 import { LIMITLESS_API_URL, mapMarketToUnified } from './utils';
+import { limitlessErrorMapper } from './errors';
 
-export async function searchEvents(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     try {
         const response = await axios.get(`${LIMITLESS_API_URL}/markets/search`, {
             params: {
-                query: query,
+                query: params.query,
                 limit: params?.limit || 20
             }
         });
@@ -47,7 +48,6 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
         });
 
     } catch (error: any) {
-        console.error("Error searching Limitless events:", error.message);
-        return [];
+        throw limitlessErrorMapper.mapError(error);
     }
 }

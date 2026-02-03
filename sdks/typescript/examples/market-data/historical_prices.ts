@@ -8,8 +8,8 @@ const main = async () => {
     // 2. Search for the specific Market within that event
     const market = event.searchMarkets('Kevin Warsh')[0];
 
-    // Note: Use market.yes.id for the outcome ID (CLOB Token ID on Poly)
-    const history = await api.fetchOHLCV(market.yes!.id, {
+    // Note: Use market.yes.outcomeId for the outcome ID (CLOB Token ID on Poly)
+    const history = await api.fetchOHLCV(market.yes!.outcomeId, {
         resolution: '1h',
         limit: 5
     });

@@ -9,11 +9,11 @@
  */
 export interface MarketOutcome {
     /**
-     * Outcome ID. Use this for fetchOHLCV/fetchOrderBook/fetchTrades.
+     * Outcome ID for trading operations. Use this for fetchOHLCV/fetchOrderBook/fetchTrades.
      * - Polymarket: CLOB Token ID
      * - Kalshi: Market Ticker
      */
-    id: string;
+    outcomeId: string;
 
     /** Human-readable label (e.g., "Trump", "Yes") */
     label: string;
@@ -32,8 +32,8 @@ export interface MarketOutcome {
  * A unified market representation across exchanges.
  */
 export interface UnifiedMarket {
-    /** Market ID */
-    id: string;
+    /** The unique identifier for this market */
+    marketId: string;
 
     /** Market title */
     title: string;

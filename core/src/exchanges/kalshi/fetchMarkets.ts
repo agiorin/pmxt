@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { MarketFilterParams } from '../../BaseExchange';
+import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
 import { KALSHI_API_URL, KALSHI_SERIES_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
@@ -95,7 +95,86 @@ export function resetCache(): void {
     lastCacheTime = 0;
 }
 
-export async function fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+    try {
+        // Handle slug-based lookup (event ticker)
+        if (params?.slug) {
+            return await fetchMarketsBySlug(params.slug);
+        }
+
+        // Handle query-based search
+        if (params?.query) {
+            return await searchMarkets(params.query, params);
+        }
+
+        // Default: fetch markets
+        return await fetchMarketsDefault(params);
+    } catch (error: any) {
+        throw kalshiErrorMapper.mapError(error);
+    }
+}
+
+async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]> {
+    // Kalshi API expects uppercase tickers, but URLs use lowercase
+    const normalizedTicker = eventTicker.toUpperCase();
+    const url = `https://api.elections.kalshi.com/trade-api/v2/events/${normalizedTicker}`;
+    const response = await axios.get(url, {
+        params: { with_nested_markets: true }
+    });
+
+    const event = response.data.event;
+    if (!event) return [];
+
+    // Enrichment: Fetch series tags if they exist
+    if (event.series_ticker) {
+        try {
+            const seriesUrl = `${KALSHI_SERIES_URL}/${event.series_ticker}`;
+            const seriesResponse = await axios.get(seriesUrl);
+            const series = seriesResponse.data.series;
+            if (series && series.tags && series.tags.length > 0) {
+                if (!event.tags || event.tags.length === 0) {
+                    event.tags = series.tags;
+                }
+            }
+        } catch (e) {
+            // Ignore errors fetching series info - non-critical
+        }
+    }
+
+    const unifiedMarkets: UnifiedMarket[] = [];
+    const markets = event.markets || [];
+
+    for (const market of markets) {
+        const unifiedMarket = mapMarketToUnified(event, market);
+        if (unifiedMarket) {
+            unifiedMarkets.push(unifiedMarket);
+        }
+    }
+
+    return unifiedMarkets;
+}
+
+async function searchMarkets(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+    // We must fetch ALL markets to search them locally since we don't have server-side search
+    const searchLimit = 5000;
+    const markets = await fetchMarketsDefault({ ...params, limit: searchLimit });
+    const lowerQuery = query.toLowerCase();
+    const searchIn = params?.searchIn || 'title'; // Default to title-only search
+
+    const filtered = markets.filter(market => {
+        const titleMatch = (market.title || '').toLowerCase().includes(lowerQuery);
+        const descMatch = (market.description || '').toLowerCase().includes(lowerQuery);
+
+        if (searchIn === 'title') return titleMatch;
+        if (searchIn === 'description') return descMatch;
+        return titleMatch || descMatch; // 'both'
+    });
+
+    const limit = params?.limit || 20;
+    return filtered.slice(0, limit);
+}
+
+async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 50;
     const offset = params?.offset || 0;
     const now = Date.now();

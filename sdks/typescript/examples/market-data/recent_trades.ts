@@ -6,7 +6,7 @@ const main = async () => {
     const kEvent = (await kalshi.fetchEvents({ query: 'Fed Chair' }))[0];
     const kMarket = kEvent.searchMarkets('Kevin Warsh')[0];
 
-    const kTrades = await kalshi.fetchTrades(kMarket.yes!.id, { limit: 10, resolution: '1m' });
+    const kTrades = await kalshi.fetchTrades(kMarket.yes!.outcomeId, { limit: 10, resolution: '1m' });
     console.log('Kalshi:', kTrades);
 
     // Polymarket
@@ -14,8 +14,8 @@ const main = async () => {
     const pEvent = (await poly.fetchEvents({ query: 'Fed Chair' }))[0];
     const pMarket = pEvent.searchMarkets('Kevin Warsh')[0];
 
-    // Use .yes.id for convenience
-    const pTrades = await poly.fetchTrades(pMarket.yes!.id, { limit: 10, resolution: '1m' });
+    // Use .yes.outcomeId for convenience
+    const pTrades = await poly.fetchTrades(pMarket.yes!.outcomeId, { limit: 10, resolution: '1m' });
     console.log('Polymarket:', pTrades);
 };
 

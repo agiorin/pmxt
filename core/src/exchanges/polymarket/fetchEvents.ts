@@ -1,9 +1,10 @@
-import { MarketFilterParams } from '../../BaseExchange';
+import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
 import axios from 'axios';
 import { GAMMA_API_URL, mapMarketToUnified } from './utils';
+import { polymarketErrorMapper } from './errors';
 
-export async function searchEvents(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     const searchLimit = 100000; // Fetch all events for comprehensive search
 
     try {
@@ -19,7 +20,7 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
         const events = response.data || [];
 
         // Client-side text filtering
-        const lowerQuery = query.toLowerCase();
+        const lowerQuery = params.query.toLowerCase();
         const searchIn = params?.searchIn || 'title';
 
         const filtered = events.filter((event: any) => {
@@ -71,8 +72,7 @@ export async function searchEvents(query: string, params?: MarketFilterParams): 
         const limit = params?.limit || 20;
         return unifiedEvents.slice(0, limit);
 
-    } catch (error) {
-        console.error("Error searching Polymarket events:", error);
-        return [];
+    } catch (error: any) {
+        throw polymarketErrorMapper.mapError(error);
     }
 }
