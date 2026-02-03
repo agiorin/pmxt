@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-02-03
+
+### Added
+- **Unified API Consolidation**: Consolidated `searchMarkets()`, `getMarketsBySlug()`, and `searchEvents()` into new CCXT-style `fetchMarkets()` and `fetchEvents()` methods.
+  - New methods accept a unified `params` object (TS) or keyword arguments (Python).
+  - Supports `query` and `slug` as standard parameters.
+- **Improved CCXT Compatibility**: Aligned the API structure more closely with the CCXT standard for easier cross-platform migration.
+
+### Deprecated
+- `searchMarkets(query, params)`: Use `fetchMarkets({ query, ...params })` instead.
+- `getMarketsBySlug(slug)`: Use `fetchMarkets({ slug })` instead.
+- `searchEvents(query, params)`: Use `fetchEvents({ query, ...params })` instead.
+- These methods will be removed in v2.0. Deprecation warnings have been added.
+
+### Improved
+- **BaseExchange Architecture**: Moved search routing logic into the `BaseExchange` class to reduce duplication across exchange implementations.
+- **Example Modernization**: All core and SDK examples updated to use the new unified API patterns.
+- **Test Coverage**: Added compliance tests for the new `fetchMarkets` and `fetchEvents` implementations.
+
 ## [1.6.0] - 2026-02-03
 
 ### Added

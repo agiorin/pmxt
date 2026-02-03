@@ -2,7 +2,7 @@ import pmxt
 
 def main():
     api = pmxt.Polymarket()
-    markets = api.search_markets('Trump')
+    markets = api.fetch_markets(query='Trump')
     outcome_id = markets[0].outcomes[0].id
 
     order_book = api.fetch_order_book(outcome_id)

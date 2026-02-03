@@ -103,7 +103,7 @@ import pmxt
 api = pmxt.Polymarket()
 
 # 1. Search for the broad Event
-events = api.search_events('Who will Trump nominate as Fed Chair?')
+events = api.fetch_events(query='Who will Trump nominate as Fed Chair?')
 fed_event = events[0]
 
 # 2. Filter for the specific Market within that event
@@ -119,7 +119,7 @@ import pmxt from 'pmxtjs';
 const api = new pmxt.Polymarket();
 
 // 1. Search for the broad Event
-const events = await api.searchEvents('Who will Trump nominate as Fed Chair?');
+const events = await api.fetchEvents({ query: 'Who will Trump nominate as Fed Chair?' });
 const fedEvent = events[0];
 
 // 2. Filter for the specific Market within that event

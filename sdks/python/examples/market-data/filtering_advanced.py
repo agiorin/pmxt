@@ -13,7 +13,7 @@ def main():
     
     print("\n1. Fetching markets for 'Trump'...")
     try:
-        markets = api.search_markets("Trump")
+        markets = api.fetch_markets(query="Trump")
         print(f"Found {len(markets)} markets.")
     except Exception as e:
         print(f"Error fetching markets: {e}")
@@ -63,7 +63,7 @@ def main():
     print("\n\n--- Event Filtering ---")
     print("Fetching events for 'Election'...")
     try:
-        events = api.search_events("Election")
+        events = api.fetch_events(query="Election")
         print(f"Found {len(events)} events.")
         
         if events:

@@ -20,9 +20,9 @@ def run():
     
     # Search for market
     print("Searching for Event: Serie A...")
-    events = api.search_events("Serie A")
+    events = api.fetch_events(query="Serie A")
     event = events[0]
-    
+
     print("Searching for Market: Juventus vs Napoli...")
     market = event.search_markets("Juventus vs Napoli")[0]
     

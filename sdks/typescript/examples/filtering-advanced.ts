@@ -15,7 +15,7 @@ async function main() {
     // Example 1: Simple text search
     // ----------------------------------------------------------------------------
     console.log('Example 1: Simple text search');
-    const allMarkets = await api.searchMarkets('Trump');
+    const allMarkets = await api.fetchMarkets({ query: 'Trump' });
     const filtered1 = api.filterMarkets(allMarkets, 'Fed Chair');
     console.log(`Found ${filtered1.length} markets matching "Fed Chair"\n`);
 
@@ -23,7 +23,7 @@ async function main() {
     // Example 2: Multi-field text search
     // ----------------------------------------------------------------------------
     console.log('Example 2: Multi-field text search');
-    const events = await api.searchEvents('Election');
+    const events = await api.fetchEvents({ query: 'Election' });
     const filtered2 = api.filterMarkets(events[0]?.markets || [], {
         text: 'Trump',
         searchIn: ['title', 'description', 'tags']
@@ -111,7 +111,7 @@ async function main() {
     // Example 9: Event filtering
     // ----------------------------------------------------------------------------
     console.log('Example 9: Event filtering');
-    const allEvents = await api.searchEvents('2024');
+    const allEvents = await api.fetchEvents({ query: '2024' });
     const filtered9 = api.filterEvents(allEvents, {
         text: 'Trump',
         category: 'Politics',
@@ -124,7 +124,7 @@ async function main() {
     // Example 10: Combining global search with filtering
     // ----------------------------------------------------------------------------
     console.log('Example 10: Global search + filtering');
-    const markets = await api.searchMarkets('Election');
+    const markets = await api.fetchMarkets({ query: 'Election' });
     const undervalued = api.filterMarkets(markets, {
         price: { outcome: 'yes', max: 0.3 },
         volume24h: { min: 5000 },

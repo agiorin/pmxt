@@ -51,20 +51,24 @@ export class PolymarketExchange extends PredictionMarketExchange {
         return 'Polymarket';
     }
 
-    async fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+    // ----------------------------------------------------------------------------
+    // Implementation methods for CCXT-style API
+    // ----------------------------------------------------------------------------
+
+    protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
         return fetchMarkets(params);
     }
 
-    async searchMarkets(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+    protected async searchMarketsImpl(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
         return searchMarkets(query, params);
     }
 
-    async searchEvents(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
-        return searchEvents(query, params);
+    protected async fetchMarketsBySlugImpl(slug: string): Promise<UnifiedMarket[]> {
+        return getMarketsBySlug(slug);
     }
 
-    async getMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
-        return getMarketsBySlug(slug);
+    protected async searchEventsImpl(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
+        return searchEvents(query, params);
     }
 
     async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {

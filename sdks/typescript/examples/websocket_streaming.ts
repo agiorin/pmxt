@@ -11,7 +11,7 @@ async function main() {
     const poly = new Polymarket();
 
     // Search for a market
-    const markets = await poly.searchMarkets('Trump', { limit: 1 });
+    const markets = await poly.fetchMarkets({ query: 'Trump', limit: 1 });
 
     if (markets.length === 0) {
         console.log('No markets found');

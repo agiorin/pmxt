@@ -7,10 +7,10 @@ def run():
     
     # 1. Search for the broad Event
     print("Searching for Event: Fed Chair...")
-    events = api.search_events("Who will Trump nominate as Fed Chair?")
+    events = api.fetch_events(query="Who will Trump nominate as Fed Chair?")
     event = events[0]
     print(f"Found Event: {event.title}")
-    
+
     # 2. Search for the specific Market within that event
     print("Searching for Market: Kevin Warsh...")
     market = event.search_markets("Kevin Warsh")[0]

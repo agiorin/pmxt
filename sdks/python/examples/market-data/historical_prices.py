@@ -2,9 +2,9 @@ import pmxt
 
 def main():
     api = pmxt.Polymarket()
-    events = api.search_events("Who will Trump nominate as Fed Chair?")
+    events = api.fetch_events(query="Who will Trump nominate as Fed Chair?")
     event = events[0]
-    
+
     market = event.search_markets("Kevin Warsh")[0]
 
     # Use outcome.outcome_id for fetching historical data

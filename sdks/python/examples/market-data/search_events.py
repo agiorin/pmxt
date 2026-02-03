@@ -2,10 +2,10 @@ import pmxt
 
 def main():
     poly = pmxt.Polymarket()
-    # kalshi = pmxt.Kalshi() 
+    # kalshi = pmxt.Kalshi()
 
     # Search for broad events (groups of markets)
-    events = poly.search_events('Fed Chair')
+    events = poly.fetch_events(query='Fed Chair')
     
     for event in events:
         print(f"Event: {event.title}")

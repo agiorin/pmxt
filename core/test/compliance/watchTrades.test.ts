@@ -42,13 +42,13 @@ describe('Compliance: watchTrades', () => {
                     // Search terms: Crypto + Date-based
                     const searchTerms = ['BTC', 'ETH', 'SOL', 'CRYPTO', `${shortMonth} ${day}`, month];
 
-                    // Optimization: We already have 1000 markets in 'markets'. 
+                    // Optimization: We already have 1000 markets in 'markets'.
                     // Let's use them first, but also do the parallel searches for fresh data if needed.
-                    // Actually, searchMarkets() fetches 5000, so it's better.
+                    // Actually, fetchMarkets({ query }) fetches 5000, so it's better.
 
                     const searchResults = await Promise.all(
                         searchTerms.map(term =>
-                            (exchange as any).searchMarkets(term, { searchIn: 'both', limit: 50 })
+                            (exchange as any).fetchMarkets({ query: term, searchIn: 'both', limit: 50 })
                                 .catch(() => [])
                         )
                     );

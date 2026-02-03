@@ -8,6 +8,18 @@ export interface MarketFilterParams {
     searchIn?: 'title' | 'description' | 'both'; // Where to search (default: 'title')
 }
 
+export interface MarketFetchParams extends MarketFilterParams {
+    query?: string;  // For keyword search
+    slug?: string;   // For slug/ticker lookup
+}
+
+export interface EventFetchParams {
+    query?: string;  // For keyword search (will be required in practice)
+    limit?: number;
+    offset?: number;
+    searchIn?: 'title' | 'description' | 'both';
+}
+
 export interface HistoryFilterParams {
     resolution: CandleInterval;
     start?: Date;
@@ -101,30 +113,129 @@ export abstract class PredictionMarketExchange {
     abstract get name(): string;
 
     /**
-     * Fetch all relevant markets from the source.
+     * Fetch markets with optional filtering, search, or slug lookup.
+     * This is the primary method for retrieving markets in CCXT-style.
+     *
+     * @param params - Optional parameters for filtering and search
+     * @param params.query - Search keyword to filter markets
+     * @param params.slug - Market slug/ticker for direct lookup
+     * @param params.limit - Maximum number of results
+     * @param params.offset - Pagination offset
+     * @param params.sort - Sort order
+     * @param params.searchIn - Where to search (title, description, or both)
+     * @returns Array of unified markets
+     *
+     * @example Fetch all markets
+     * await exchange.fetchMarkets()
+     *
+     * @example Search markets
+     * await exchange.fetchMarkets({ query: 'Trump' })
+     *
+     * @example Get market by slug
+     * await exchange.fetchMarkets({ slug: 'will-trump-win' })
      */
-    abstract fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]>;
+    async fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+        // Route based on params
+        if (params?.slug) {
+            return this.fetchMarketsBySlugImpl(params.slug);
+        }
+        if (params?.query) {
+            return this.searchMarketsImpl(params.query, params);
+        }
+        return this.fetchMarketsImpl(params);
+    }
 
     /**
+     * Fetch events with optional keyword search.
+     * Events group related markets together.
+     *
+     * @param params - Optional parameters for search and filtering
+     * @param params.query - Search keyword to filter events
+     * @param params.limit - Maximum number of results
+     * @param params.offset - Pagination offset
+     * @param params.searchIn - Where to search (title, description, or both)
+     * @returns Array of unified events
+     *
+     * @example Search events
+     * await exchange.fetchEvents({ query: 'Election' })
+     */
+    async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]> {
+        if (params?.query) {
+            return this.searchEventsImpl(params.query, params);
+        }
+        throw new Error("fetchEvents() requires a query parameter");
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implementation methods (to be overridden by exchanges)
+    // ----------------------------------------------------------------------------
+
+    /**
+     * @internal
+     * Implementation for fetching all markets.
+     */
+    protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+        throw new Error("Method fetchMarketsImpl not implemented.");
+    }
+
+    /**
+     * @internal
+     * Implementation for searching markets by keyword.
+     */
+    protected async searchMarketsImpl(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+        throw new Error("Method searchMarketsImpl not implemented.");
+    }
+
+    /**
+     * @internal
+     * Implementation for fetching markets by slug/ticker.
+     */
+    protected async fetchMarketsBySlugImpl(slug: string): Promise<UnifiedMarket[]> {
+        throw new Error("Method fetchMarketsBySlugImpl not implemented.");
+    }
+
+    /**
+     * @internal
+     * Implementation for searching events by keyword.
+     */
+    protected async searchEventsImpl(query: string, params?: MarketFilterParams | EventFetchParams): Promise<UnifiedEvent[]> {
+        throw new Error("Method searchEventsImpl not implemented.");
+    }
+
+    // ----------------------------------------------------------------------------
+    // Deprecated methods (kept for backward compatibility)
+    // ----------------------------------------------------------------------------
+
+    /**
+     * @deprecated Use fetchMarkets({ query: '...' }) instead. Will be removed in v2.0
      * Search for markets matching a keyword query.
      * By default, searches only in market titles. Use params.searchIn to search descriptions or both.
      */
-    abstract searchMarkets(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]>;
+    async searchMarkets(query: string, params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+        console.warn('⚠️  searchMarkets() is deprecated. Use fetchMarkets({ query: "..." }) instead.');
+        return this.fetchMarkets({ ...params, query });
+    }
 
     /**
+     * @deprecated Use fetchMarkets({ slug: '...' }) instead. Will be removed in v2.0
      * Fetch markets by URL slug (Polymarket) or ticker (Kalshi).
      * @param slug - Market slug or ticker
      */
-    abstract getMarketsBySlug(slug: string): Promise<UnifiedMarket[]>;
+    async getMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
+        console.warn('⚠️  getMarketsBySlug() is deprecated. Use fetchMarkets({ slug: "..." }) instead.');
+        return this.fetchMarkets({ slug });
+    }
 
     /**
+     * @deprecated Use fetchEvents({ query: '...' }) instead. Will be removed in v2.0
      * Search for events matching a keyword query.
      * Returns grouped events, each containing related markets.
      * @param query - Search term
      * @param params - Optional filter parameters
      */
     async searchEvents(query: string, params?: MarketFilterParams): Promise<UnifiedEvent[]> {
-        throw new Error("Method searchEvents not implemented.");
+        console.warn('⚠️  searchEvents() is deprecated. Use fetchEvents({ query: "..." }) instead.');
+        return this.fetchEvents({ ...params, query });
     }
 
     /**

@@ -18,7 +18,7 @@ poly = pmxt.Polymarket()
 kalshi = pmxt.Kalshi()
 
 # Search for markets
-markets = poly.search_markets("Trump")
+markets = poly.fetch_markets(query="Trump")
 print(markets[0].title)
 ```
 
@@ -66,107 +66,57 @@ def fetch_markets(params: Optional[MarketFilterParams] = None) -> List[UnifiedMa
 
 **Parameters:**
 
-- `params` (MarketFilterParams) - **Optional**: Filter parameters
+- `params` (MarketFilterParams) - **Optional**: Filter parameters (limit, offset, sort)
+- `query` (str) - **Optional**: Search query (replaces search_markets)
+- `slug` (str) - **Optional**: Market slug or ticker (replaces get_markets_by_slug)
 
 **Returns:** `List[UnifiedMarket]` - List of unified markets
 
 **Example:**
 
 ```python
-markets = poly.fetch_markets(pmxt.MarketFilterParams(
-    limit=20,
-    sort='volume'  # 'volume' | 'liquidity' | 'newest'
-))
+# 1. Fetch recent markets
+markets = poly.fetch_markets(limit=20, sort='volume')
+
+# 2. Search by text (replaces search_markets)
+results = kalshi.fetch_markets(query='Fed rates', limit=10)
+
+# 3. Fetch by slug/ticker (replaces get_markets_by_slug)
+market = poly.fetch_markets(slug='who-will-trump-nominate-as-fed-chair')
 ```
 
 
 ---
-### `search_markets`
+### `fetch_events`
 
-Search Markets
+Fetch Events
 
-Search for markets by title or description.
+Fetch events (groups of related markets). Unified method for event fetching.
 
 **Signature:**
 
 ```python
-def search_markets(query: str, params: Optional[MarketFilterParams] = None) -> List[UnifiedMarket]:
+def fetch_events(query: Optional[str] = None, params: Optional[MarketFilterParams] = None) -> List[UnifiedEvent]:
 ```
 
 **Parameters:**
 
-- `query` (str): Search query
+- `query` (str) - **Optional**: Search query
 - `params` (MarketFilterParams) - **Optional**: Filter parameters
 
-**Returns:** `List[UnifiedMarket]` - Search results
+**Returns:** `List[UnifiedEvent]` - List of events
 
 **Example:**
 
 ```python
-results = kalshi.search_markets('Fed rates', pmxt.MarketFilterParams(
-    limit=10,
-    search_in='title'  # 'title' (default) | 'description' | 'both'
-))
-```
-
-
----
-### `get_markets_by_slug`
-
-Get Market by Slug
-
-Get Market by Slug
-
-**Signature:**
-
-```python
-def get_markets_by_slug() -> List[UnifiedMarket]:
-```
-
-**Parameters:**
-
-- None
-
-**Returns:** `List[UnifiedMarket]` - Targeted market
-
-**Example:**
-
-```python
-# Polymarket: use URL slug
-poly_markets = poly.get_markets_by_slug('who-will-trump-nominate-as-fed-chair')
-
-# Kalshi: use market ticker (auto-uppercased)
-kalshi_markets = kalshi.get_markets_by_slug('KXFEDCHAIRNOM-29')
-```
-
-
----
-### `search_events`
-
-Search Events
-
-Search for events (groups of related markets) by title or description.
-
-**Signature:**
-
-```python
-def search_events(query: str, params: Optional[MarketFilterParams] = None) -> List[UnifiedEvent]:
-```
-
-**Parameters:**
-
-- `query` (str): Search query
-- `params` (MarketFilterParams) - **Optional**: Filter parameters
-
-**Returns:** `List[UnifiedEvent]` - Search results
-
-**Example:**
-
-```python
-events = poly.search_events('Who will Trump nominate as Fed Chair?')
+events = poly.fetch_events(query='Fed Chair', limit=5)
 # Filter for specific market within the event
 warsh = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]
 ```
+
+
+
+
 
 
 ---
@@ -192,7 +142,7 @@ def fetch_o_h_l_c_v(id: str, params: Optional[HistoryFilterParams] = None) -> Li
 **Example:**
 
 ```python
-markets = poly.search_markets('Trump')
+markets = poly.fetch_markets(query='Trump')
 outcome_id = markets[0].outcomes[0].id  # Get the outcome ID
 
 candles = poly.fetch_ohlcv(outcome_id, pmxt.HistoryFilterParams(
@@ -657,7 +607,7 @@ if balances:
     print(f'Available: ${balance.available}')
 
 # 2. Search for a market
-markets = exchange.search_markets('Trump')
+markets = exchange.fetch_markets(query='Trump')
 market = markets[0]
 outcome = market.outcomes[0]
 

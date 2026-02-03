@@ -9,7 +9,7 @@ async function run() {
     });
 
     console.log("Searching for Event: Serie A...");
-    const events = await api.searchEvents("Serie A");
+    const events = await api.fetchEvents({ query: "Serie A" });
     const event = events[0];
 
     console.log("Searching for Market: Juventus vs Napoli...");

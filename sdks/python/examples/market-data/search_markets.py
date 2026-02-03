@@ -4,8 +4,8 @@ def main():
     poly = pmxt.Polymarket()
     kalshi = pmxt.Kalshi()
 
-    print('Polymarket:', poly.search_markets('Trump'))
-    print('Kalshi:', kalshi.search_markets('Trump'))
+    print('Polymarket:', poly.fetch_markets(query='Trump'))
+    print('Kalshi:', kalshi.fetch_markets(query='Trump'))
 
 if __name__ == "__main__":
     main()

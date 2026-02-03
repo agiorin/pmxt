@@ -2,7 +2,7 @@ import pmxt
 
 def main():
     api = pmxt.Kalshi()
-    markets = api.get_markets_by_slug('KXFEDCHAIRNOM-29')
+    markets = api.fetch_markets(slug='KXFEDCHAIRNOM-29')
     warsh = next((m for m in markets if m.outcomes[0].label == 'Kevin Warsh'), None)
 
     if warsh:

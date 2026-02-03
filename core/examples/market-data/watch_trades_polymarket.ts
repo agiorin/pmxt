@@ -5,7 +5,7 @@ async function run() {
 
     // 1. Search for the broad Event
     console.log("Searching for Event: Fed Chair...");
-    const events = await api.searchEvents("Who will Trump nominate as Fed Chair?");
+    const events = await api.fetchEvents({ query: "Who will Trump nominate as Fed Chair?" });
     const event = events[0];
 
     // 2. Search for the specific Market within that event

@@ -40,43 +40,53 @@ const poly = new pmxt.default.Polymarket();
 ## Core Methods
 
 ### `fetchMarkets(params?)`
-Get active markets from an exchange.
+Get active markets from an exchange. This is the unified method for all market fetching operations.
+
+**Parameters**:
+- `limit`: Number of results (default: 20)
+- `offset`: Pagination offset
+- `sort`: 'volume' | 'liquidity' | 'newest'
+- `query`: Search text (replaces `searchMarkets`)
+- `slug`: Market slug or ticker (replaces `getMarketsBySlug`)
 
 ```typescript
+// 1. Fetch recent markets
 const markets = await polymarket.fetchMarkets({ 
   limit: 20, 
-  offset: 0,
-  sort: 'volume' // 'volume' | 'liquidity' | 'newest'
+  sort: 'volume' 
+});
+
+// 2. Search by text (replaces searchMarkets)
+const results = await kalshi.fetchMarkets({ 
+  query: 'Fed rates',
+  limit: 10
+});
+
+// 3. Fetch by slug/ticker (replaces getMarketsBySlug)
+const market = await polymarket.fetchMarkets({ 
+  slug: 'who-will-trump-nominate-as-fed-chair'
 });
 ```
 
-### `searchMarkets(query, params?)`
-Search markets by keyword. By default, searches only in titles.
+### `fetchEvents(params?)`
+Get events (groups of related markets). Unified method for event fetching.
+
+**Parameters**:
+- `query`: Search text
+- `limit`: Number of results
+- `offset`: Pagination offset
 
 ```typescript
-const results = await kalshi.searchMarkets('Fed rates', { 
-  limit: 10,
-  searchIn: 'title' // 'title' (default) | 'description' | 'both'
+// Search for events
+const events = await polymarket.fetchEvents({ 
+  query: 'Fed Chair',
+  limit: 5 
 });
 ```
 
-### `getMarketsBySlug(slug)`
-Fetch markets by URL slug/ticker.
+---
 
-```typescript
-// Polymarket: use URL slug
-const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
 
-// Kalshi: use market ticker (auto-uppercased)
-const kalshiMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
-```
-
-#### Universal Slug/Ticker Reference
-
-| Platform | Example Market URL | What to extract (Slug/Ticker) | Logic |
-|---|---|---|---|
-| **Kalshi** | `kalshi.com/markets/kxfedchairnom/.../kxfedchairnom-29` | `KXFEDCHAIRNOM-29` | The **last** path segment of the URL. |
-| **Polymarket** | `polymarket.com/event/who-will-trump-nominate-as-fed-chair` | `who-will-trump-nominate-as-fed-chair` | The slug immediately after `/event/`. |
 
 ---
 
@@ -90,7 +100,7 @@ Get historical price candles.
 - **Kalshi**: `outcome.outcomeId` is the Market Ticker
 
 ```typescript
-const markets = await polymarket.searchMarkets('Trump');
+const markets = await polymarket.fetchMarkets({ query: 'Trump' });
 const outcomeId = markets[0].outcomes[0].outcomeId; // Get the outcome ID
 
 const candles = await polymarket.fetchOHLCV(outcomeId, {
@@ -228,7 +238,7 @@ interface ExecutionPriceResult {
 
 ```typescript
 // 1. Search for markets
-const markets = await polymarket.searchMarkets('Fed Chair');
+const markets = await polymarket.fetchMarkets({ query: 'Fed Chair' });
 const market = markets[0];
 
 // 2. Get outcome details
@@ -493,7 +503,7 @@ const [balance] = await exchange.fetchBalance();
 console.log(`Available: $${balance.available}`);
 
 // 2. Search for a market
-const markets = await exchange.searchMarkets('Trump');
+const markets = await exchange.fetchMarkets({ query: 'Trump' });
 const market = markets[0];
 const outcome = market.outcomes[0];
 
