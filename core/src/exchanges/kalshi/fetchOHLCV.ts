@@ -2,8 +2,11 @@ import axios from 'axios';
 import { HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { mapIntervalToKalshi } from './utils';
+import { validateIdFormat } from '../../utils/validation';
 
 export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    validateIdFormat(id, 'OHLCV');
+
     try {
         // Kalshi API expects uppercase tickers
         // Handle virtual "-NO" suffix by stripping it (fetching the underlying market history)

@@ -31,8 +31,13 @@ import type {
   FetchPositionsRequest,
   FetchTrades200Response,
   FetchTradesRequest,
+  GetExecutionPrice200Response,
+  GetExecutionPriceDetailed200Response,
+  GetExecutionPriceRequest,
   GetMarketsBySlugRequest,
   HealthCheck200Response,
+  SearchEvents200Response,
+  SearchEventsRequest,
   SearchMarketsRequest,
   WatchOrderBookRequest,
   WatchTradesRequest,
@@ -70,10 +75,20 @@ import {
     FetchTrades200ResponseToJSON,
     FetchTradesRequestFromJSON,
     FetchTradesRequestToJSON,
+    GetExecutionPrice200ResponseFromJSON,
+    GetExecutionPrice200ResponseToJSON,
+    GetExecutionPriceDetailed200ResponseFromJSON,
+    GetExecutionPriceDetailed200ResponseToJSON,
+    GetExecutionPriceRequestFromJSON,
+    GetExecutionPriceRequestToJSON,
     GetMarketsBySlugRequestFromJSON,
     GetMarketsBySlugRequestToJSON,
     HealthCheck200ResponseFromJSON,
     HealthCheck200ResponseToJSON,
+    SearchEvents200ResponseFromJSON,
+    SearchEvents200ResponseToJSON,
+    SearchEventsRequestFromJSON,
+    SearchEventsRequestToJSON,
     SearchMarketsRequestFromJSON,
     SearchMarketsRequestToJSON,
     WatchOrderBookRequestFromJSON,
@@ -132,9 +147,24 @@ export interface FetchTradesOperationRequest {
     fetchTradesRequest?: FetchTradesRequest;
 }
 
+export interface GetExecutionPriceOperationRequest {
+    exchange: GetExecutionPriceOperationExchangeEnum;
+    getExecutionPriceRequest?: GetExecutionPriceRequest;
+}
+
+export interface GetExecutionPriceDetailedRequest {
+    exchange: GetExecutionPriceDetailedExchangeEnum;
+    getExecutionPriceRequest?: GetExecutionPriceRequest;
+}
+
 export interface GetMarketsBySlugOperationRequest {
     exchange: GetMarketsBySlugOperationExchangeEnum;
     getMarketsBySlugRequest?: GetMarketsBySlugRequest;
+}
+
+export interface SearchEventsOperationRequest {
+    exchange: SearchEventsOperationExchangeEnum;
+    searchEventsRequest?: SearchEventsRequest;
 }
 
 export interface SearchMarketsOperationRequest {
@@ -558,6 +588,86 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get Execution Price
+     */
+    async getExecutionPriceRaw(requestParameters: GetExecutionPriceOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetExecutionPrice200Response>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling getExecutionPrice().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/getExecutionPrice`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GetExecutionPriceRequestToJSON(requestParameters['getExecutionPriceRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetExecutionPrice200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Execution Price
+     */
+    async getExecutionPrice(requestParameters: GetExecutionPriceOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetExecutionPrice200Response> {
+        const response = await this.getExecutionPriceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Detailed Execution Price
+     */
+    async getExecutionPriceDetailedRaw(requestParameters: GetExecutionPriceDetailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetExecutionPriceDetailed200Response>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling getExecutionPriceDetailed().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/getExecutionPriceDetailed`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GetExecutionPriceRequestToJSON(requestParameters['getExecutionPriceRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetExecutionPriceDetailed200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Detailed Execution Price
+     */
+    async getExecutionPriceDetailed(requestParameters: GetExecutionPriceDetailedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetExecutionPriceDetailed200Response> {
+        const response = await this.getExecutionPriceDetailedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get Market by Slug
      */
     async getMarketsBySlugRaw(requestParameters: GetMarketsBySlugOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMarkets200Response>> {
@@ -623,6 +733,48 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async healthCheck(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HealthCheck200Response> {
         const response = await this.healthCheckRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Search for events (groups of related markets) by title or description.
+     * Search Events
+     */
+    async searchEventsRaw(requestParameters: SearchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SearchEvents200Response>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling searchEvents().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/searchEvents`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SearchEventsRequestToJSON(requestParameters['searchEventsRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SearchEvents200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Search for events (groups of related markets) by title or description.
+     * Search Events
+     */
+    async searchEvents(requestParameters: SearchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SearchEvents200Response> {
+        const response = await this.searchEventsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -837,11 +989,35 @@ export type FetchTradesOperationExchangeEnum = typeof FetchTradesOperationExchan
 /**
  * @export
  */
+export const GetExecutionPriceOperationExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type GetExecutionPriceOperationExchangeEnum = typeof GetExecutionPriceOperationExchangeEnum[keyof typeof GetExecutionPriceOperationExchangeEnum];
+/**
+ * @export
+ */
+export const GetExecutionPriceDetailedExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type GetExecutionPriceDetailedExchangeEnum = typeof GetExecutionPriceDetailedExchangeEnum[keyof typeof GetExecutionPriceDetailedExchangeEnum];
+/**
+ * @export
+ */
 export const GetMarketsBySlugOperationExchangeEnum = {
     Polymarket: 'polymarket',
     Kalshi: 'kalshi'
 } as const;
 export type GetMarketsBySlugOperationExchangeEnum = typeof GetMarketsBySlugOperationExchangeEnum[keyof typeof GetMarketsBySlugOperationExchangeEnum];
+/**
+ * @export
+ */
+export const SearchEventsOperationExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type SearchEventsOperationExchangeEnum = typeof SearchEventsOperationExchangeEnum[keyof typeof SearchEventsOperationExchangeEnum];
 /**
  * @export
  */

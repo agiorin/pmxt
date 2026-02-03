@@ -1,12 +1,15 @@
 import axios from 'axios';
 import { OrderBook } from '../../types';
 import { LIMITLESS_API_URL } from './utils';
+import { validateIdFormat } from '../../utils/validation';
 
 /**
  * Fetch the current order book for a specific market.
  * @param id - The market slug (preferred) or CLOB token ID
  */
 export async function fetchOrderBook(id: string): Promise<OrderBook> {
+    validateIdFormat(id, 'OrderBook');
+
     try {
         // New API uses slugs: /markets/{slug}/orderbook
         // If 'id' is a numeric token ID, this might fail unless we look up the slug.

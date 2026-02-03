@@ -699,7 +699,8 @@ for pos in positions:
 ```python
 @dataclass
 class UnifiedMarket:
-id: str # 
+id: str # DEPRECATED: Use marketId instead. Will be removed in v2.0
+market_id: str # The unique identifier for this market
 title: str # 
 description: str # 
 outcomes: List[MarketOutcome] # 
@@ -726,7 +727,8 @@ down: MarketOutcome #
 ```python
 @dataclass
 class MarketOutcome:
-id: str # 
+id: str # DEPRECATED: Use outcomeId instead. Will be removed in v2.0
+outcome_id: str # Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)
 label: str # 
 price: float # 
 price_change24h: float # 

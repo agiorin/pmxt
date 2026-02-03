@@ -15,9 +15,11 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
         const tokenEntries = Object.entries(market.tokens);
         tokenEntries.forEach(([label, tokenId], index) => {
             const outcomePrice = market.prices[index] || 0;
+            const outcomeIdValue = tokenId as string;
 
             outcomes.push({
-                id: tokenId as string,
+                id: outcomeIdValue,
+                outcomeId: outcomeIdValue,
                 label: label.charAt(0).toUpperCase() + label.slice(1), // Capitalize 'yes'/'no'
                 price: outcomePrice,
                 priceChange24h: 0, // Not directly available in this flat list, can be computed if needed
@@ -30,6 +32,7 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
 
     const um = {
         id: market.slug,
+        marketId: market.slug,
         title: market.title || market.question,
         description: market.description,
         outcomes: outcomes,

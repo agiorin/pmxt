@@ -62,8 +62,11 @@ All URIs are relative to *http://localhost:3847*
 *DefaultApi* | [**fetchOrderBook**](docs/DefaultApi.md#fetchorderbookoperation) | **POST** /api/{exchange}/fetchOrderBook | Fetch Order Book
 *DefaultApi* | [**fetchPositions**](docs/DefaultApi.md#fetchpositionsoperation) | **POST** /api/{exchange}/fetchPositions | Fetch Positions
 *DefaultApi* | [**fetchTrades**](docs/DefaultApi.md#fetchtradesoperation) | **POST** /api/{exchange}/fetchTrades | Fetch Trades
+*DefaultApi* | [**getExecutionPrice**](docs/DefaultApi.md#getexecutionpriceoperation) | **POST** /api/{exchange}/getExecutionPrice | Get Execution Price
+*DefaultApi* | [**getExecutionPriceDetailed**](docs/DefaultApi.md#getexecutionpricedetailed) | **POST** /api/{exchange}/getExecutionPriceDetailed | Get Detailed Execution Price
 *DefaultApi* | [**getMarketsBySlug**](docs/DefaultApi.md#getmarketsbyslugoperation) | **POST** /api/{exchange}/getMarketsBySlug | Get Market by Slug
 *DefaultApi* | [**healthCheck**](docs/DefaultApi.md#healthcheck) | **GET** /health | Server Health Check
+*DefaultApi* | [**searchEvents**](docs/DefaultApi.md#searcheventsoperation) | **POST** /api/{exchange}/searchEvents | Search Events
 *DefaultApi* | [**searchMarkets**](docs/DefaultApi.md#searchmarketsoperation) | **POST** /api/{exchange}/searchMarkets | Search Markets
 *DefaultApi* | [**watchOrderBook**](docs/DefaultApi.md#watchorderbookoperation) | **POST** /api/{exchange}/watchOrderBook | Watch Order Book (WebSocket Stream)
 *DefaultApi* | [**watchTrades**](docs/DefaultApi.md#watchtradesoperation) | **POST** /api/{exchange}/watchTrades | Watch Trades (WebSocket Stream)
@@ -81,6 +84,8 @@ All URIs are relative to *http://localhost:3847*
 - [ErrorDetail](docs/ErrorDetail.md)
 - [ErrorResponse](docs/ErrorResponse.md)
 - [ExchangeCredentials](docs/ExchangeCredentials.md)
+- [ExchangeCredentialsSignatureType](docs/ExchangeCredentialsSignatureType.md)
+- [ExecutionPriceResult](docs/ExecutionPriceResult.md)
 - [FetchBalance200Response](docs/FetchBalance200Response.md)
 - [FetchMarkets200Response](docs/FetchMarkets200Response.md)
 - [FetchMarketsRequest](docs/FetchMarketsRequest.md)
@@ -95,6 +100,10 @@ All URIs are relative to *http://localhost:3847*
 - [FetchPositionsRequest](docs/FetchPositionsRequest.md)
 - [FetchTrades200Response](docs/FetchTrades200Response.md)
 - [FetchTradesRequest](docs/FetchTradesRequest.md)
+- [GetExecutionPrice200Response](docs/GetExecutionPrice200Response.md)
+- [GetExecutionPriceDetailed200Response](docs/GetExecutionPriceDetailed200Response.md)
+- [GetExecutionPriceRequest](docs/GetExecutionPriceRequest.md)
+- [GetExecutionPriceRequestArgsInner](docs/GetExecutionPriceRequestArgsInner.md)
 - [GetMarketsBySlugRequest](docs/GetMarketsBySlugRequest.md)
 - [HealthCheck200Response](docs/HealthCheck200Response.md)
 - [HistoryFilterParams](docs/HistoryFilterParams.md)
@@ -105,9 +114,12 @@ All URIs are relative to *http://localhost:3847*
 - [OrderLevel](docs/OrderLevel.md)
 - [Position](docs/Position.md)
 - [PriceCandle](docs/PriceCandle.md)
+- [SearchEvents200Response](docs/SearchEvents200Response.md)
+- [SearchEventsRequest](docs/SearchEventsRequest.md)
 - [SearchMarketsRequest](docs/SearchMarketsRequest.md)
 - [SearchMarketsRequestArgsInner](docs/SearchMarketsRequestArgsInner.md)
 - [Trade](docs/Trade.md)
+- [UnifiedEvent](docs/UnifiedEvent.md)
 - [UnifiedMarket](docs/UnifiedMarket.md)
 - [WatchOrderBookRequest](docs/WatchOrderBookRequest.md)
 - [WatchOrderBookRequestArgsInner](docs/WatchOrderBookRequestArgsInner.md)

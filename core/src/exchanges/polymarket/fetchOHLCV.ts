@@ -2,16 +2,15 @@ import axios from 'axios';
 import { HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { CLOB_API_URL, mapIntervalToFidelity } from './utils';
+import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 
 /**
  * Fetch historical price data (OHLCV candles) for a specific token.
  * @param id - The CLOB token ID (e.g., outcome token ID)
  */
 export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
-    // ID Validation: Polymarket CLOB requires a Token ID (long numeric string) not a Market ID
-    if (id.length < 10 && /^\d+$/.test(id)) {
-        throw new Error(`Invalid ID for Polymarket history: "${id}". You provided a Market ID, but Polymarket's CLOB API requires a Token ID. Ensure you are using 'outcome.id'.`);
-    }
+    validateIdFormat(id, 'OHLCV');
+    validateOutcomeId(id, 'OHLCV');
 
     try {
         const fidelity = mapIntervalToFidelity(params.resolution);

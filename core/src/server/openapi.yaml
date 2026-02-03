@@ -737,6 +737,11 @@ components:
       properties:
         id:
           type: string
+          deprecated: true
+          description: "DEPRECATED: Use marketId instead. Will be removed in v2.0"
+        marketId:
+          type: string
+          description: "The unique identifier for this market"
         title:
           type: string
         description:
@@ -780,6 +785,11 @@ components:
       properties:
         id:
           type: string
+          deprecated: true
+          description: "DEPRECATED: Use outcomeId instead. Will be removed in v2.0"
+        outcomeId:
+          type: string
+          description: "Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)"
         label:
           type: string
         price:

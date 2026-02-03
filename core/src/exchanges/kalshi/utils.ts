@@ -32,12 +32,14 @@ export function mapMarketToUnified(event: any, market: any): UnifiedMarket | nul
     const outcomes: MarketOutcome[] = [
         {
             id: market.ticker, // The actual market ticker (primary tradeable)
+            outcomeId: market.ticker,
             label: candidateName || 'Yes',
             price: price,
             priceChange24h: priceChange
         },
         {
             id: `${market.ticker}-NO`, // Virtual ID for the No outcome
+            outcomeId: `${market.ticker}-NO`,
             label: candidateName ? `Not ${candidateName}` : 'No',
             price: 1 - price,
             priceChange24h: -priceChange // Inverse change for No? simplified assumption
@@ -63,6 +65,7 @@ export function mapMarketToUnified(event: any, market: any): UnifiedMarket | nul
 
     const um = {
         id: market.ticker,
+        marketId: market.ticker,
         title: event.title,
         description: market.rules_primary || market.rules_secondary || "",
         outcomes: outcomes,

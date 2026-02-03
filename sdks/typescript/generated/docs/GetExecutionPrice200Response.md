@@ -1,32 +1,26 @@
 
-# MarketOutcome
+# GetExecutionPrice200Response
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`id` | string
-`outcomeId` | string
-`label` | string
-`price` | number
-`priceChange24h` | number
-`metadata` | { [key: string]: any; }
+`success` | boolean
+`error` | [ErrorDetail](ErrorDetail.md)
+`data` | number
 
 ## Example
 
 ```typescript
-import type { MarketOutcome } from 'pmxtjs'
+import type { GetExecutionPrice200Response } from 'pmxtjs'
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": null,
-  "outcomeId": null,
-  "label": null,
-  "price": null,
-  "priceChange24h": null,
-  "metadata": null,
-} satisfies MarketOutcome
+  "success": true,
+  "error": null,
+  "data": null,
+} satisfies GetExecutionPrice200Response
 
 console.log(example)
 
@@ -35,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as MarketOutcome
+const exampleParsed = JSON.parse(exampleJSON) as GetExecutionPrice200Response
 console.log(exampleParsed)
 ```
 

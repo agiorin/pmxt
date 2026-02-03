@@ -702,7 +702,8 @@ positions.forEach(pos => {
 
     ```typescript
     interface UnifiedMarket {
-    id: string; // 
+    id: string; // DEPRECATED: Use marketId instead. Will be removed in v2.0
+    marketId: string; // The unique identifier for this market
     title: string; // 
     description: string; // 
     outcomes: MarketOutcome[]; // 
@@ -729,7 +730,8 @@ positions.forEach(pos => {
 
     ```typescript
     interface MarketOutcome {
-    id: string; // 
+    id: string; // DEPRECATED: Use outcomeId instead. Will be removed in v2.0
+    outcomeId: string; // Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)
     label: string; // 
     price: number; // 
     priceChange24h: number; // 

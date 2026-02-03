@@ -58,8 +58,10 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
                 priceChange = Number(market.oneDayPriceChange || 0);
             }
 
+            const outcomeIdValue = clobTokenIds[index] || String(index);
             outcomes.push({
-                id: clobTokenIds[index] || String(index), // Use CLOB Token ID as the primary ID
+                id: outcomeIdValue, // Use CLOB Token ID as the primary ID
+                outcomeId: outcomeIdValue,
                 label: outcomeLabel,
                 price: parseFloat(rawPrice) || 0,
                 priceChange24h: priceChange,
@@ -73,6 +75,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
 
     const um = {
         id: market.id,
+        marketId: market.id,
         title: market.question ? `${event.title} - ${market.question}` : event.title,
         description: market.description || event.description,
         outcomes: outcomes,

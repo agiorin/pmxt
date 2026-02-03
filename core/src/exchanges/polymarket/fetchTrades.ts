@@ -2,18 +2,17 @@ import axios from 'axios';
 import { HistoryFilterParams } from '../../BaseExchange';
 import { Trade } from '../../types';
 import { DATA_API_URL } from './utils';
+import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 
 /**
  * Fetch raw trade history for a specific token.
  * @param id - The CLOB token ID
- * 
+ *
  * NOTE: Uses Polymarket Data API (public) to fetch trades.
  */
 export async function fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
-    // ID Validation
-    if (id.length < 10 && /^\d+$/.test(id)) {
-        throw new Error(`Invalid ID for Polymarket trades: "${id}". You provided a Market ID, but Polymarket's CLOB API requires a Token ID.`);
-    }
+    validateIdFormat(id, 'Trades');
+    validateOutcomeId(id, 'Trades');
 
     try {
         const queryParams: any = {

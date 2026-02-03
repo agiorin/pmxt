@@ -1,12 +1,16 @@
 import axios from 'axios';
 import { OrderBook } from '../../types';
 import { CLOB_API_URL } from './utils';
+import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 
 /**
  * Fetch the current order book for a specific token.
  * @param id - The CLOB token ID
  */
 export async function fetchOrderBook(id: string): Promise<OrderBook> {
+    validateIdFormat(id, 'OrderBook');
+    validateOutcomeId(id, 'OrderBook');
+
     try {
         const response = await axios.get(`${CLOB_API_URL}/book`, {
             params: { token_id: id }

@@ -11,6 +11,8 @@ Name | Type
 `privateKey` | string
 `apiSecret` | string
 `passphrase` | string
+`funderAddress` | string
+`signatureType` | [ExchangeCredentialsSignatureType](ExchangeCredentialsSignatureType.md)
 
 ## Example
 
@@ -23,6 +25,8 @@ const example = {
   "privateKey": null,
   "apiSecret": null,
   "passphrase": null,
+  "funderAddress": null,
+  "signatureType": null,
 } satisfies ExchangeCredentials
 
 console.log(example)

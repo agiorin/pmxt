@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ExchangeCredentialsSignatureType } from './ExchangeCredentialsSignatureType';
+import {
+    ExchangeCredentialsSignatureTypeFromJSON,
+    ExchangeCredentialsSignatureTypeFromJSONTyped,
+    ExchangeCredentialsSignatureTypeToJSON,
+    ExchangeCredentialsSignatureTypeToJSONTyped,
+} from './ExchangeCredentialsSignatureType';
+
 /**
  * Optional authentication credentials for exchange operations
  * @export
@@ -43,6 +51,18 @@ export interface ExchangeCredentials {
      * @memberof ExchangeCredentials
      */
     passphrase?: string;
+    /**
+     * The address funding the trades (Proxy address)
+     * @type {string}
+     * @memberof ExchangeCredentials
+     */
+    funderAddress?: string;
+    /**
+     * 
+     * @type {ExchangeCredentialsSignatureType}
+     * @memberof ExchangeCredentials
+     */
+    signatureType?: ExchangeCredentialsSignatureType;
 }
 
 /**
@@ -66,6 +86,8 @@ export function ExchangeCredentialsFromJSONTyped(json: any, ignoreDiscriminator:
         'privateKey': json['privateKey'] == null ? undefined : json['privateKey'],
         'apiSecret': json['apiSecret'] == null ? undefined : json['apiSecret'],
         'passphrase': json['passphrase'] == null ? undefined : json['passphrase'],
+        'funderAddress': json['funderAddress'] == null ? undefined : json['funderAddress'],
+        'signatureType': json['signatureType'] == null ? undefined : ExchangeCredentialsSignatureTypeFromJSON(json['signatureType']),
     };
 }
 
@@ -84,6 +106,8 @@ export function ExchangeCredentialsToJSONTyped(value?: ExchangeCredentials | nul
         'privateKey': value['privateKey'],
         'apiSecret': value['apiSecret'],
         'passphrase': value['passphrase'],
+        'funderAddress': value['funderAddress'],
+        'signatureType': ExchangeCredentialsSignatureTypeToJSON(value['signatureType']),
     };
 }
 

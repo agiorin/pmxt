@@ -2,12 +2,15 @@ import axios from 'axios';
 import { HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { LIMITLESS_API_URL, mapIntervalToFidelity } from './utils';
+import { validateIdFormat } from '../../utils/validation';
 
 /**
  * Fetch historical price data (candles) for a specific market.
  * @param id - The market slug
  */
 export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    validateIdFormat(id, 'OHLCV');
+
     try {
         const fidelity = mapIntervalToFidelity(params.resolution);
 

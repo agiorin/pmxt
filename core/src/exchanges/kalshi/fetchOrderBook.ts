@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { OrderBook } from '../../types';
+import { validateIdFormat } from '../../utils/validation';
 
 export async function fetchOrderBook(id: string): Promise<OrderBook> {
+    validateIdFormat(id, 'OrderBook');
+
     try {
         // Check if this is a NO outcome request
         const isNoOutcome = id.endsWith('-NO');

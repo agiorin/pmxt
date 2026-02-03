@@ -1,56 +1,39 @@
 
-# UnifiedMarket
+# UnifiedEvent
 
+A grouped collection of related markets (e.g., \"Who will be Fed Chair?\" contains multiple candidate markets)
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `id` | string
-`marketId` | string
 `title` | string
 `description` | string
-`outcomes` | [Array&lt;MarketOutcome&gt;](MarketOutcome.md)
-`resolutionDate` | Date
-`volume24h` | number
-`volume` | number
-`liquidity` | number
-`openInterest` | number
+`slug` | string
+`markets` | [Array&lt;UnifiedMarket&gt;](UnifiedMarket.md)
 `url` | string
 `image` | string
 `category` | string
 `tags` | Array&lt;string&gt;
-`yes` | [MarketOutcome](MarketOutcome.md)
-`no` | [MarketOutcome](MarketOutcome.md)
-`up` | [MarketOutcome](MarketOutcome.md)
-`down` | [MarketOutcome](MarketOutcome.md)
 
 ## Example
 
 ```typescript
-import type { UnifiedMarket } from 'pmxtjs'
+import type { UnifiedEvent } from 'pmxtjs'
 
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
-  "marketId": null,
   "title": null,
   "description": null,
-  "outcomes": null,
-  "resolutionDate": null,
-  "volume24h": null,
-  "volume": null,
-  "liquidity": null,
-  "openInterest": null,
+  "slug": null,
+  "markets": null,
   "url": null,
   "image": null,
   "category": null,
   "tags": null,
-  "yes": null,
-  "no": null,
-  "up": null,
-  "down": null,
-} satisfies UnifiedMarket
+} satisfies UnifiedEvent
 
 console.log(example)
 
@@ -59,7 +42,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as UnifiedMarket
+const exampleParsed = JSON.parse(exampleJSON) as UnifiedEvent
 console.log(exampleParsed)
 ```
 

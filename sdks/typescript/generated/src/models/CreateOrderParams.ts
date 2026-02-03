@@ -104,7 +104,7 @@ export function CreateOrderParamsFromJSONTyped(json: any, ignoreDiscriminator: b
         return json;
     }
     return {
-
+        
         'marketId': json['marketId'],
         'outcomeId': json['outcomeId'],
         'side': json['side'],
@@ -125,7 +125,7 @@ export function CreateOrderParamsToJSONTyped(value?: CreateOrderParams | null, i
     }
 
     return {
-
+        
         'marketId': value['marketId'],
         'outcomeId': value['outcomeId'],
         'side': value['side'],

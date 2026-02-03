@@ -28,11 +28,18 @@ import {
  */
 export interface UnifiedMarket {
     /**
-     * 
+     * DEPRECATED: Use marketId instead. Will be removed in v2.0
+     * @type {string}
+     * @memberof UnifiedMarket
+     * @deprecated
+     */
+    id?: string;
+    /**
+     * The unique identifier for this market
      * @type {string}
      * @memberof UnifiedMarket
      */
-    id?: string;
+    marketId?: string;
     /**
      * 
      * @type {string}
@@ -149,6 +156,7 @@ export function UnifiedMarketFromJSONTyped(json: any, ignoreDiscriminator: boole
     return {
         
         'id': json['id'] == null ? undefined : json['id'],
+        'marketId': json['marketId'] == null ? undefined : json['marketId'],
         'title': json['title'] == null ? undefined : json['title'],
         'description': json['description'] == null ? undefined : json['description'],
         'outcomes': json['outcomes'] == null ? undefined : ((json['outcomes'] as Array<any>).map(MarketOutcomeFromJSON)),
@@ -180,6 +188,7 @@ export function UnifiedMarketToJSONTyped(value?: UnifiedMarket | null, ignoreDis
     return {
         
         'id': value['id'],
+        'marketId': value['marketId'],
         'title': value['title'],
         'description': value['description'],
         'outcomes': value['outcomes'] == null ? undefined : ((value['outcomes'] as Array<any>).map(MarketOutcomeToJSON)),

@@ -12,6 +12,8 @@ docs/DefaultApi.md
 docs/ErrorDetail.md
 docs/ErrorResponse.md
 docs/ExchangeCredentials.md
+docs/ExchangeCredentialsSignatureType.md
+docs/ExecutionPriceResult.md
 docs/FetchBalance200Response.md
 docs/FetchMarkets200Response.md
 docs/FetchMarketsRequest.md
@@ -26,6 +28,10 @@ docs/FetchPositions200Response.md
 docs/FetchPositionsRequest.md
 docs/FetchTrades200Response.md
 docs/FetchTradesRequest.md
+docs/GetExecutionPrice200Response.md
+docs/GetExecutionPriceDetailed200Response.md
+docs/GetExecutionPriceRequest.md
+docs/GetExecutionPriceRequestArgsInner.md
 docs/GetMarketsBySlugRequest.md
 docs/HealthCheck200Response.md
 docs/HistoryFilterParams.md
@@ -36,9 +42,12 @@ docs/OrderBook.md
 docs/OrderLevel.md
 docs/Position.md
 docs/PriceCandle.md
+docs/SearchEvents200Response.md
+docs/SearchEventsRequest.md
 docs/SearchMarketsRequest.md
 docs/SearchMarketsRequestArgsInner.md
 docs/Trade.md
+docs/UnifiedEvent.md
 docs/UnifiedMarket.md
 docs/WatchOrderBookRequest.md
 docs/WatchOrderBookRequestArgsInner.md
@@ -57,6 +66,8 @@ src/models/CreateOrderRequest.ts
 src/models/ErrorDetail.ts
 src/models/ErrorResponse.ts
 src/models/ExchangeCredentials.ts
+src/models/ExchangeCredentialsSignatureType.ts
+src/models/ExecutionPriceResult.ts
 src/models/FetchBalance200Response.ts
 src/models/FetchMarkets200Response.ts
 src/models/FetchMarketsRequest.ts
@@ -71,6 +82,10 @@ src/models/FetchPositions200Response.ts
 src/models/FetchPositionsRequest.ts
 src/models/FetchTrades200Response.ts
 src/models/FetchTradesRequest.ts
+src/models/GetExecutionPrice200Response.ts
+src/models/GetExecutionPriceDetailed200Response.ts
+src/models/GetExecutionPriceRequest.ts
+src/models/GetExecutionPriceRequestArgsInner.ts
 src/models/GetMarketsBySlugRequest.ts
 src/models/HealthCheck200Response.ts
 src/models/HistoryFilterParams.ts
@@ -81,9 +96,12 @@ src/models/OrderBook.ts
 src/models/OrderLevel.ts
 src/models/Position.ts
 src/models/PriceCandle.ts
+src/models/SearchEvents200Response.ts
+src/models/SearchEventsRequest.ts
 src/models/SearchMarketsRequest.ts
 src/models/SearchMarketsRequestArgsInner.ts
 src/models/Trade.ts
+src/models/UnifiedEvent.ts
 src/models/UnifiedMarket.ts
 src/models/WatchOrderBookRequest.ts
 src/models/WatchOrderBookRequestArgsInner.ts

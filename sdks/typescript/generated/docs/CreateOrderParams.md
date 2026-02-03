@@ -12,6 +12,7 @@ Name | Type
 `type` | string
 `amount` | number
 `price` | number
+`fee` | number
 
 ## Example
 
@@ -26,6 +27,7 @@ const example = {
   "type": null,
   "amount": null,
   "price": null,
+  "fee": null,
 } satisfies CreateOrderParams
 
 console.log(example)

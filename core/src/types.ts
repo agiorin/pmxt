@@ -4,9 +4,10 @@
 // ----------------------------------------------------------------------------
 
 export interface MarketOutcome {
-    id: string; // The unique ID of this outcome. This MUST be the ID required for valid deep-dive operations (orderbook/history).
-    // For Polymarket: This is the CLOB Token ID.
-    // For Kalshi: This is the Market This (e.g. "FED-25JAN") for the Yes outcome.
+    /** @deprecated Use outcomeId instead. Will be removed in v2.0 */
+    id: string;
+    /** Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi) */
+    outcomeId: string;
     label: string;
     price: number;
     priceChange24h?: number;
@@ -35,7 +36,10 @@ export interface UnifiedEvent {
 }
 
 export interface UnifiedMarket {
+    /** @deprecated Use marketId instead. Will be removed in v2.0 */
     id: string;
+    /** The unique identifier for this market */
+    marketId: string;
     title: string;
     description: string;
     outcomes: MarketOutcome[];

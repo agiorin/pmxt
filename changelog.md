@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-02-03
+
+### Added
+- **Filtering**: Introduced a client-side filtering system for both Python and TypeScript SDKs.
+  - `filterMarkets` / `filter_markets`: Filter markets by text (search in title, description, category, tags, or outcomes), volume (24h or total), liquidity, open interest, resolution date, and pricing.
+  - `filterEvents` / `filter_events`: Filter events by text, category, tags, market count, and total volume.
+  - Support for custom predicate functions (lambdas) for unlimited filtering flexibility.
+- **Server Management Utilities**: Added global convenience functions to manage the PMXT background process.
+  - `stop_server()` / `stopServer()`: Programmatically shut down the sidecar server.
+  - `restart_server()` / `restartServer()`: Quickly refresh the server state.
+- **Comprehensive Testing**: Added extensive unit tests for the filtering engine in both SDKs and the core library.
+
+### Improved
+- **Documentation**: Updated the API Reference and README to include details on the new filtering capabilities and server utilities.
+- **Download Badges**: Refreshed statistics to accurately reflect project growth across npm and PyPI.
+
 ## [1.5.7] - 2026-02-01
 
 ### Added
