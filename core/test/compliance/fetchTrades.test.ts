@@ -11,7 +11,7 @@ describe('Compliance: fetchTrades', () => {
                 console.info(`[Compliance] Testing ${name}.fetchTrades`);
 
                 // 1. Get a market to find an outcome ID
-                const markets = await exchange.fetchMarkets({ limit: 5 });
+                const markets = await exchange.fetchMarkets({ limit: 50, sort: 'volume' });
                 if (!markets || markets.length === 0) {
                     throw new Error(`${name}: No markets found to test fetchTrades`);
                 }
@@ -22,9 +22,9 @@ describe('Compliance: fetchTrades', () => {
                 for (const market of markets) {
                     for (const outcome of market.outcomes) {
                         try {
-                            trades = await exchange.fetchTrades(outcome.id, { limit: 10 });
+                            trades = await exchange.fetchTrades(outcome.outcomeId, { limit: 10 });
                             if (trades && trades.length > 0) {
-                                testedOutcomeId = outcome.id;
+                                testedOutcomeId = outcome.outcomeId;
                                 break;
                             }
                         } catch (error: any) {

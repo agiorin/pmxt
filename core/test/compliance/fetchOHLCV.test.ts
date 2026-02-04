@@ -53,15 +53,15 @@ describe('Compliance: fetchOHLCV', () => {
 
                 for (const outcome of outcomesToTest) {
                     try {
-                        console.info(`[Compliance] ${name}: fetching OHLCV for market ${market.id} outcome ${outcome.id}`);
-                        const result = await exchange.fetchOHLCV(outcome.id, {
+                        console.info(`[Compliance] ${name}: fetching OHLCV for market ${market.id} outcome ${outcome.outcomeId}`);
+                        const result = await exchange.fetchOHLCV(outcome.outcomeId, {
                             resolution: '1h',
                             limit: 10
                         });
 
                         if (result && result.length > 0) {
                             candles = result;
-                            testedOutcomeId = outcome.id;
+                            testedOutcomeId = outcome.outcomeId;
                             foundData = true;
                             break marketLoop;
                         }
