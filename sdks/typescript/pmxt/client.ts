@@ -9,8 +9,6 @@ import {
     DefaultApi,
     Configuration,
     FetchMarketsRequest,
-    SearchMarketsRequest,
-    GetMarketsBySlugRequest,
     FetchOHLCVRequest,
     FetchOrderBookRequest,
     FetchTradesRequest,
@@ -48,7 +46,7 @@ import { ServerManager } from "./server-manager.js";
 // Converter functions
 function convertMarket(raw: any): UnifiedMarket {
     const outcomes: MarketOutcome[] = (raw.outcomes || []).map((o: any) => ({
-        id: o.id,
+        outcomeId: o.outcomeId,
         label: o.label,
         price: o.price,
         priceChange24h: o.priceChange24h,
@@ -56,7 +54,7 @@ function convertMarket(raw: any): UnifiedMarket {
     }));
 
     const convertOutcome = (o: any) => o ? ({
-        id: o.id,
+        outcomeId: o.outcomeId,
         label: o.label,
         price: o.price,
         priceChange24h: o.priceChange24h,
@@ -64,7 +62,7 @@ function convertMarket(raw: any): UnifiedMarket {
     }) : undefined;
 
     return {
-        id: raw.id,
+        marketId: raw.marketId,
         title: raw.title,
         outcomes,
         volume24h: raw.volume24h || 0,
