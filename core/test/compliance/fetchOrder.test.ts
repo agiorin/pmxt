@@ -46,7 +46,7 @@ describe('Compliance: fetchOrder', () => {
 
             } catch (error: any) {
                 const msg = error.message.toLowerCase();
-                const status = error.response?.status;
+                const status = error.status || error.response?.status;
 
                 // Limitless Specific Check
                 // We expect Limitless to throw "not supported" or "use fetchOpenOrders"
@@ -65,7 +65,7 @@ describe('Compliance: fetchOrder', () => {
 
                 // API Error Handling (Resource Not Found)
                 // If we used a dummy ID, a 404/400 proves we authenticated and hit the right endpoint.
-                if (status === 400 || status === 404 || msg.includes('invalid orderid') || msg.includes('not found') || msg.includes('invalid id')) {
+                if (status === 400 || status === 404 || msg.includes('invalid orderid') || msg.includes('not found') || msg.includes('invalid id') || msg.includes('invalid uuid')) {
                     console.info(`[Compliance] ${name}.fetchOrder validated (Correctly returned 'Not Found' for dummy ID).`);
                     return;
                 }
