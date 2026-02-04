@@ -1116,7 +1116,12 @@ export interface PolymarketOptions {
 
 export class Polymarket extends Exchange {
     constructor(options: PolymarketOptions = {}) {
-        super("polymarket", options as ExchangeOptions);
+        // Default to gnosis-safe signature type
+        const polyOptions = {
+            signatureType: 'gnosis-safe',
+            ...options
+        };
+        super("polymarket", polyOptions as ExchangeOptions);
     }
 }
 

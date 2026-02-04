@@ -84,7 +84,7 @@ console.log(`Spread: ${(spread * 100).toFixed(2)}%`);
 const poly = new pmxt.Polymarket({
     privateKey: process.env.POLYMARKET_PRIVATE_KEY,
     proxyAddress: process.env.POLYMARKET_PROXY_ADDRESS, // Optional
-    signatureType: 'gnosis-safe' // 'eoa' | 'poly-proxy' | 'gnosis-safe' (default: 'gnosis-safe')
+    // signatureType: 'gnosis-safe' (default)
 });
 ```
 

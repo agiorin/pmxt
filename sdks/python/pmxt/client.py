@@ -1233,7 +1233,7 @@ class Polymarket(Exchange):
         base_url: str = "http://localhost:3847",
         auto_start_server: bool = True,
         proxy_address: Optional[str] = None,
-        signature_type: Optional[Any] = None,
+        signature_type: Optional[Any] = "gnosis-safe",
     ):
         """
         Initialize Polymarket client.
