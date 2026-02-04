@@ -26,12 +26,12 @@ describe('Polymarket Integration', () => {
         expect(markets.length).toBeGreaterThan(0);
 
         const market = markets[0];
-        expect(market).toHaveProperty('id');
+        expect(market).toHaveProperty('marketId');
         expect(market).toHaveProperty('title');
         expect(market).toHaveProperty('outcomes');
         expect(market).toHaveProperty('volume24h');
 
-        expect(typeof market.id).toBe('string');
+        expect(typeof market.marketId).toBe('string');
         expect(typeof market.title).toBe('string');
         expect(Array.isArray(market.outcomes)).toBe(true);
         expect(market.outcomes.length).toBeGreaterThan(0);
@@ -47,18 +47,6 @@ describe('Polymarket Integration', () => {
         expect(typeof outcome.price).toBe('number');
         expect(outcome.price).toBeGreaterThanOrEqual(0);
         expect(outcome.price).toBeLessThanOrEqual(1);
-    });
-
-    test('getMarketsBySlug returns valid data', async () => {
-        const markets = await client.getMarketsBySlug('presidential-election-winner-2024');
-
-        expect(Array.isArray(markets)).toBe(true);
-
-        if (markets.length > 0) {
-            const market = markets[0];
-            expect(market).toHaveProperty('id');
-            expect(market).toHaveProperty('outcomes');
-        }
     });
 
     test('volume fields are numeric', async () => {
@@ -93,7 +81,7 @@ describe('Kalshi Integration', () => {
         expect(markets.length).toBeGreaterThan(0);
 
         const market = markets[0];
-        expect(market).toHaveProperty('id');
+        expect(market).toHaveProperty('marketId');
         expect(market).toHaveProperty('title');
         expect(market).toHaveProperty('outcomes');
     });

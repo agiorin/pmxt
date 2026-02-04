@@ -1,19 +1,19 @@
 /**
  * PMXT - Unified Prediction Market API (TypeScript SDK)
- * 
+ *
  * A unified interface for interacting with multiple prediction market exchanges
  * (Kalshi, Polymarket) identically.
- * 
+ *
  * @example
  * ```typescript
  * import { Polymarket, Kalshi } from "pmxtjs";
- * 
+ *
  * // Initialize exchanges
  * const poly = new Polymarket();
  * const kalshi = new Kalshi();
- * 
- * // Search for markets
- * const markets = await poly.searchMarkets("Trump");
+ *
+ * // Fetch markets
+ * const markets = await poly.fetchMarkets({ query: "Trump" });
  * console.log(markets[0].title);
  * ```
  */

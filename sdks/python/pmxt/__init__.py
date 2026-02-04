@@ -6,13 +6,13 @@ A unified interface for interacting with multiple prediction market exchanges
 
 Example:
     >>> import pmxt
-    >>> 
+    >>>
     >>> # Initialize exchanges
     >>> poly = pmxt.Polymarket()
     >>> kalshi = pmxt.Kalshi()
-    >>> 
-    >>> # Search for markets
-    >>> markets = await poly.search_markets("Trump")
+    >>>
+    >>> # Fetch markets
+    >>> markets = await poly.fetch_markets(query="Trump")
     >>> print(markets[0].title)
 """
 

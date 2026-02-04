@@ -29,9 +29,6 @@ import {
     Order,
     Position,
     Balance,
-    MarketFilterParams,
-    HistoryFilterParams,
-    CreateOrderParams,
     SearchIn,
     UnifiedEvent,
     ExecutionPriceResult,
@@ -174,23 +171,6 @@ function convertEvent(raw: any): UnifiedEvent {
         image: raw.image,
         category: raw.category,
         tags: raw.tags,
-        searchMarkets(query: string, searchIn: SearchIn = "both"): UnifiedMarket[] {
-            const queryLower = query.toLowerCase();
-            return this.markets.filter(market => {
-                let match = false;
-                if (searchIn === "title" || searchIn === "both") {
-                    if (market.title.toLowerCase().includes(queryLower)) {
-                        match = true;
-                    }
-                }
-                if (searchIn === "description" || searchIn === "both") {
-                    if (market.description?.toLowerCase().includes(queryLower)) {
-                        match = true;
-                    }
-                }
-                return match;
-            });
-        }
     };
 }
 
@@ -308,7 +288,7 @@ export abstract class Exchange {
      * const markets = await exchange.fetchMarkets({ limit: 20, sort: "volume" });
      * ```
      */
-    async fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+    async fetchMarkets(params?: any): Promise<UnifiedMarket[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -335,12 +315,8 @@ export abstract class Exchange {
 
     /**
      * Get historical price candles.
-     * 
-     * **CRITICAL**: Use outcome.id, not market.id.
-     * - Polymarket: outcome.id is the CLOB Token ID
-     * - Kalshi: outcome.id is the Market Ticker
-     * 
-     * @param outcomeId - Outcome ID (from market.outcomes[].id)
+     *
+     * @param outcomeId - Outcome ID (from market.outcomes[].outcomeId)
      * @param params - History filter parameters
      * @returns List of price candles
      * 
@@ -356,7 +332,7 @@ export abstract class Exchange {
      */
     async fetchOHLCV(
         outcomeId: string,
-        params: HistoryFilterParams
+        params: any
     ): Promise<PriceCandle[]> {
         await this.initPromise;
         try {
@@ -432,7 +408,7 @@ export abstract class Exchange {
      */
     async fetchTrades(
         outcomeId: string,
-        params: HistoryFilterParams
+        params: any
     ): Promise<Trade[]> {
         await this.initPromise;
         try {
@@ -579,7 +555,7 @@ export abstract class Exchange {
      * });
      * ```
      */
-    async createOrder(params: CreateOrderParams): Promise<Order> {
+    async createOrder(params: any): Promise<Order> {
         await this.initPromise;
         try {
             const paramsDict: any = {
@@ -1094,13 +1070,13 @@ export abstract class Exchange {
 
 /**
  * Polymarket exchange client.
- * 
+ *
  * @example
  * ```typescript
  * // Public data (no auth)
  * const poly = new Polymarket();
- * const markets = await poly.searchMarkets("Trump");
- * 
+ * const markets = await poly.fetchMarkets({ query: "Trump" });
+ *
  * // Trading (requires auth)
  * const poly = new Polymarket({ privateKey: process.env.POLYMARKET_PRIVATE_KEY });
  * const balance = await poly.fetchBalance();
@@ -1114,13 +1090,13 @@ export class Polymarket extends Exchange {
 
 /**
  * Kalshi exchange client.
- * 
+ *
  * @example
  * ```typescript
  * // Public data (no auth)
  * const kalshi = new Kalshi();
- * const markets = await kalshi.searchMarkets("Fed rates");
- * 
+ * const markets = await kalshi.fetchMarkets({ query: "Fed rates" });
+ *
  * // Trading (requires auth)
  * const kalshi = new Kalshi({
  *   apiKey: process.env.KALSHI_API_KEY,
@@ -1137,13 +1113,13 @@ export class Kalshi extends Exchange {
 
 /**
  * Limitless exchange client.
- * 
+ *
  * @example
  * ```typescript
  * // Public data (no auth)
  * const limitless = new Limitless();
- * const markets = await limitless.searchMarkets("Trump");
- * 
+ * const markets = await limitless.fetchMarkets({ query: "Trump" });
+ *
  * // Trading (requires auth)
  * const limitless = new Limitless({
  *   privateKey: process.env.LIMITLESS_PRIVATE_KEY

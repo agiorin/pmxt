@@ -273,7 +273,7 @@ export interface MarketFilterParams {
     /** Sort order */
     sort?: SortOption;
 
-    /** Where to search (for searchMarkets) */
+    /** Where to search (for filterMarkets) */
     searchIn?: SearchIn;
 }
 
@@ -349,15 +349,6 @@ export interface UnifiedEvent {
 
     /** Event tags */
     tags?: string[];
-
-    /**
-     * Search for markets within this event by keyword.
-     *
-     * @param query - Search query (case-insensitive)
-     * @param searchIn - Where to search - "title", "description", or "both"
-     * @returns List of matching markets
-     */
-    searchMarkets(query: string, searchIn?: SearchIn): UnifiedMarket[];
 }
 
 // ----------------------------------------------------------------------------

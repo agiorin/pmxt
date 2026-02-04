@@ -1216,12 +1216,12 @@ class Exchange(ABC):
 class Polymarket(Exchange):
     """
     Polymarket exchange client.
-    
+
     Example:
         >>> # Public data (no auth)
         >>> poly = Polymarket()
-        >>> markets = poly.search_markets("Trump")
-        >>> 
+        >>> markets = poly.fetch_markets(query="Trump")
+        >>>
         >>> # Trading (requires auth)
         >>> poly = Polymarket(private_key=os.getenv("POLYMARKET_PRIVATE_KEY"))
         >>> balance = poly.fetch_balance()
@@ -1258,12 +1258,12 @@ class Polymarket(Exchange):
 class Kalshi(Exchange):
     """
     Kalshi exchange client.
-    
+
     Example:
         >>> # Public data (no auth)
         >>> kalshi = Kalshi()
-        >>> markets = kalshi.search_markets("Fed rates")
-        >>> 
+        >>> markets = kalshi.fetch_markets(query="Fed rates")
+        >>>
         >>> # Trading (requires auth)
         >>> kalshi = Kalshi(
         ...     api_key=os.getenv("KALSHI_API_KEY"),
@@ -1300,12 +1300,12 @@ class Kalshi(Exchange):
 class Limitless(Exchange):
     """
     Limitless exchange client.
-    
+
     Example:
         >>> # Public data (no auth)
         >>> limitless = Limitless()
-        >>> markets = limitless.search_markets("Trump")
-        >>> 
+        >>> markets = limitless.fetch_markets(query="Trump")
+        >>>
         >>> # Trading (requires auth)
         >>> limitless = Limitless(
         ...     api_key=os.getenv("LIMITLESS_API_KEY"),
