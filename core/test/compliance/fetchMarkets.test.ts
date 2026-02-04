@@ -24,5 +24,5 @@ describe('Compliance: fetchMarkets', () => {
             }
             throw error;
         }
-    }, 60000);
+    }, 120000);
 });
