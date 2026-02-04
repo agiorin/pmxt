@@ -119,6 +119,23 @@ for pos in positions:
     print(f"{pos.outcome_label}: ${pos.unrealized_pnl:.2f}")
 ```
 
+### Limitless
+
+Requires **Private Key**:
+
+```python
+import os
+import pmxt
+
+limitless = pmxt.Limitless(
+    private_key=os.getenv("LIMITLESS_PRIVATE_KEY")
+)
+
+# Check balance
+balances = limitless.fetch_balance()
+print(f"Available: ${balances[0].available}")
+```
+
 ## API Reference
 
 ### Market Data Methods

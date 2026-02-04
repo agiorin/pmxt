@@ -100,7 +100,7 @@ Prediction markets are structured in a hierarchy to group related information.
 ```python
 import pmxt
 
-api = pmxt.Polymarket()
+api = pmxt.Exchange()
 
 # 1. Search for the broad Event
 events = api.fetch_events(query='Who will Trump nominate as Fed Chair?')
@@ -116,7 +116,7 @@ print(f"Price: {warsh.yes.price}")
 ```typescript
 import pmxt from 'pmxtjs';
 
-const api = new pmxt.Polymarket();
+const api = new pmxt.Exchange();
 
 // 1. Search for the broad Event
 const events = await api.fetchEvents({ query: 'Who will Trump nominate as Fed Chair?' });
@@ -132,27 +132,44 @@ console.log(`Price: ${warsh.yes?.price}`);
 pmxt supports unified trading across exchanges.
 
 ### Setup
-To trade, you must provide your private credentials.
+To trade, you must provide your private credentials during initialization.
 
-- **Polymarket**: Requires your Polygon Private Key. [View Setup Guide](core/docs/SETUP_POLYMARKET.md)
-- **Kalshi**: Requires API Key & Private Key.
-- **Limitless**: Requires Private Key. [View Setup Guide](core/docs/SETUP_LIMITLESS.md)
+#### Polymarket
+```python
+exchange = pmxt.Polymarket(
+    private_key=os.getenv('POLYMARKET_PRIVATE_KEY'),
+    proxy_address=os.getenv('POLYMARKET_PROXY_ADDRESS'), # Optional: For proxy trading
+    signature_type='gnosis-safe' # Default
+)
+```
 
-### Example (Python)
+#### Kalshi
+```python
+exchange = pmxt.Kalshi(
+    api_key=os.getenv('KALSHI_API_KEY'),
+    private_key=os.getenv('KALSHI_PRIVATE_KEY') # RSA Private Key
+)
+```
+
+#### Limitless
+```python
+exchange = pmxt.Limitless(
+    private_key=os.getenv('LIMITLESS_PRIVATE_KEY')
+)
+```
+
+### Trading Example (Python)
 
 ```python
 import pmxt
 import os
 
-exchange = pmxt.Polymarket(
-    private_key=os.getenv('POLYMARKET_PRIVATE_KEY'),
-    proxy_address=os.getenv('POLYMARKET_PROXY_ADDRESS'), # Optional: For proxy trading
-    signature_type='gnosis-safe'
-)
+# Initialize with credentials (e.g., Polymarket)
+exchange = pmxt.Exchange(...)
 
 # 1. Check Balance
 balance = exchange.fetch_balance()
-print(f"Available USDC: {balance[0].available}")
+print(f"Available balance: {balance[0].available}")
 
 # 2. Place an Order
 # Use market.market_id and outcome.outcome_id from your market data
