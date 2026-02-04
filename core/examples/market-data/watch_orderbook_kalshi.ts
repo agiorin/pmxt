@@ -12,9 +12,9 @@ async function run() {
     const events = await api.fetchEvents({ query: "Serie A" });
     const event = events[0];
 
-    console.log("Searching for Market: Juventus vs Napoli...");
-    const market = event.searchMarkets("Juventus vs Napoli")[0];
-    const ticker = market.id;
+    console.log("Filtering for Market: Juventus vs Napoli...");
+    const market = api.filterMarkets(event.markets, "Juventus vs Napoli")[0];
+    const ticker = market.marketId;
 
     console.log(`Watching equilibrium for: ${market.title}`);
     console.log(`Ticker: ${ticker}\n`);

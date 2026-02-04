@@ -5,7 +5,7 @@ def main():
     events = api.fetch_events(query="Who will Trump nominate as Fed Chair?")
     event = events[0]
 
-    market = event.search_markets("Kevin Warsh")[0]
+    market = api.filter_markets(event.markets, "Kevin Warsh")[0]
 
     # Use outcome.outcome_id for fetching historical data
     # (Polymarket: CLOB Token ID, Kalshi: Market Ticker)

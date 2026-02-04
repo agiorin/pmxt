@@ -8,9 +8,9 @@ async function run() {
     const events = await api.fetchEvents({ query: "Who will Trump nominate as Fed Chair?" });
     const event = events[0];
 
-    // 2. Search for the specific Market within that event
-    console.log("Searching for Market: Kevin Warsh...");
-    const markets = event.searchMarkets("Kevin Warsh");
+    // 2. Filter for the specific Market within that event
+    console.log("Filtering for Market: Kevin Warsh...");
+    const markets = api.filterMarkets(event.markets, "Kevin Warsh");
 
     const market = markets[0];
     const outcome = market.yes!; // Convenience access

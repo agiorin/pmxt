@@ -43,12 +43,6 @@ describe('filterEvents', () => {
                     createMarket('1b', 'Biden wins', 40000),
                     createMarket('1c', 'Other wins', 10000),
                 ],
-                searchMarkets: function (query: string) {
-                    const lowerQuery = query.toLowerCase();
-                    return this.markets.filter(m =>
-                        m.title.toLowerCase().includes(lowerQuery)
-                    );
-                },
             },
             {
                 id: '2',
@@ -65,12 +59,6 @@ describe('filterEvents', () => {
                     createMarket('2d', 'Robert Lighthizer as Trade Rep', 12000),
                     createMarket('2e', 'Stephen Miller as Chief of Staff', 10000),
                 ],
-                searchMarkets: function (query: string) {
-                    const lowerQuery = query.toLowerCase();
-                    return this.markets.filter(m =>
-                        m.title.toLowerCase().includes(lowerQuery)
-                    );
-                },
             },
             {
                 id: '3',
@@ -84,12 +72,6 @@ describe('filterEvents', () => {
                     createMarket('3a', 'Bitcoin above $100k', 80000),
                     createMarket('3b', 'Ethereum above $5k', 60000),
                 ],
-                searchMarkets: function (query: string) {
-                    const lowerQuery = query.toLowerCase();
-                    return this.markets.filter(m =>
-                        m.title.toLowerCase().includes(lowerQuery)
-                    );
-                },
             },
             {
                 id: '4',
@@ -100,12 +82,6 @@ describe('filterEvents', () => {
                 category: 'Economics',
                 tags: ['Fed', 'Interest Rates'],
                 markets: [createMarket('4a', 'Rate cut in January', 25000)],
-                searchMarkets: function (query: string) {
-                    const lowerQuery = query.toLowerCase();
-                    return this.markets.filter(m =>
-                        m.title.toLowerCase().includes(lowerQuery)
-                    );
-                },
             },
         ];
     });
@@ -417,9 +393,6 @@ describe('filterEvents', () => {
                 slug: 'sparse-event',
                 url: 'https://example.com/5',
                 markets: [],
-                searchMarkets: function () {
-                    return [];
-                },
             };
 
             const result = api.filterEvents([sparseEvent], {
@@ -438,9 +411,6 @@ describe('filterEvents', () => {
                 category: 'Politics',
                 tags: ['Test'],
                 markets: [],
-                searchMarkets: function () {
-                    return [];
-                },
             };
 
             const result = api.filterEvents([noMarketsEvent], {
@@ -458,9 +428,6 @@ describe('filterEvents', () => {
                 url: 'https://example.com/7',
                 category: 'Politics',
                 markets: [],
-                searchMarkets: function () {
-                    return [];
-                },
             };
 
             const result = api.filterEvents([noMarketsEvent], {

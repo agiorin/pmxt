@@ -11,11 +11,11 @@ def run():
     events = api.fetch_events(query="Who will Trump nominate as Fed Chair?")
     event = events[0]
 
-    # 2. Search for the specific Market within that event
-    print("Searching for Market: Kevin Warsh...")
-    market = event.search_markets("Kevin Warsh")[0]
+    # 2. Filter for the specific Market within that event
+    print("Filtering for Market: Kevin Warsh...")
+    market = api.filter_markets(event.markets, "Kevin Warsh")[0]
     outcome = market.yes
-    asset_id = outcome.id
+    asset_id = outcome.outcome_id
 
     print(f"Watching equilibrium for: {market.title}")
     print(f"Outcome: {outcome.label} (Asset ID: {asset_id})\n")

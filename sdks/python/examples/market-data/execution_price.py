@@ -3,7 +3,7 @@ import pmxt
 def main():
     api = pmxt.Polymarket()
     markets = api.fetch_markets(query='Trump')
-    outcome_id = markets[0].outcomes[0].id
+    outcome_id = markets[0].outcomes[0].outcome_id
 
     order_book = api.fetch_order_book(outcome_id)
     price = api.get_execution_price(order_book, 'buy', 100)

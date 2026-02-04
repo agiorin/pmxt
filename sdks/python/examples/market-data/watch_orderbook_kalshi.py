@@ -23,11 +23,11 @@ def run():
     events = api.fetch_events(query="Serie A")
     event = events[0]
 
-    print("Searching for Market: Juventus vs Napoli...")
-    market = event.search_markets("Juventus vs Napoli")[0]
-    
+    print("Filtering for Market: Juventus vs Napoli...")
+    market = api.filter_markets(event.markets, "Juventus vs Napoli")[0]
+
     # For now, Kalshi markets are 1:1 with tickers in pmxt models
-    ticker = market.id
+    ticker = market.market_id
     
     print(f"Watching equilibrium for: {market.title}")
     print(f"Ticker: {ticker}\n")
@@ -39,8 +39,8 @@ def run():
             
             # Use ANSI escape sequences for a clean live dashboard update
             # \033[H = move cursor to home position, \033[J = clear screen
-            print("\033[H\033[J", end="") 
-            print(f"Market: {title}")
+            print("\033[H\033[J", end="")
+            print(f"Market: {market.title}")
             print(f"Ticker: {ticker} | Time: {datetime.fromtimestamp(orderbook.timestamp / 1000).strftime('%H:%M:%S')}\n")
             
             print("--- ASKS (Sellers) ---")

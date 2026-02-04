@@ -57,18 +57,15 @@ export function validateUnifiedEvent(event: UnifiedEvent, exchangeName: string) 
     for (const market of event.markets) {
         validateUnifiedMarket(market, exchangeName, event.id);
     }
-
-    // 3. Methods (Dynamic behavior)
-    expect(typeof event.searchMarkets).toBe('function');
 }
 
 export function validateUnifiedMarket(market: UnifiedMarket, exchangeName: string, eventId: string) {
-    const errorPrefix = `[${exchangeName} Market: ${market.id} in Event: ${eventId}]`;
+    const errorPrefix = `[${exchangeName} Market: ${market.marketId} in Event: ${eventId}]`;
 
     // 1. Identity & Structure
-    expect(market.id).toBeDefined();
-    expect(typeof market.id).toBe('string');
-    expect(market.id.length).toBeGreaterThan(0);
+    expect(market.marketId).toBeDefined();
+    expect(typeof market.marketId).toBe('string');
+    expect(market.marketId.length).toBeGreaterThan(0);
 
     expect(market.title).toBeDefined();
     expect(typeof market.title).toBe('string');
@@ -89,7 +86,7 @@ export function validateUnifiedMarket(market: UnifiedMarket, exchangeName: strin
     expect(market.outcomes.length).toBeGreaterThan(0);
 
     for (const outcome of market.outcomes) {
-        validateMarketOutcome(outcome, exchangeName, market.id);
+        validateMarketOutcome(outcome, exchangeName, market.marketId);
     }
 
     // 5. Binary Market Convenience (Check if they match outcomes if present)
@@ -102,12 +99,12 @@ export function validateUnifiedMarket(market: UnifiedMarket, exchangeName: strin
 }
 
 export function validateMarketOutcome(outcome: MarketOutcome, exchangeName: string, marketId: string) {
-    const errorPrefix = `[${exchangeName} Outcome: ${outcome.id} in Market: ${marketId}]`;
+    const errorPrefix = `[${exchangeName} Outcome: ${outcome.outcomeId} in Market: ${marketId}]`;
 
     // 1. Identity
-    expect(outcome.id).toBeDefined();
-    expect(typeof outcome.id).toBe('string');
-    expect(outcome.id.length).toBeGreaterThan(0);
+    expect(outcome.outcomeId).toBeDefined();
+    expect(typeof outcome.outcomeId).toBe('string');
+    expect(outcome.outcomeId.length).toBeGreaterThan(0);
 
     expect(outcome.label).toBeDefined();
     expect(typeof outcome.label).toBe('string');
