@@ -18,7 +18,6 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
             const outcomeIdValue = tokenId as string;
 
             outcomes.push({
-                id: outcomeIdValue,
                 outcomeId: outcomeIdValue,
                 label: label.charAt(0).toUpperCase() + label.slice(1), // Capitalize 'yes'/'no'
                 price: outcomePrice,

@@ -20,6 +20,7 @@ from .client import Polymarket, Kalshi, Limitless, Exchange
 from .server_manager import ServerManager
 from .models import (
     UnifiedMarket,
+    UnifiedEvent,
     MarketOutcome,
     PriceCandle,
     OrderBook,
@@ -29,6 +30,7 @@ from .models import (
     Position,
     Balance,
     MarketFilterParams,
+    EventFetchParams,
     HistoryFilterParams,
     CreateOrderParams,
 )
@@ -62,6 +64,7 @@ __all__ = [
     "restart_server",
     # Data Models
     "UnifiedMarket",
+    "UnifiedEvent",
     "MarketOutcome",
     "PriceCandle",
     "OrderBook",
@@ -72,6 +75,7 @@ __all__ = [
     "Balance",
     # Parameters
     "MarketFilterParams",
+    "EventFetchParams",
     "HistoryFilterParams",
     "CreateOrderParams",
 ]

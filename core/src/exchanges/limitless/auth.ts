@@ -1,155 +1,97 @@
-import { ClobClient } from '@polymarket/clob-client';
-import type { ApiKeyCreds } from '@polymarket/clob-client';
+import { HttpClient } from '@limitless-exchange/sdk';
 import { Wallet } from 'ethers';
 import { ExchangeCredentials } from '../../BaseExchange';
-import { limitlessErrorMapper } from './errors';
 
 const LIMITLESS_HOST = 'https://api.limitless.exchange';
-const BASE_CHAIN_ID = 8453;
 
 /**
- * Manages Limitless authentication and API client initialization.
- * Handles authentication for both public data and private trading operations.
+ * Manages Limitless authentication using API keys.
+ * Simplified from cookie-based to API key authentication.
  */
 export class LimitlessAuth {
     private credentials: ExchangeCredentials;
     private signer?: Wallet;
-    private clobClient?: ClobClient;
-    private apiCreds?: ApiKeyCreds;
+    private httpClient?: HttpClient;
+    private apiKey?: string;
 
     constructor(credentials: ExchangeCredentials) {
         this.credentials = credentials;
 
-        if (!credentials.privateKey) {
-            throw new Error('Limitless requires a privateKey for authentication');
+        // API key is required for authenticated endpoints
+        // Can come from credentials or environment variable
+        this.apiKey = credentials.apiKey || process.env.LIMITLESS_API_KEY;
+
+        if (!this.apiKey) {
+            throw new Error(
+                'Limitless requires an API key. Set LIMITLESS_API_KEY environment variable or provide apiKey in credentials.'
+            );
         }
 
-        // Initialize the signer
-        this.signer = new Wallet(credentials.privateKey);
-    }
-
-    /**
-     * Get or create API credentials using L1 authentication.
-     * This uses the private key to derive/create API credentials.
-     */
-    async getApiCredentials(): Promise<ApiKeyCreds> {
-        // Return cached credentials if available
-        if (this.apiCreds) {
-            return this.apiCreds;
-        }
-
-        // If credentials were provided, use them
-        if (this.credentials.apiKey && this.credentials.apiSecret && this.credentials.passphrase) {
-            this.apiCreds = {
-                key: this.credentials.apiKey,
-                secret: this.credentials.apiSecret,
-                passphrase: this.credentials.passphrase,
-            };
-            return this.apiCreds;
-        }
-
-        // Otherwise, derive/create them using L1 auth
-        const l1Client = new ClobClient(
-            LIMITLESS_HOST,
-            BASE_CHAIN_ID as any,
-            this.signer
-        );
-
-        // Robust derivation strategy:
-        // 1. Try to DERIVE existing credentials first (most common case).
-        // 2. If that fails (e.g. 404 or 400), try to CREATE new ones.
-
-        let creds: ApiKeyCreds | undefined;
-
-        try {
-            // console.log('Trying to derive existing API key...');
-            creds = await l1Client.deriveApiKey();
-        } catch (deriveError: any) {
-            // console.log('Derivation failed, trying to create new API key...');
-            try {
-                creds = await l1Client.createApiKey();
-            } catch (createError: any) {
-                throw limitlessErrorMapper.mapError(createError);
-            }
-        }
-
-        if (!creds) {
-            throw new Error('Authentication failed: Credentials are empty.');
-        }
-
-        this.apiCreds = creds;
-        return creds;
-    }
-
-    /**
-     * Maps human-readable signature type names to their numeric values.
-     */
-    private mapSignatureType(type: number | string | undefined | null): number {
-        if (type === undefined || type === null) return 0;
-        if (typeof type === 'number') return type;
-
-        const normalized = type.toLowerCase().replace(/[^a-z0-9]/g, '');
-        switch (normalized) {
-            case 'eoa':
-                return 0;
-            case 'polyproxy':
-            case 'polymarketproxy':
-                return 1;
-            case 'gnosissafe':
-            case 'safe':
-                return 2;
-            default:
-                const parsed = parseInt(normalized);
-                return isNaN(parsed) ? 0 : parsed;
+        // Initialize signer if private key is provided (needed for order signing)
+        if (credentials.privateKey) {
+            this.signer = new Wallet(credentials.privateKey);
         }
     }
 
     /**
-     * Get an authenticated CLOB client for L2 operations (trading).
-     * This client can place orders, cancel orders, query positions, etc.
+     * Get the API key being used for authentication.
      */
-    async getClobClient(): Promise<ClobClient> {
-        // Return cached client if available
-        if (this.clobClient) {
-            return this.clobClient;
+    getApiKey(): string {
+        return this.apiKey!;
+    }
+
+    /**
+     * Get or create the HTTP client with API key authentication.
+     * This client automatically includes the X-API-Key header in all requests.
+     */
+    getHttpClient(): HttpClient {
+        if (this.httpClient) {
+            return this.httpClient;
         }
 
-        // Get API credentials (L1 auth)
-        const apiCreds = await this.getApiCredentials();
+        this.httpClient = new HttpClient({
+            baseURL: LIMITLESS_HOST,
+            apiKey: this.apiKey,
+            timeout: 30000,
+        });
 
-        // Determine signature type (default to EOA = 0)
-        const signatureType = this.mapSignatureType(this.credentials.signatureType);
+        return this.httpClient;
+    }
 
-        // Determine funder address (defaults to signer's address)
-        const funderAddress = this.credentials.funderAddress ?? this.signer!.address;
-
-        // Create L2-authenticated client
-        this.clobClient = new ClobClient(
-            LIMITLESS_HOST,
-            BASE_CHAIN_ID as any,
-            this.signer,
-            apiCreds,
-            signatureType as any,
-            funderAddress
-        );
-
-
-
-        return this.clobClient;
+    /**
+     * Get the signer (wallet) for signing orders.
+     * Required for placing orders via EIP-712 signatures.
+     */
+    getSigner(): Wallet {
+        if (!this.signer) {
+            throw new Error(
+                'Wallet signer not available. Provide privateKey in credentials to sign orders.'
+            );
+        }
+        return this.signer;
     }
 
     /**
      * Get the signer's address.
      */
     getAddress(): string {
-        return this.signer!.address;
+        if (!this.signer) {
+            throw new Error('Signer not initialized. Provide privateKey in credentials.');
+        }
+        return this.signer.address;
     }
 
     /**
-     * Reset cached credentials and client (useful for testing or credential rotation).
+     * Check if the auth has a signer available.
+     */
+    hasSigner(): boolean {
+        return !!this.signer;
+    }
+
+    /**
+     * Reset cached client (useful for testing or credential rotation).
      */
     reset(): void {
-        this.apiCreds = undefined;
-        this.clobClient = undefined;
+        this.httpClient = undefined;
     }
 }

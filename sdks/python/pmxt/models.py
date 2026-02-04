@@ -359,6 +359,23 @@ class MarketFilterParams:
 
 
 @dataclass
+class EventFetchParams:
+    """Parameters for fetching events."""
+    
+    query: Optional[str] = None
+    """Search query"""
+    
+    limit: Optional[int] = None
+    """Maximum number of results"""
+    
+    offset: Optional[int] = None
+    """Pagination offset"""
+    
+    search_in: Optional[SearchIn] = None
+    """Where to search"""
+
+
+@dataclass
 class HistoryFilterParams:
     """Parameters for fetching historical data."""
     

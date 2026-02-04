@@ -34,6 +34,7 @@ from .models import (
     Position,
     Balance,
     MarketFilterParams,
+    EventFetchParams,
     HistoryFilterParams,
     CreateOrderParams,
     ExecutionPriceResult,
@@ -280,23 +281,38 @@ class Exchange(ABC):
     
     # Market Data Methods
     
-    def fetch_markets(self, params: Optional[MarketFilterParams] = None) -> List[UnifiedMarket]:
+    def fetch_markets(self, query: Optional[str] = None, params: Optional[MarketFilterParams] = None, **kwargs) -> List[UnifiedMarket]:
         """
         Get active markets from the exchange.
         
         Args:
+            query: Optional search keyword
             params: Optional filter parameters
+            **kwargs: Additional parameters (limit, offset, sort, search_in)
             
         Returns:
             List of unified markets
             
         Example:
-            >>> markets = exchange.fetch_markets(MarketFilterParams(limit=20, sort="volume"))
+            >>> markets = exchange.fetch_markets("Trump", limit=20)
         """
         try:
             body_dict = {"args": []}
+            
+            # Prepare arguments
+            search_params = {}
             if params:
-                body_dict["args"] = [params.__dict__]
+                search_params = params.__dict__.copy()
+            
+            if query:
+                search_params["query"] = query
+            
+            # Add any extra keyword arguments
+            for key, value in kwargs.items():
+                search_params[key] = value
+                
+            if search_params:
+                body_dict["args"] = [search_params]
             
             # Add credentials if available
             creds = self._get_credentials_dict()
@@ -314,6 +330,59 @@ class Exchange(ABC):
             return [_convert_market(m) for m in data]
         except ApiException as e:
             raise Exception(f"Failed to fetch markets: {e}")
+
+    def fetch_events(self, query: Optional[str] = None, params: Optional[EventFetchParams] = None, **kwargs) -> List[UnifiedEvent]:
+        """
+        Fetch events with optional keyword search.
+        Events group related markets together.
+        
+        Args:
+            query: Optional search keyword
+            params: Optional parameters for search and filtering
+            **kwargs: Additional parameters (limit, offset, search_in)
+            
+        Returns:
+            List of unified events
+            
+        Example:
+            >>> events = exchange.fetch_events("Election", limit=10)
+        """
+        try:
+            body_dict = {"args": []}
+            
+            # Prepare arguments
+            search_params = {}
+            if params:
+                search_params = params.__dict__.copy()
+            
+            if query:
+                search_params["query"] = query
+            
+            # Add any extra keyword arguments
+            for key, value in kwargs.items():
+                # Convert camelCase to snake_case for the API if needed?
+                # Actually our models use snake_case which from_dict handles
+                search_params[key] = value
+                
+            if search_params:
+                body_dict["args"] = [search_params]
+            
+            # Add credentials if available
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+            
+            request_body = internal_models.FetchEventsRequest.from_dict(body_dict)
+            
+            response = self._api.fetch_events(
+                exchange=self.exchange_name,
+                fetch_events_request=request_body,
+            )
+            
+            data = self._handle_response(response.to_dict())
+            return [_convert_event(e) for e in data]
+        except ApiException as e:
+            raise Exception(f"Failed to fetch events: {e}")
 
     # ----------------------------------------------------------------------------
     # Filtering Methods
@@ -743,6 +812,97 @@ class Exchange(ABC):
             return [_convert_trade(t) for t in data]
         except ApiException as e:
             raise Exception(f"Failed to watch trades: {e}")
+
+    def watch_prices(self, market_address: str, callback: Optional[Any] = None) -> Any:
+        """
+        Watch real-time AMM price updates via WebSocket.
+        
+        Args:
+            market_address: Market contract address
+            callback: Optional callback for price updates (if supported by implementation)
+            
+        Returns:
+            Next price update
+        """
+        try:
+            body_dict = {"args": [market_address]}
+            
+            # Add credentials if available
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+            
+            request_body = internal_models.WatchPricesRequest.from_dict(body_dict)
+            
+            response = self._api.watch_prices(
+                exchange=self.exchange_name,
+                watch_prices_request=request_body,
+            )
+            
+            return self._handle_response(response.to_dict())
+        except ApiException as e:
+            raise Exception(f"Failed to watch prices: {e}")
+
+    def watch_user_positions(self, callback: Optional[Any] = None) -> List[Position]:
+        """
+        Watch real-time user position updates via WebSocket.
+        Requires API key authentication.
+        
+        Args:
+            callback: Optional callback for position updates
+            
+        Returns:
+            Next position update
+        """
+        try:
+            body_dict = {}
+            
+            # Add credentials (required)
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+            
+            request_body = internal_models.WatchUserPositionsRequest.from_dict(body_dict)
+            
+            response = self._api.watch_user_positions(
+                exchange=self.exchange_name,
+                watch_user_positions_request=request_body,
+            )
+            
+            data = self._handle_response(response.to_dict())
+            return [_convert_position(p) for p in data]
+        except ApiException as e:
+            raise Exception(f"Failed to watch user positions: {e}")
+
+    def watch_user_transactions(self, callback: Optional[Any] = None) -> Any:
+        """
+        Watch real-time user transaction updates via WebSocket.
+        Requires API key authentication.
+        
+        Args:
+            callback: Optional callback for transaction updates
+            
+        Returns:
+            Next transaction update
+        """
+        try:
+            body_dict = {}
+            
+            # Add credentials (required)
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+            
+            request_body = internal_models.WatchUserPositionsRequest.from_dict(body_dict)
+            
+            response = self._api.watch_user_transactions(
+                exchange=self.exchange_name,
+                watch_user_positions_request=request_body,
+            )
+            
+            return self._handle_response(response.to_dict())
+        except ApiException as e:
+            raise Exception(f"Failed to watch user transactions: {e}")
     
     # Trading Methods (require authentication)
     
@@ -1116,12 +1276,16 @@ class Limitless(Exchange):
         >>> markets = limitless.search_markets("Trump")
         >>> 
         >>> # Trading (requires auth)
-        >>> limitless = Limitless(private_key=os.getenv("LIMITLESS_PRIVATE_KEY"))
+        >>> limitless = Limitless(
+        ...     api_key=os.getenv("LIMITLESS_API_KEY"),
+        ...     private_key=os.getenv("LIMITLESS_PRIVATE_KEY")
+        ... )
         >>> balance = limitless.fetch_balance()
     """
     
     def __init__(
         self,
+        api_key: Optional[str] = None,
         private_key: Optional[str] = None,
         base_url: str = "http://localhost:3847",
         auto_start_server: bool = True,
@@ -1130,12 +1294,14 @@ class Limitless(Exchange):
         Initialize Limitless client.
         
         Args:
+            api_key: Limitless API key (required for some data and all trading)
             private_key: Ethereum private key (required for trading)
             base_url: Base URL of the PMXT sidecar server
             auto_start_server: Automatically start server if not running (default: True)
         """
         super().__init__(
             exchange_name="limitless",
+            api_key=api_key,
             private_key=private_key,
             base_url=base_url,
             auto_start_server=auto_start_server,

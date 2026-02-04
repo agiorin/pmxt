@@ -1,5 +1,21 @@
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
-import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
+import {
+    PredictionMarketExchange,
+    MarketFilterParams,
+    HistoryFilterParams,
+    ExchangeCredentials,
+    EventFetchParams,
+} from '../../BaseExchange';
+import {
+    UnifiedMarket,
+    UnifiedEvent,
+    PriceCandle,
+    OrderBook,
+    Trade,
+    Order,
+    Position,
+    Balance,
+    CreateOrderParams,
+} from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
@@ -9,9 +25,10 @@ import { fetchPositions } from './fetchPositions';
 import { LimitlessAuth } from './auth';
 import { LimitlessClient } from './client';
 import { LimitlessWebSocket, LimitlessWebSocketConfig } from './websocket';
-import { Side } from '@polymarket/clob-client'; // Keep for type if needed, or remove if unused
 import { limitlessErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { PortfolioFetcher, getContractAddress } from '@limitless-exchange/sdk';
+import { Contract, providers } from 'ethers';
 
 // Re-export for external use
 export { LimitlessWebSocketConfig };
@@ -46,10 +63,22 @@ export class LimitlessExchange extends PredictionMarketExchange {
         super(credentials);
         this.wsConfig = wsConfig;
 
-        // Initialize auth if credentials are provided
-        if (credentials?.privateKey) {
-            this.auth = new LimitlessAuth(credentials);
-            this.client = new LimitlessClient(credentials.privateKey);
+        // Initialize auth if API key or private key are provided
+        // API key is now the primary authentication method
+        if (credentials?.apiKey || credentials?.privateKey) {
+            try {
+                this.auth = new LimitlessAuth(credentials);
+
+                // Initialize client only if we have both privateKey and apiKey
+                if (credentials.privateKey) {
+                    const apiKey = this.auth.getApiKey();
+                    this.client = new LimitlessClient(credentials.privateKey, apiKey);
+                }
+            } catch (error) {
+                // If auth initialization fails, continue without it
+                // Some methods (like fetchMarkets) work without auth
+                console.warn('Failed to initialize Limitless auth:', error);
+            }
         }
     }
 
@@ -62,7 +91,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
     // ----------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+        // Pass API key if available for authenticated requests
+        const apiKey = this.auth?.getApiKey();
+        return fetchMarkets(params, apiKey);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
@@ -89,7 +120,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
         if (!this.client) {
             throw new Error(
                 'Trading operations require authentication. ' +
-                'Initialize LimitlessExchange with credentials: new LimitlessExchange({ privateKey: "0x..." })'
+                'Initialize LimitlessExchange with credentials: new LimitlessExchange({ privateKey: "0x...", apiKey: "lmts_..." })'
             );
         }
         return this.client;
@@ -102,7 +133,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
         if (!this.auth) {
             throw new AuthenticationError(
                 'Trading operations require authentication. ' +
-                'Initialize LimitlessExchange with credentials: new LimitlessExchange({ privateKey: "0x..." })',
+                'Initialize LimitlessExchange with credentials: new LimitlessExchange({ privateKey: "0x...", apiKey: "lmts_..." })',
                 'Limitless'
             );
         }
@@ -120,7 +151,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             const marketSlug = params.marketId;
 
             if (!params.price) {
-                throw new Error("Limit orders require a price");
+                throw new Error('Limit orders require a price');
             }
 
             const response = await client.createOrder({
@@ -129,18 +160,13 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 side: side,
                 price: params.price,
                 amount: params.amount,
-                type: params.type
+                type: params.type,
             });
 
             // Map response to Order object
-            // The API response for POST /orders returns the created order object
-            // Structure based on YAML: { order: { ... }, ... } or usually standard REST return
-            // Assuming response contains the created order data.
-
-            // Need to inspect actual response structure from client.ts (it returns res.data)
-            // If res.data is the order:
+            // The SDK returns OrderResponse with order.id
             return {
-                id: response.id || 'unknown', // Adjust based on actual response
+                id: response.order.id || 'unknown',
                 marketId: params.marketId,
                 outcomeId: params.outcomeId,
                 side: params.side,
@@ -150,9 +176,8 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 status: 'open',
                 filled: 0,
                 remaining: params.amount,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
-
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
         }
@@ -174,7 +199,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 status: 'cancelled',
                 filled: 0,
                 remaining: 0,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             };
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
@@ -185,7 +210,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
         // Limitless API does not support fetching a single order by ID directly without the market slug.
         // We would need to scan all markets or maintain a local cache.
         // For now, we throw specific error.
-        throw new Error("Limitless: fetchOrder(id) is not supported directly. Use fetchOpenOrders(marketSlug).");
+        throw new Error(
+            'Limitless: fetchOrder(id) is not supported directly. Use fetchOpenOrders(marketSlug).'
+        );
     }
 
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
@@ -196,7 +223,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 // We cannot fetch ALL open orders globally efficiently on Limitless (no endpoint).
                 // We would need to fetch all active markets and query each.
                 // For this MVP, we return empty or throw. Returning empty to be "compliant" with interface but logging warning.
-                console.warn("Limitless: fetchOpenOrders requires marketId (slug) to be efficient. Returning [].");
+                console.warn(
+                    'Limitless: fetchOpenOrders requires marketId (slug) to be efficient. Returning [].'
+                );
                 return [];
             }
 
@@ -205,15 +234,15 @@ export class LimitlessExchange extends PredictionMarketExchange {
             return orders.map((o: any) => ({
                 id: o.id,
                 marketId: marketId,
-                outcomeId: "unknown", // API might not return this in the simplified list, need to check response
+                outcomeId: 'unknown', // API might not return this in the simplified list
                 side: o.side.toLowerCase() as 'buy' | 'sell',
                 type: 'limit',
                 price: parseFloat(o.price),
                 amount: parseFloat(o.quantity),
                 status: 'open',
-                filled: 0, // Need to check if API returns filled amount in this view
+                filled: 0,
                 remaining: parseFloat(o.quantity),
-                timestamp: Date.now() // API doesn't always return TS in summary
+                timestamp: Date.now(),
             }));
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
@@ -228,25 +257,38 @@ export class LimitlessExchange extends PredictionMarketExchange {
 
     async fetchBalance(): Promise<Balance[]> {
         const auth = this.ensureAuth();
-        const client = await auth.getClobClient();
 
         try {
-            // 1. Fetch raw collateral balance (USDC)
-            // Limitless relies strictly on USDC (Polygon) which has 6 decimals.
-            // Note: This needs to be updated for Base chain!
-            const USDC_DECIMALS = 6;
-            const balRes = await client.getBalanceAllowance({
-                asset_type: "COLLATERAL" as any
-            });
-            const rawBalance = parseFloat(balRes.balance);
-            const total = rawBalance / Math.pow(10, USDC_DECIMALS);
+            // Query USDC balance directly from the blockchain
+            // Base chain RPC
+            const provider = new providers.JsonRpcProvider('https://mainnet.base.org');
+            const address = auth.getAddress();
 
-            return [{
-                currency: 'USDC',
-                total: total,
-                available: total, // Approximate
-                locked: 0
-            }];
+            // Get USDC contract address for Base
+            const usdcAddress = getContractAddress('USDC');
+
+            // USDC ERC20 ABI (balanceOf only)
+            const usdcContract = new Contract(
+                usdcAddress,
+                ['function balanceOf(address) view returns (uint256)'],
+                provider
+            );
+
+            // Query balance
+            const rawBalance = await usdcContract.balanceOf(address);
+
+            // USDC has 6 decimals
+            const USDC_DECIMALS = 6;
+            const total = parseFloat(rawBalance.toString()) / Math.pow(10, USDC_DECIMALS);
+
+            return [
+                {
+                    currency: 'USDC',
+                    total: total,
+                    available: total, // On-chain balance is all available
+                    locked: 0,
+                },
+            ];
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
         }
@@ -258,18 +300,63 @@ export class LimitlessExchange extends PredictionMarketExchange {
 
     private ws?: LimitlessWebSocket;
 
-    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+    /**
+     * Initialize WebSocket with API key if available.
+     */
+    private initWebSocket(): LimitlessWebSocket {
         if (!this.ws) {
-            this.ws = new LimitlessWebSocket(this.wsConfig);
+            const wsConfig = {
+                ...this.wsConfig,
+                apiKey: this.auth?.getApiKey(),
+            };
+            this.ws = new LimitlessWebSocket(wsConfig);
         }
-        return this.ws.watchOrderBook(id);
+        return this.ws;
+    }
+
+    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+        const ws = this.initWebSocket();
+        // Return the snapshot immediately (this allows the script to proceed)
+        // Future versions could implement a more sophisticated queueing system
+        return ws.watchOrderBook(id);
     }
 
     async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]> {
-        if (!this.ws) {
-            this.ws = new LimitlessWebSocket(this.wsConfig);
-        }
-        return this.ws.watchTrades(id);
+        const ws = this.initWebSocket();
+        return ws.watchTrades(id);
+    }
+
+    /**
+     * Watch AMM price updates for a market address.
+     * Requires WebSocket connection.
+     * @param marketAddress - Market contract address
+     * @param callback - Callback for price updates
+     */
+    async watchPrices(marketAddress: string, callback: (data: any) => void): Promise<void> {
+        const ws = this.initWebSocket();
+        return ws.watchPrices(marketAddress, callback);
+    }
+
+    /**
+     * Watch user positions in real-time.
+     * Requires API key authentication.
+     * @param callback - Callback for position updates
+     */
+    async watchUserPositions(callback: (data: any) => void): Promise<void> {
+        this.ensureAuth(); // Ensure API key is available
+        const ws = this.initWebSocket();
+        return ws.watchUserPositions(callback);
+    }
+
+    /**
+     * Watch user transactions in real-time.
+     * Requires API key authentication.
+     * @param callback - Callback for transaction updates
+     */
+    async watchUserTransactions(callback: (data: any) => void): Promise<void> {
+        this.ensureAuth(); // Ensure API key is available
+        const ws = this.initWebSocket();
+        return ws.watchUserTransactions(callback);
     }
 
     async close(): Promise<void> {

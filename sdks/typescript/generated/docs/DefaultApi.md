@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost:3847*
 | [**cancelOrder**](DefaultApi.md#cancelorderoperation) | **POST** /api/{exchange}/cancelOrder | Cancel Order |
 | [**createOrder**](DefaultApi.md#createorderoperation) | **POST** /api/{exchange}/createOrder | Create Order |
 | [**fetchBalance**](DefaultApi.md#fetchbalance) | **POST** /api/{exchange}/fetchBalance | Fetch Balance |
+| [**fetchEvents**](DefaultApi.md#fetcheventsoperation) | **POST** /api/{exchange}/fetchEvents | Fetch Events |
 | [**fetchMarkets**](DefaultApi.md#fetchmarketsoperation) | **POST** /api/{exchange}/fetchMarkets | Fetch Markets |
 | [**fetchOHLCV**](DefaultApi.md#fetchohlcvoperation) | **POST** /api/{exchange}/fetchOHLCV | Fetch OHLCV Candles |
 | [**fetchOpenOrders**](DefaultApi.md#fetchopenordersoperation) | **POST** /api/{exchange}/fetchOpenOrders | Fetch Open Orders |
@@ -16,12 +17,12 @@ All URIs are relative to *http://localhost:3847*
 | [**fetchTrades**](DefaultApi.md#fetchtradesoperation) | **POST** /api/{exchange}/fetchTrades | Fetch Trades |
 | [**getExecutionPrice**](DefaultApi.md#getexecutionpriceoperation) | **POST** /api/{exchange}/getExecutionPrice | Get Execution Price |
 | [**getExecutionPriceDetailed**](DefaultApi.md#getexecutionpricedetailed) | **POST** /api/{exchange}/getExecutionPriceDetailed | Get Detailed Execution Price |
-| [**getMarketsBySlug**](DefaultApi.md#getmarketsbyslugoperation) | **POST** /api/{exchange}/getMarketsBySlug | Get Market by Slug |
 | [**healthCheck**](DefaultApi.md#healthcheck) | **GET** /health | Server Health Check |
-| [**searchEvents**](DefaultApi.md#searcheventsoperation) | **POST** /api/{exchange}/searchEvents | Search Events |
-| [**searchMarkets**](DefaultApi.md#searchmarketsoperation) | **POST** /api/{exchange}/searchMarkets | Search Markets |
 | [**watchOrderBook**](DefaultApi.md#watchorderbookoperation) | **POST** /api/{exchange}/watchOrderBook | Watch Order Book (WebSocket Stream) |
+| [**watchPrices**](DefaultApi.md#watchpricesoperation) | **POST** /api/{exchange}/watchPrices | Watch Prices (WebSocket Stream) |
 | [**watchTrades**](DefaultApi.md#watchtradesoperation) | **POST** /api/{exchange}/watchTrades | Watch Trades (WebSocket Stream) |
+| [**watchUserPositions**](DefaultApi.md#watchuserpositionsoperation) | **POST** /api/{exchange}/watchUserPositions | Watch User Positions (WebSocket Stream) |
+| [**watchUserTransactions**](DefaultApi.md#watchusertransactions) | **POST** /api/{exchange}/watchUserTransactions | Watch User Transactions (WebSocket Stream) |
 
 
 
@@ -225,6 +226,74 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Account balances |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## fetchEvents
+
+> FetchEvents200Response fetchEvents(exchange, fetchEventsRequest)
+
+Fetch Events
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from 'pmxtjs';
+import type { FetchEventsOperationRequest } from 'pmxtjs';
+
+async function example() {
+  console.log("🚀 Testing pmxtjs SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
+    exchange: exchange_example,
+    // FetchEventsRequest (optional)
+    fetchEventsRequest: ...,
+  } satisfies FetchEventsOperationRequest;
+
+  try {
+    const data = await api.fetchEvents(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
+| **fetchEventsRequest** | [FetchEventsRequest](FetchEventsRequest.md) |  | [Optional] |
+
+### Return type
+
+[**FetchEvents200Response**](FetchEvents200Response.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | List of unified events |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -841,74 +910,6 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## getMarketsBySlug
-
-> FetchMarkets200Response getMarketsBySlug(exchange, getMarketsBySlugRequest)
-
-Get Market by Slug
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from 'pmxtjs';
-import type { GetMarketsBySlugOperationRequest } from 'pmxtjs';
-
-async function example() {
-  console.log("🚀 Testing pmxtjs SDK...");
-  const api = new DefaultApi();
-
-  const body = {
-    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
-    exchange: exchange_example,
-    // GetMarketsBySlugRequest (optional)
-    getMarketsBySlugRequest: ...,
-  } satisfies GetMarketsBySlugOperationRequest;
-
-  try {
-    const data = await api.getMarketsBySlug(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
-| **getMarketsBySlugRequest** | [GetMarketsBySlugRequest](GetMarketsBySlugRequest.md) |  | [Optional] |
-
-### Return type
-
-[**FetchMarkets200Response**](FetchMarkets200Response.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Targeted market |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
 ## healthCheck
 
 > HealthCheck200Response healthCheck()
@@ -962,146 +963,6 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Server is consistent and running. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## searchEvents
-
-> SearchEvents200Response searchEvents(exchange, searchEventsRequest)
-
-Search Events
-
-Search for events (groups of related markets) by title or description.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from 'pmxtjs';
-import type { SearchEventsOperationRequest } from 'pmxtjs';
-
-async function example() {
-  console.log("🚀 Testing pmxtjs SDK...");
-  const api = new DefaultApi();
-
-  const body = {
-    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
-    exchange: exchange_example,
-    // SearchEventsRequest (optional)
-    searchEventsRequest: ...,
-  } satisfies SearchEventsOperationRequest;
-
-  try {
-    const data = await api.searchEvents(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
-| **searchEventsRequest** | [SearchEventsRequest](SearchEventsRequest.md) |  | [Optional] |
-
-### Return type
-
-[**SearchEvents200Response**](SearchEvents200Response.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Search results |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## searchMarkets
-
-> FetchMarkets200Response searchMarkets(exchange, searchMarketsRequest)
-
-Search Markets
-
-Search for markets by title or description.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  DefaultApi,
-} from 'pmxtjs';
-import type { SearchMarketsOperationRequest } from 'pmxtjs';
-
-async function example() {
-  console.log("🚀 Testing pmxtjs SDK...");
-  const api = new DefaultApi();
-
-  const body = {
-    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
-    exchange: exchange_example,
-    // SearchMarketsRequest (optional)
-    searchMarketsRequest: ...,
-  } satisfies SearchMarketsOperationRequest;
-
-  try {
-    const data = await api.searchMarkets(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
-| **searchMarketsRequest** | [SearchMarketsRequest](SearchMarketsRequest.md) |  | [Optional] |
-
-### Return type
-
-[**FetchMarkets200Response**](FetchMarkets200Response.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Search results |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1176,6 +1037,74 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## watchPrices
+
+> BaseResponse watchPrices(exchange, watchPricesRequest)
+
+Watch Prices (WebSocket Stream)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from 'pmxtjs';
+import type { WatchPricesOperationRequest } from 'pmxtjs';
+
+async function example() {
+  console.log("🚀 Testing pmxtjs SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
+    exchange: exchange_example,
+    // WatchPricesRequest (optional)
+    watchPricesRequest: ...,
+  } satisfies WatchPricesOperationRequest;
+
+  try {
+    const data = await api.watchPrices(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
+| **watchPricesRequest** | [WatchPricesRequest](WatchPricesRequest.md) |  | [Optional] |
+
+### Return type
+
+[**BaseResponse**](BaseResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Price update |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## watchTrades
 
 > FetchTrades200Response watchTrades(exchange, watchTradesRequest)
@@ -1242,6 +1171,142 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Next trade update(s) |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## watchUserPositions
+
+> BaseResponse watchUserPositions(exchange, watchUserPositionsRequest)
+
+Watch User Positions (WebSocket Stream)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from 'pmxtjs';
+import type { WatchUserPositionsOperationRequest } from 'pmxtjs';
+
+async function example() {
+  console.log("🚀 Testing pmxtjs SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
+    exchange: exchange_example,
+    // WatchUserPositionsRequest (optional)
+    watchUserPositionsRequest: ...,
+  } satisfies WatchUserPositionsOperationRequest;
+
+  try {
+    const data = await api.watchUserPositions(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
+| **watchUserPositionsRequest** | [WatchUserPositionsRequest](WatchUserPositionsRequest.md) |  | [Optional] |
+
+### Return type
+
+[**BaseResponse**](BaseResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | User position update |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## watchUserTransactions
+
+> BaseResponse watchUserTransactions(exchange, watchUserPositionsRequest)
+
+Watch User Transactions (WebSocket Stream)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DefaultApi,
+} from 'pmxtjs';
+import type { WatchUserTransactionsRequest } from 'pmxtjs';
+
+async function example() {
+  console.log("🚀 Testing pmxtjs SDK...");
+  const api = new DefaultApi();
+
+  const body = {
+    // 'polymarket' | 'kalshi' | The prediction market exchange to target.
+    exchange: exchange_example,
+    // WatchUserPositionsRequest (optional)
+    watchUserPositionsRequest: ...,
+  } satisfies WatchUserTransactionsRequest;
+
+  try {
+    const data = await api.watchUserTransactions(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **exchange** | `polymarket`, `kalshi` | The prediction market exchange to target. | [Defaults to `undefined`] [Enum: polymarket, kalshi] |
+| **watchUserPositionsRequest** | [WatchUserPositionsRequest](WatchUserPositionsRequest.md) |  | [Optional] |
+
+### Return type
+
+[**BaseResponse**](BaseResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | User transaction update |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

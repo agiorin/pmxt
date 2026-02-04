@@ -18,7 +18,7 @@ poly = pmxt.Polymarket()
 kalshi = pmxt.Kalshi()
 
 # Search for markets
-markets = poly.fetch_markets(query="Trump")
+markets = poly.search_markets("Trump")
 print(markets[0].title)
 ```
 
@@ -61,62 +61,23 @@ Fetch Markets
 **Signature:**
 
 ```python
-def fetch_markets(params: Optional[MarketFilterParams] = None) -> List[UnifiedMarket]:
+def fetch_markets(query: Optional[str] = None, params: Optional[MarketFilterParams] = None, **kwargs) -> List[UnifiedMarket]:
 ```
 
 **Parameters:**
 
-- `params` (MarketFilterParams) - **Optional**: Filter parameters (limit, offset, sort)
-- `query` (str) - **Optional**: Search query (replaces search_markets)
-- `slug` (str) - **Optional**: Market slug or ticker (replaces get_markets_by_slug)
+- `params` (MarketFilterParams) - **Optional**: Filter parameters
 
 **Returns:** `List[UnifiedMarket]` - List of unified markets
 
 **Example:**
 
 ```python
-# 1. Fetch recent markets
-markets = poly.fetch_markets(limit=20, sort='volume')
-
-# 2. Search by text (replaces search_markets)
-results = kalshi.fetch_markets(query='Fed rates', limit=10)
-
-# 3. Fetch by slug/ticker (replaces get_markets_by_slug)
-market = poly.fetch_markets(slug='who-will-trump-nominate-as-fed-chair')
+markets = poly.fetch_markets(pmxt.MarketFilterParams(
+    limit=20,
+    sort='volume'  # 'volume' | 'liquidity' | 'newest'
+))
 ```
-
-
----
-### `fetch_events`
-
-Fetch Events
-
-Fetch events (groups of related markets). Unified method for event fetching.
-
-**Signature:**
-
-```python
-def fetch_events(query: Optional[str] = None, params: Optional[MarketFilterParams] = None) -> List[UnifiedEvent]:
-```
-
-**Parameters:**
-
-- `query` (str) - **Optional**: Search query
-- `params` (MarketFilterParams) - **Optional**: Filter parameters
-
-**Returns:** `List[UnifiedEvent]` - List of events
-
-**Example:**
-
-```python
-events = poly.fetch_events(query='Fed Chair', limit=5)
-# Filter for specific market within the event
-warsh = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]
-```
-
-
-
-
 
 
 ---
@@ -142,7 +103,7 @@ def fetch_o_h_l_c_v(id: str, params: Optional[HistoryFilterParams] = None) -> Li
 **Example:**
 
 ```python
-markets = poly.fetch_markets(query='Trump')
+markets = poly.search_markets('Trump')
 outcome_id = markets[0].outcomes[0].id  # Get the outcome ID
 
 candles = poly.fetch_ohlcv(outcome_id, pmxt.HistoryFilterParams(
@@ -219,6 +180,32 @@ trades = kalshi.fetch_trades('FED-25JAN', pmxt.HistoryFilterParams(
 **Note**: Polymarket requires API key. Use `fetchOHLCV` for public historical data.
 
 ---
+### `fetch_events`
+
+Fetch Events
+
+Fetch Events
+
+**Signature:**
+
+```python
+def fetch_events(query: Optional[str] = None, params: Optional[EventFetchParams] = None, **kwargs) -> List[UnifiedEvent]:
+```
+
+**Parameters:**
+
+- `params` (EventFetchParams) - **Optional**: Filter parameters
+
+**Returns:** `List[UnifiedEvent]` - List of unified events
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
 ### `watch_order_book`
 
 Watch Order Book (WebSocket Stream)
@@ -267,6 +254,84 @@ def watch_trades(outcome_id: str, since: Optional[Any] = None, limit: Optional[A
 - `limit` (Any) - **Optional**: limit
 
 **Returns:** `List[Trade]` - Next trade update(s)
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
+### `watch_prices`
+
+Watch Prices (WebSocket Stream)
+
+Watch Prices (WebSocket Stream)
+
+**Signature:**
+
+```python
+def watch_prices() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - Price update
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
+### `watch_user_positions`
+
+Watch User Positions (WebSocket Stream)
+
+Watch User Positions (WebSocket Stream)
+
+**Signature:**
+
+```python
+def watch_user_positions() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - User position update
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
+### `watch_user_transactions`
+
+Watch User Transactions (WebSocket Stream)
+
+Watch User Transactions (WebSocket Stream)
+
+**Signature:**
+
+```python
+def watch_user_transactions() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - User transaction update
 
 **Example:**
 
@@ -521,6 +586,63 @@ def get_execution_price_detailed(order_book: str, side: OrderBook, amount: Order
 
 
 ---
+### `search_markets`
+
+searchMarkets
+
+
+
+**Signature:**
+
+```python
+def search_markets() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - 
+
+**Example:**
+
+```python
+results = kalshi.search_markets('Fed rates', pmxt.MarketFilterParams(
+    limit=10,
+    search_in='title'  # 'title' (default) | 'description' | 'both'
+))
+```
+
+
+---
+### `search_events`
+
+searchEvents
+
+
+
+**Signature:**
+
+```python
+def search_events() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - 
+
+**Example:**
+
+```python
+events = poly.search_events('Who will Trump nominate as Fed Chair?')
+# Filter for specific market within the event
+warsh = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]
+```
+
+
+---
 ### `filter_markets`
 
 Filter a list of markets locally based on structured criteria or a custom function.
@@ -589,6 +711,36 @@ filtered = poly.filter_events(events, {
 
 
 ---
+### `get_markets_by_slug`
+
+getMarketsBySlug
+
+
+
+**Signature:**
+
+```python
+def get_markets_by_slug() -> Any:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** `Any` - 
+
+**Example:**
+
+```python
+# Polymarket: use URL slug
+poly_markets = poly.get_markets_by_slug('who-will-trump-nominate-as-fed-chair')
+
+# Kalshi: use market ticker (auto-uppercased)
+kalshi_markets = kalshi.get_markets_by_slug('KXFEDCHAIRNOM-29')
+```
+
+
+---
 
 ## Complete Trading Workflow
 
@@ -607,7 +759,7 @@ if balances:
     print(f'Available: ${balance.available}')
 
 # 2. Search for a market
-markets = exchange.fetch_markets(query='Trump')
+markets = exchange.search_markets('Trump')
 market = markets[0]
 outcome = market.outcomes[0]
 
@@ -868,6 +1020,20 @@ class MarketFilterParams:
 limit: int # 
 offset: int # 
 sort: str # 
+search_in: str # 
+```
+
+---
+### `EventFetchParams`
+
+
+
+```python
+@dataclass
+class EventFetchParams:
+query: str # 
+limit: int # 
+offset: int # 
 search_in: str # 
 ```
 

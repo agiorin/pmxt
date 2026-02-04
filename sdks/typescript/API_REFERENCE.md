@@ -18,7 +18,7 @@ const poly = new pmxt.Polymarket();
 const kalshi = new pmxt.Kalshi();
 
 // Search for markets
-const markets = await poly.fetchMarkets({ query: "Trump" });
+const markets = await poly.searchMarkets("Trump");
 console.log(markets[0].title);
 ```
 
@@ -65,67 +65,21 @@ Fetch Markets
 async fetchMarkets(params?: MarketFilterParams): Promise<UnifiedMarket[]>
   ```
 
-**Parameters:**
+  **Parameters:**
 
   - `params` (MarketFilterParams) - **Optional**: Filter parameters
-    - `limit` (number): Limit results (default 20)
-    - `offset` (number): Pagination offset
-    - `sort` (string): 'volume' | 'liquidity' | 'newest'
-    - `query` (string): Search text (replaces `searchMarkets`)
-    - `slug` (string): Market slug/ticker (replaces `getMarketsBySlug`)
 
   **Returns:** `Promise<UnifiedMarket[]>` - List of unified markets
 
     **Example:**
 
     ```typescript
-    // 1. Fetch recent markets
-const markets = await polymarket.fetchMarkets({ 
+    const markets = await polymarket.fetchMarkets({ 
   limit: 20, 
-  sort: 'volume' 
-});
-
-// 2. Search by text (replaces searchMarkets)
-const results = await kalshi.fetchMarkets({ 
-  query: 'Fed rates',
-  limit: 10
-});
-
-// 3. Fetch by slug/ticker (replaces getMarketsBySlug)
-const market = await polymarket.fetchMarkets({ 
-  slug: 'who-will-trump-nominate-as-fed-chair'
+  offset: 0,
+  sort: 'volume' // 'volume' | 'liquidity' | 'newest'
 });
     ```
-
-
-    ---
-### `fetchEvents`
-
-Fetch Events
-
-Get events (groups of related markets). Unified method for event fetching.
-
-**Signature:**
-
-```typescript
-async fetchEvents(params?: MarketFilterParams): Promise<UnifiedEvent[]>
-```
-
-**Parameters:**
-- `params` (MarketFilterParams):
-  - `query` (string): Search text
-
-**Example:**
-
-```typescript
-// Search for events
-const events = await polymarket.fetchEvents({ 
-  query: 'Fed Chair',
-  limit: 5 
-});
-```
-
-
 
 
     ---
@@ -151,7 +105,7 @@ async fetchOHLCV(id: string, params?: HistoryFilterParams): Promise<PriceCandle[
     **Example:**
 
     ```typescript
-    const markets = await polymarket.fetchMarkets({ query: 'Trump' });
+    const markets = await polymarket.searchMarkets('Trump');
 const outcomeId = markets[0].outcomes[0].id; // Get the outcome ID
 
 const candles = await polymarket.fetchOHLCV(outcomeId, {
@@ -228,6 +182,32 @@ async fetchTrades(id: string, params?: HistoryFilterParams): Promise<Trade[]>
     **Note**: Polymarket requires API key. Use `fetchOHLCV` for public historical data.
 
     ---
+### `fetchEvents`
+
+Fetch Events
+
+Fetch Events
+
+**Signature:**
+
+```typescript
+async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]>
+  ```
+
+  **Parameters:**
+
+  - `params` (EventFetchParams) - **Optional**: Filter parameters
+
+  **Returns:** `Promise<UnifiedEvent[]>` - List of unified events
+
+    **Example:**
+
+    ```typescript
+    // No example available
+    ```
+
+
+    ---
 ### `watchOrderBook`
 
 Watch Order Book (WebSocket Stream)
@@ -276,6 +256,84 @@ async watchTrades(outcomeId: string, since?: any, limit?: any): Promise<Trade[]>
   - `limit` (any) - **Optional**: limit
 
   **Returns:** `Promise<Trade[]>` - Next trade update(s)
+
+    **Example:**
+
+    ```typescript
+    // No example available
+    ```
+
+
+    ---
+### `watchPrices`
+
+Watch Prices (WebSocket Stream)
+
+Watch Prices (WebSocket Stream)
+
+**Signature:**
+
+```typescript
+async watchPrices(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - Price update
+
+    **Example:**
+
+    ```typescript
+    // No example available
+    ```
+
+
+    ---
+### `watchUserPositions`
+
+Watch User Positions (WebSocket Stream)
+
+Watch User Positions (WebSocket Stream)
+
+**Signature:**
+
+```typescript
+async watchUserPositions(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - User position update
+
+    **Example:**
+
+    ```typescript
+    // No example available
+    ```
+
+
+    ---
+### `watchUserTransactions`
+
+Watch User Transactions (WebSocket Stream)
+
+Watch User Transactions (WebSocket Stream)
+
+**Signature:**
+
+```typescript
+async watchUserTransactions(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - User transaction update
 
     **Example:**
 
@@ -532,6 +590,63 @@ async getExecutionPriceDetailed(orderBook: string, side: OrderBook, amount: Orde
 
 
     ---
+### `searchMarkets`
+
+searchMarkets
+
+
+
+**Signature:**
+
+```typescript
+async searchMarkets(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - 
+
+    **Example:**
+
+    ```typescript
+    const results = await kalshi.searchMarkets('Fed rates', { 
+  limit: 10,
+  searchIn: 'title' // 'title' (default) | 'description' | 'both'
+});
+    ```
+
+
+    ---
+### `searchEvents`
+
+searchEvents
+
+
+
+**Signature:**
+
+```typescript
+async searchEvents(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - 
+
+    **Example:**
+
+    ```typescript
+    const events = await polymarket.searchEvents('Who will Trump nominate as Fed Chair?');
+// Filter for specific market within the event
+const warsh = polymarket.filterMarkets(events[0].markets, 'Kevin Warsh')[0];
+    ```
+
+
+    ---
 ### `filterMarkets`
 
 Filter a list of markets locally based on structured criteria or a custom function.
@@ -602,6 +717,36 @@ async filterEvents(events: UnifiedEvent[], criteria: any): Promise<UnifiedEvent[
 
 
     ---
+### `getMarketsBySlug`
+
+getMarketsBySlug
+
+
+
+**Signature:**
+
+```typescript
+async getMarketsBySlug(): Promise<any>
+  ```
+
+  **Parameters:**
+
+  - None
+
+  **Returns:** `Promise<any>` - 
+
+    **Example:**
+
+    ```typescript
+    // Polymarket: use URL slug
+const polyMarkets = await polymarket.getMarketsBySlug('who-will-trump-nominate-as-fed-chair');
+
+// Kalshi: use market ticker (auto-uppercased)
+const kalshiMarkets = await kalshi.getMarketsBySlug('KXFEDCHAIRNOM-29');
+    ```
+
+
+    ---
 
     ## Complete Trading Workflow
 
@@ -617,7 +762,7 @@ const [balance] = await exchange.fetchBalance();
 console.log(`Available: $${balance.available}`);
 
 // 2. Search for a market
-const markets = await exchange.fetchMarkets({ query: 'Trump' });
+const markets = await exchange.searchMarkets('Trump');
 const market = markets[0];
 const outcome = market.outcomes[0];
 
@@ -878,6 +1023,20 @@ positions.forEach(pos => {
     limit?: number; // 
     offset?: number; // 
     sort?: string; // 
+    searchIn?: string; // 
+    }
+    ```
+
+    ---
+    ### `EventFetchParams`
+
+    
+
+    ```typescript
+    interface EventFetchParams {
+    query?: string; // 
+    limit?: number; // 
+    offset?: number; // 
     searchIn?: string; // 
     }
     ```

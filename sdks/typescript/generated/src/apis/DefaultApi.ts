@@ -15,10 +15,13 @@
 
 import * as runtime from '../runtime';
 import type {
+  BaseResponse,
   CancelOrderRequest,
   CreateOrder200Response,
   CreateOrderRequest,
   FetchBalance200Response,
+  FetchEvents200Response,
+  FetchEventsRequest,
   FetchMarkets200Response,
   FetchMarketsRequest,
   FetchOHLCV200Response,
@@ -34,15 +37,15 @@ import type {
   GetExecutionPrice200Response,
   GetExecutionPriceDetailed200Response,
   GetExecutionPriceRequest,
-  GetMarketsBySlugRequest,
   HealthCheck200Response,
-  SearchEvents200Response,
-  SearchEventsRequest,
-  SearchMarketsRequest,
   WatchOrderBookRequest,
+  WatchPricesRequest,
   WatchTradesRequest,
+  WatchUserPositionsRequest,
 } from '../models/index';
 import {
+    BaseResponseFromJSON,
+    BaseResponseToJSON,
     CancelOrderRequestFromJSON,
     CancelOrderRequestToJSON,
     CreateOrder200ResponseFromJSON,
@@ -51,6 +54,10 @@ import {
     CreateOrderRequestToJSON,
     FetchBalance200ResponseFromJSON,
     FetchBalance200ResponseToJSON,
+    FetchEvents200ResponseFromJSON,
+    FetchEvents200ResponseToJSON,
+    FetchEventsRequestFromJSON,
+    FetchEventsRequestToJSON,
     FetchMarkets200ResponseFromJSON,
     FetchMarkets200ResponseToJSON,
     FetchMarketsRequestFromJSON,
@@ -81,20 +88,16 @@ import {
     GetExecutionPriceDetailed200ResponseToJSON,
     GetExecutionPriceRequestFromJSON,
     GetExecutionPriceRequestToJSON,
-    GetMarketsBySlugRequestFromJSON,
-    GetMarketsBySlugRequestToJSON,
     HealthCheck200ResponseFromJSON,
     HealthCheck200ResponseToJSON,
-    SearchEvents200ResponseFromJSON,
-    SearchEvents200ResponseToJSON,
-    SearchEventsRequestFromJSON,
-    SearchEventsRequestToJSON,
-    SearchMarketsRequestFromJSON,
-    SearchMarketsRequestToJSON,
     WatchOrderBookRequestFromJSON,
     WatchOrderBookRequestToJSON,
+    WatchPricesRequestFromJSON,
+    WatchPricesRequestToJSON,
     WatchTradesRequestFromJSON,
     WatchTradesRequestToJSON,
+    WatchUserPositionsRequestFromJSON,
+    WatchUserPositionsRequestToJSON,
 } from '../models/index';
 
 export interface CancelOrderOperationRequest {
@@ -110,6 +113,11 @@ export interface CreateOrderOperationRequest {
 export interface FetchBalanceRequest {
     exchange: FetchBalanceExchangeEnum;
     fetchPositionsRequest?: FetchPositionsRequest;
+}
+
+export interface FetchEventsOperationRequest {
+    exchange: FetchEventsOperationExchangeEnum;
+    fetchEventsRequest?: FetchEventsRequest;
 }
 
 export interface FetchMarketsOperationRequest {
@@ -157,29 +165,29 @@ export interface GetExecutionPriceDetailedRequest {
     getExecutionPriceRequest?: GetExecutionPriceRequest;
 }
 
-export interface GetMarketsBySlugOperationRequest {
-    exchange: GetMarketsBySlugOperationExchangeEnum;
-    getMarketsBySlugRequest?: GetMarketsBySlugRequest;
-}
-
-export interface SearchEventsOperationRequest {
-    exchange: SearchEventsOperationExchangeEnum;
-    searchEventsRequest?: SearchEventsRequest;
-}
-
-export interface SearchMarketsOperationRequest {
-    exchange: SearchMarketsOperationExchangeEnum;
-    searchMarketsRequest?: SearchMarketsRequest;
-}
-
 export interface WatchOrderBookOperationRequest {
     exchange: WatchOrderBookOperationExchangeEnum;
     watchOrderBookRequest?: WatchOrderBookRequest;
 }
 
+export interface WatchPricesOperationRequest {
+    exchange: WatchPricesOperationExchangeEnum;
+    watchPricesRequest?: WatchPricesRequest;
+}
+
 export interface WatchTradesOperationRequest {
     exchange: WatchTradesOperationExchangeEnum;
     watchTradesRequest?: WatchTradesRequest;
+}
+
+export interface WatchUserPositionsOperationRequest {
+    exchange: WatchUserPositionsOperationExchangeEnum;
+    watchUserPositionsRequest?: WatchUserPositionsRequest;
+}
+
+export interface WatchUserTransactionsRequest {
+    exchange: WatchUserTransactionsExchangeEnum;
+    watchUserPositionsRequest?: WatchUserPositionsRequest;
 }
 
 /**
@@ -304,6 +312,46 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async fetchBalance(requestParameters: FetchBalanceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchBalance200Response> {
         const response = await this.fetchBalanceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Fetch Events
+     */
+    async fetchEventsRaw(requestParameters: FetchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchEvents200Response>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling fetchEvents().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/fetchEvents`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: FetchEventsRequestToJSON(requestParameters['fetchEventsRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FetchEvents200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Fetch Events
+     */
+    async fetchEvents(requestParameters: FetchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchEvents200Response> {
+        const response = await this.fetchEventsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -668,46 +716,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Market by Slug
-     */
-    async getMarketsBySlugRaw(requestParameters: GetMarketsBySlugOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMarkets200Response>> {
-        if (requestParameters['exchange'] == null) {
-            throw new runtime.RequiredError(
-                'exchange',
-                'Required parameter "exchange" was null or undefined when calling getMarketsBySlug().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/api/{exchange}/getMarketsBySlug`;
-        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: GetMarketsBySlugRequestToJSON(requestParameters['getMarketsBySlugRequest']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMarkets200ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Market by Slug
-     */
-    async getMarketsBySlug(requestParameters: GetMarketsBySlugOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMarkets200Response> {
-        const response = await this.getMarketsBySlugRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Server Health Check
      */
     async healthCheckRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<HealthCheck200Response>> {
@@ -733,90 +741,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async healthCheck(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HealthCheck200Response> {
         const response = await this.healthCheckRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Search for events (groups of related markets) by title or description.
-     * Search Events
-     */
-    async searchEventsRaw(requestParameters: SearchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SearchEvents200Response>> {
-        if (requestParameters['exchange'] == null) {
-            throw new runtime.RequiredError(
-                'exchange',
-                'Required parameter "exchange" was null or undefined when calling searchEvents().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/api/{exchange}/searchEvents`;
-        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: SearchEventsRequestToJSON(requestParameters['searchEventsRequest']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => SearchEvents200ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Search for events (groups of related markets) by title or description.
-     * Search Events
-     */
-    async searchEvents(requestParameters: SearchEventsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SearchEvents200Response> {
-        const response = await this.searchEventsRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Search for markets by title or description.
-     * Search Markets
-     */
-    async searchMarketsRaw(requestParameters: SearchMarketsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FetchMarkets200Response>> {
-        if (requestParameters['exchange'] == null) {
-            throw new runtime.RequiredError(
-                'exchange',
-                'Required parameter "exchange" was null or undefined when calling searchMarkets().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/api/{exchange}/searchMarkets`;
-        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: SearchMarketsRequestToJSON(requestParameters['searchMarketsRequest']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => FetchMarkets200ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Search for markets by title or description.
-     * Search Markets
-     */
-    async searchMarkets(requestParameters: SearchMarketsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FetchMarkets200Response> {
-        const response = await this.searchMarketsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -863,6 +787,46 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Watch Prices (WebSocket Stream)
+     */
+    async watchPricesRaw(requestParameters: WatchPricesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BaseResponse>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling watchPrices().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/watchPrices`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WatchPricesRequestToJSON(requestParameters['watchPricesRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BaseResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Watch Prices (WebSocket Stream)
+     */
+    async watchPrices(requestParameters: WatchPricesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BaseResponse> {
+        const response = await this.watchPricesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Subscribe to real-time trade updates via WebSocket. Returns a promise that resolves with the next trade(s). Call repeatedly in a loop to stream updates (CCXT Pro pattern). 
      * Watch Trades (WebSocket Stream)
      */
@@ -904,6 +868,86 @@ export class DefaultApi extends runtime.BaseAPI {
         return await response.value();
     }
 
+    /**
+     * Watch User Positions (WebSocket Stream)
+     */
+    async watchUserPositionsRaw(requestParameters: WatchUserPositionsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BaseResponse>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling watchUserPositions().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/watchUserPositions`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WatchUserPositionsRequestToJSON(requestParameters['watchUserPositionsRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BaseResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Watch User Positions (WebSocket Stream)
+     */
+    async watchUserPositions(requestParameters: WatchUserPositionsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BaseResponse> {
+        const response = await this.watchUserPositionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Watch User Transactions (WebSocket Stream)
+     */
+    async watchUserTransactionsRaw(requestParameters: WatchUserTransactionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BaseResponse>> {
+        if (requestParameters['exchange'] == null) {
+            throw new runtime.RequiredError(
+                'exchange',
+                'Required parameter "exchange" was null or undefined when calling watchUserTransactions().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/{exchange}/watchUserTransactions`;
+        urlPath = urlPath.replace(`{${"exchange"}}`, encodeURIComponent(String(requestParameters['exchange'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WatchUserPositionsRequestToJSON(requestParameters['watchUserPositionsRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BaseResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Watch User Transactions (WebSocket Stream)
+     */
+    async watchUserTransactions(requestParameters: WatchUserTransactionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BaseResponse> {
+        const response = await this.watchUserTransactionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
 }
 
 /**
@@ -930,6 +974,14 @@ export const FetchBalanceExchangeEnum = {
     Kalshi: 'kalshi'
 } as const;
 export type FetchBalanceExchangeEnum = typeof FetchBalanceExchangeEnum[keyof typeof FetchBalanceExchangeEnum];
+/**
+ * @export
+ */
+export const FetchEventsOperationExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type FetchEventsOperationExchangeEnum = typeof FetchEventsOperationExchangeEnum[keyof typeof FetchEventsOperationExchangeEnum];
 /**
  * @export
  */
@@ -1005,30 +1057,6 @@ export type GetExecutionPriceDetailedExchangeEnum = typeof GetExecutionPriceDeta
 /**
  * @export
  */
-export const GetMarketsBySlugOperationExchangeEnum = {
-    Polymarket: 'polymarket',
-    Kalshi: 'kalshi'
-} as const;
-export type GetMarketsBySlugOperationExchangeEnum = typeof GetMarketsBySlugOperationExchangeEnum[keyof typeof GetMarketsBySlugOperationExchangeEnum];
-/**
- * @export
- */
-export const SearchEventsOperationExchangeEnum = {
-    Polymarket: 'polymarket',
-    Kalshi: 'kalshi'
-} as const;
-export type SearchEventsOperationExchangeEnum = typeof SearchEventsOperationExchangeEnum[keyof typeof SearchEventsOperationExchangeEnum];
-/**
- * @export
- */
-export const SearchMarketsOperationExchangeEnum = {
-    Polymarket: 'polymarket',
-    Kalshi: 'kalshi'
-} as const;
-export type SearchMarketsOperationExchangeEnum = typeof SearchMarketsOperationExchangeEnum[keyof typeof SearchMarketsOperationExchangeEnum];
-/**
- * @export
- */
 export const WatchOrderBookOperationExchangeEnum = {
     Polymarket: 'polymarket',
     Kalshi: 'kalshi'
@@ -1037,8 +1065,32 @@ export type WatchOrderBookOperationExchangeEnum = typeof WatchOrderBookOperation
 /**
  * @export
  */
+export const WatchPricesOperationExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type WatchPricesOperationExchangeEnum = typeof WatchPricesOperationExchangeEnum[keyof typeof WatchPricesOperationExchangeEnum];
+/**
+ * @export
+ */
 export const WatchTradesOperationExchangeEnum = {
     Polymarket: 'polymarket',
     Kalshi: 'kalshi'
 } as const;
 export type WatchTradesOperationExchangeEnum = typeof WatchTradesOperationExchangeEnum[keyof typeof WatchTradesOperationExchangeEnum];
+/**
+ * @export
+ */
+export const WatchUserPositionsOperationExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type WatchUserPositionsOperationExchangeEnum = typeof WatchUserPositionsOperationExchangeEnum[keyof typeof WatchUserPositionsOperationExchangeEnum];
+/**
+ * @export
+ */
+export const WatchUserTransactionsExchangeEnum = {
+    Polymarket: 'polymarket',
+    Kalshi: 'kalshi'
+} as const;
+export type WatchUserTransactionsExchangeEnum = typeof WatchUserTransactionsExchangeEnum[keyof typeof WatchUserTransactionsExchangeEnum];

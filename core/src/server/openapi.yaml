@@ -183,6 +183,40 @@ paths:
                         items:
                           $ref: '#/components/schemas/Trade'
 
+  /api/{exchange}/fetchEvents:
+    post:
+      summary: Fetch Events
+      operationId: fetchEvents
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                args:
+                  type: array
+                  maxItems: 1
+                  items:
+                    $ref: '#/components/schemas/EventFetchParams'
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: List of unified events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedEvent'
+
   # ---------------------------------------------------------------------------
   # WebSocket Streaming Endpoints
   # ---------------------------------------------------------------------------
@@ -270,6 +304,80 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Trade'
+
+  /api/{exchange}/watchPrices:
+    post:
+      summary: Watch Prices (WebSocket Stream)
+      operationId: watchPrices
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [args]
+              properties:
+                args:
+                  type: array
+                  minItems: 1
+                  maxItems: 1
+                  items:
+                    type: string
+                    description: Market address
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: Price update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /api/{exchange}/watchUserPositions:
+    post:
+      summary: Watch User Positions (WebSocket Stream)
+      operationId: watchUserPositions
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: User position update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
+  /api/{exchange}/watchUserTransactions:
+    post:
+      summary: Watch User Transactions (WebSocket Stream)
+      operationId: watchUserTransactions
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: User transaction update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
 
   # ---------------------------------------------------------------------------
   # Trading Endpoints
@@ -853,6 +961,19 @@ components:
         sort:
           type: string
           enum: [volume, liquidity, newest]
+        searchIn:
+          type: string
+          enum: [title, description, both]
+
+    EventFetchParams:
+      type: object
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+        offset:
+          type: integer
         searchIn:
           type: string
           enum: [title, description, both]
