@@ -48,7 +48,6 @@ export async function fetchOrderBook(id: string): Promise<OrderBook> {
         };
 
     } catch (error: any) {
-        console.error(`Error fetching Limitless orderbook for ${id}:`, error.message);
         return { bids: [], asks: [] };
     }
 }
