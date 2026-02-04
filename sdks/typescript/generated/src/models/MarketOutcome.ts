@@ -20,13 +20,6 @@ import { mapValues } from '../runtime';
  */
 export interface MarketOutcome {
     /**
-     * DEPRECATED: Use outcomeId instead. Will be removed in v2.0
-     * @type {string}
-     * @memberof MarketOutcome
-     * @deprecated
-     */
-    id?: string;
-    /**
      * Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)
      * @type {string}
      * @memberof MarketOutcome
@@ -74,8 +67,7 @@ export function MarketOutcomeFromJSONTyped(json: any, ignoreDiscriminator: boole
         return json;
     }
     return {
-        
-        'id': json['id'] == null ? undefined : json['id'],
+
         'outcomeId': json['outcomeId'] == null ? undefined : json['outcomeId'],
         'label': json['label'] == null ? undefined : json['label'],
         'price': json['price'] == null ? undefined : json['price'],
@@ -94,8 +86,7 @@ export function MarketOutcomeToJSONTyped(value?: MarketOutcome | null, ignoreDis
     }
 
     return {
-        
-        'id': value['id'],
+
         'outcomeId': value['outcomeId'],
         'label': value['label'],
         'price': value['price'],

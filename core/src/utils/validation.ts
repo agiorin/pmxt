@@ -1,17 +1,16 @@
 import { ValidationError } from '../errors';
 
 /**
- * Validates that the provided ID is an outcomeId (not marketId)
- * Provides helpful error messages mentioning deprecation
+ * Validates that the provided ID is an outcomeId
+ * Numeric IDs should be at least 10 digits (CLOB Token IDs for Polymarket)
  */
 export function validateOutcomeId(id: string, context: string): void {
     // Polymarket: CLOB Token IDs are long (>= 10 digits)
-    // Market IDs are shorter
+    // Short numeric IDs are invalid for trading operations
     if (id.length < 10 && /^\d+$/.test(id)) {
         throw new ValidationError(
-            `Invalid ID for ${context}: "${id}". ` +
-            `This appears to be a market ID (deprecated: market.id, use: market.marketId). ` +
-            `Please use outcome ID (preferred: outcome.outcomeId, deprecated: outcome.id).`,
+            `Invalid outcome ID for ${context}: "${id}". ` +
+            `Numeric outcome IDs must be at least 10 digits. Please use the correct outcome ID.`,
             'id'
         );
     }

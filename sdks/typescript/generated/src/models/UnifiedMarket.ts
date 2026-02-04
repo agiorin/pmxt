@@ -28,13 +28,6 @@ import {
  */
 export interface UnifiedMarket {
     /**
-     * DEPRECATED: Use marketId instead. Will be removed in v2.0
-     * @type {string}
-     * @memberof UnifiedMarket
-     * @deprecated
-     */
-    id?: string;
-    /**
      * The unique identifier for this market
      * @type {string}
      * @memberof UnifiedMarket
@@ -154,8 +147,7 @@ export function UnifiedMarketFromJSONTyped(json: any, ignoreDiscriminator: boole
         return json;
     }
     return {
-        
-        'id': json['id'] == null ? undefined : json['id'],
+
         'marketId': json['marketId'] == null ? undefined : json['marketId'],
         'title': json['title'] == null ? undefined : json['title'],
         'description': json['description'] == null ? undefined : json['description'],
@@ -186,8 +178,7 @@ export function UnifiedMarketToJSONTyped(value?: UnifiedMarket | null, ignoreDis
     }
 
     return {
-        
-        'id': value['id'],
+
         'marketId': value['marketId'],
         'title': value['title'],
         'description': value['description'],

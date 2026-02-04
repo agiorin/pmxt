@@ -58,9 +58,7 @@ describe('Validation Utilities', () => {
                 expect(e.code).toBe('VALIDATION_ERROR');
                 expect(e.field).toBe('id');
                 expect(e.message).toContain('123456');
-                expect(e.message).toContain('deprecated: market.id');
-                expect(e.message).toContain('use: market.marketId');
-                expect(e.message).toContain('preferred: outcome.outcomeId');
+                expect(e.message).toContain('at least 10 digits');
             }
         });
     });

@@ -117,9 +117,9 @@ const candles = await polymarket.fetchOHLCV(outcomeId, {
     ```
 
     **Notes:**
-    **CRITICAL**: Use `outcome.id`, not `market.id`.
-    - **Polymarket**: `outcome.id` is the CLOB Token ID
-    - **Kalshi**: `outcome.id` is the Market Ticker
+    **CRITICAL**: Use `outcome.outcomeId` for trading operations.
+    - **Polymarket**: `outcome.outcomeId` is the CLOB Token ID
+    - **Kalshi**: `outcome.outcomeId` is the Market Ticker
 
     ---
 ### `fetchOrderBook`
@@ -768,8 +768,8 @@ const outcome = market.outcomes[0];
 
 // 3. Place a limit order
 const order = await exchange.createOrder({
-  marketId: market.id,
-  outcomeId: outcome.id,
+  marketId: market.marketId,
+  outcomeId: outcome.outcomeId,
   side: 'buy',
   type: 'limit',
   amount: 10,
