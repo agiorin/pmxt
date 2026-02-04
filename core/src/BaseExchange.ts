@@ -6,12 +6,13 @@ export interface MarketFilterParams {
     offset?: number;
     sort?: 'volume' | 'liquidity' | 'newest';
     searchIn?: 'title' | 'description' | 'both'; // Where to search (default: 'title')
-}
-
-export interface MarketFetchParams extends MarketFilterParams {
     query?: string;  // For keyword search
     slug?: string;   // For slug/ticker lookup
+    page?: number;   // For pagination (used by Limitless)
+    similarityThreshold?: number; // For semantic search (used by Limitless)
 }
+
+export interface MarketFetchParams extends MarketFilterParams { }
 
 export interface EventFetchParams {
     query?: string;  // For keyword search (will be required in practice)

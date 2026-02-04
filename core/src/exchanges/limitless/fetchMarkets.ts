@@ -1,6 +1,7 @@
 import { HttpClient, MarketFetcher } from '@limitless-exchange/sdk';
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
+import axios from 'axios';
 import { LIMITLESS_API_URL, mapMarketToUnified } from './utils';
 import { limitlessErrorMapper } from './errors';
 
@@ -51,14 +52,18 @@ async function searchMarkets(
     query: string,
     params?: MarketFetchParams
 ): Promise<UnifiedMarket[]> {
-    // SDK doesn't have a search method yet, create a temporary HTTP client
-    const httpClient = new HttpClient({
-        baseURL: LIMITLESS_API_URL,
+    // SDK doesn't have a search method yet, use axios directly
+
+    const response = await axios.get(`${LIMITLESS_API_URL}/markets/search`, {
+        params: {
+            query: query,
+            limit: params?.limit || 20,
+            page: params?.page || 1,
+            similarityThreshold: params?.similarityThreshold || 0.5
+        }
     });
 
-    const response = await httpClient.get('/markets/search?query=' + encodeURIComponent(query) + '&limit=' + (params?.limit || 20));
-
-    const rawResults = response?.markets || [];
+    const rawResults = response?.data?.markets || [];
     const allMarkets: UnifiedMarket[] = [];
 
     for (const res of rawResults) {

@@ -1,6 +1,7 @@
 import {
     PredictionMarketExchange,
     MarketFilterParams,
+    MarketFetchParams,
     HistoryFilterParams,
     ExchangeCredentials,
     EventFetchParams,
@@ -90,7 +91,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
     // Implementation methods for CCXT-style API
     // ----------------------------------------------------------------------------
 
-    protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+    protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
         // Pass API key if available for authenticated requests
         const apiKey = this.auth?.getApiKey();
         return fetchMarkets(params, apiKey);

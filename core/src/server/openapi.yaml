@@ -5,7 +5,7 @@ info:
     A unified local sidecar API for prediction markets (Polymarket, Kalshi).
     This API acts as a JSON-RPC-style gateway. Each endpoint corresponds to a specific method
     on the generic exchange implementation.
-  version: 2.0.0
+  version: 0.4.4
 
 servers:
   - url: http://localhost:3847
@@ -956,6 +956,14 @@ components:
         searchIn:
           type: string
           enum: [title, description, both]
+        query:
+          type: string
+        slug:
+          type: string
+        page:
+          type: integer
+        similarityThreshold:
+          type: number
 
     EventFetchParams:
       type: object
