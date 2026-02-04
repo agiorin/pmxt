@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: PMXT Sidecar API
   description: >
-    A unified local sidecar API for prediction markets (Polymarket, Kalshi).
+    A unified local sidecar API for prediction markets (Polymarket, Kalshi, Limitless).
     This API acts as a JSON-RPC-style gateway. Each endpoint corresponds to a specific method
     on the generic exchange implementation.
   version: 0.4.4
@@ -670,6 +670,131 @@ paths:
                       data:
                         $ref: '#/components/schemas/ExecutionPriceResult'
 
+  # ---------------------------------------------------------------------------
+  # Utility Methods
+  # ---------------------------------------------------------------------------
+
+  /api/{exchange}/filterMarkets:
+    post:
+      summary: Filter Markets
+      operationId: filterMarkets
+      description: >
+        Filter a list of markets by criteria.
+        Can filter by string query, structured criteria object, or custom filter function.
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [args]
+              properties:
+                args:
+                  type: array
+                  minItems: 2
+                  maxItems: 2
+                  description: "[markets, criteria]"
+                  items:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedMarket'
+                      - oneOf:
+                          - type: string
+                          - type: object
+                          - type: string
+                        description: "Filter criteria (string query, object, or function)"
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: Filtered markets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedMarket'
+
+  /api/{exchange}/filterEvents:
+    post:
+      summary: Filter Events
+      operationId: filterEvents
+      description: >
+        Filter a list of events by criteria.
+        Can filter by string query, structured criteria object, or custom filter function.
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [args]
+              properties:
+                args:
+                  type: array
+                  minItems: 2
+                  maxItems: 2
+                  description: "[events, criteria]"
+                  items:
+                    oneOf:
+                      - type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedEvent'
+                      - oneOf:
+                          - type: string
+                          - type: object
+                          - type: string
+                        description: "Filter criteria (string query, object, or function)"
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: Filtered events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedEvent'
+
+  /api/{exchange}/close:
+    post:
+      summary: Close WebSocket Connections
+      operationId: close
+      description: >
+        Close all WebSocket connections and cleanup resources.
+        Call this when you're done streaming to properly release connections.
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: WebSocket connections closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+
 components:
   parameters:
     ExchangeParam:
@@ -677,7 +802,7 @@ components:
       name: exchange
       schema:
         type: string
-        enum: [polymarket, kalshi]
+        enum: [polymarket, kalshi, limitless]
       required: true
       description: The prediction market exchange to target.
 
