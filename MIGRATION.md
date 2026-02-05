@@ -34,8 +34,8 @@ const outcomeId = market.yes.id;  //  Removed
 
 // v2.0.0 Code
 const events = await poly.fetchEvents({ query: 'Fed Chair' });
-const market = poly.filterMarkets(events[0].markets, 'Kevin Warsh')[0];  // ✅
-const outcomeId = market.yes.outcomeId;  // ✅
+const market = poly.filterMarkets(events[0].markets, 'Kevin Warsh')[0];  // 
+const outcomeId = market.yes.outcomeId;  // 
 ```
 
 **Python:**
@@ -49,10 +49,10 @@ order = poly.create_order(pmxt.CreateOrderParams(market_id='...', outcome_id='..
 
 # v2.0.0 Code
 events = poly.fetch_events(query='Fed Chair')
-market = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]  # ✅
-outcome_id = market.yes.outcome_id  # ✅
-candles = poly.fetch_ohlcv(outcome_id, resolution='1h', limit=100)  # ✅
-order = poly.create_order(market_id='...', outcome_id='...', side='buy', type='limit', amount=10, price=0.5)  # ✅
+market = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]  # 
+outcome_id = market.yes.outcome_id  # 
+candles = poly.fetch_ohlcv(outcome_id, resolution='1h', limit=100)  # 
+order = poly.create_order(market_id='...', outcome_id='...', side='buy', type='limit', amount=10, price=0.5)  # 
 ```
 
 ### Testing Your Migration
