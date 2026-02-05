@@ -155,11 +155,14 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 throw new Error('Limit orders require a price');
             }
 
+            // Limitless (USDC on Base) supports 6 decimals max.
+            const price = Math.round(params.price * 1_000_000) / 1_000_000;
+
             const response = await client.createOrder({
                 marketSlug: marketSlug,
                 outcomeId: params.outcomeId,
                 side: side,
-                price: params.price,
+                price: price,
                 amount: params.amount,
                 type: params.type,
             });
@@ -235,7 +238,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             return orders.map((o: any) => ({
                 id: o.id,
                 marketId: marketId,
-                outcomeId: 'unknown', // API might not return this in the simplified list
+                outcomeId: o.tokenId || 'unknown',
                 side: o.side.toLowerCase() as 'buy' | 'sell',
                 type: 'limit',
                 price: parseFloat(o.price),
@@ -261,7 +264,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
 
         try {
             // Query USDC balance directly from the blockchain
-            // Base chain RPC
+            // Base chain RPC (not Polygon)
             const provider = new providers.JsonRpcProvider('https://mainnet.base.org');
             const address = auth.getAddress();
 

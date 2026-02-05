@@ -95,7 +95,9 @@ async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedM
     } else if (params?.sort === 'liquidity') {
         // queryParams.order = 'liquidity';
     } else {
-        // Default: do not send order param to avoid 422
+        // Default to volume sort to ensure we get active markets
+        queryParams.order = 'volume';
+        queryParams.ascending = 'false';
     }
 
     try {

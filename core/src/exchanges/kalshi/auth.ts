@@ -57,7 +57,12 @@ export class KalshiAuth {
             // Allow input of private key in both raw string or PEM format
             // If it's a raw key without headers, accessing it might be tricky with implicit types,
             // but standard PEM is best. We assume the user provides a valid PEM.
-            const privateKey = this.credentials.privateKey!;
+            let privateKey = this.credentials.privateKey!;
+            
+            // Fix for common .env issue where newlines are escaped
+            if (privateKey.includes('\\n')) {
+                privateKey = privateKey.replace(/\\n/g, '\n');
+            }
 
             // Kalshi uses RSA-PSS for signing
             const signature = signer.sign({
