@@ -92,13 +92,13 @@ Fetch OHLCV Candles
 **Signature:**
 
 ```typescript
-async fetchOHLCV(id: string, params?: HistoryFilterParams): Promise<PriceCandle[]>
+async fetchOHLCV(id: string, params?: OHLCVParams): Promise<PriceCandle[]>
   ```
 
   **Parameters:**
 
   - `id` (string): id
-  - `params` (HistoryFilterParams) - **Optional**: Filter parameters
+  - `params` (OHLCVParams) - **Optional**: Filter parameters
 
   **Returns:** `Promise<PriceCandle[]>` - Historical prices
 
@@ -159,13 +159,13 @@ Fetch Trades
 **Signature:**
 
 ```typescript
-async fetchTrades(id: string, params?: HistoryFilterParams): Promise<Trade[]>
+async fetchTrades(id: string, params?: TradesParams): Promise<Trade[]>
   ```
 
   **Parameters:**
 
   - `id` (string): id
-  - `params` (HistoryFilterParams) - **Optional**: Filter parameters
+  - `params` (TradesParams) - **Optional**: Filter parameters
 
   **Returns:** `Promise<Trade[]>` - Recent trades
 
@@ -173,7 +173,6 @@ async fetchTrades(id: string, params?: HistoryFilterParams): Promise<Trade[]>
 
     ```typescript
     const trades = await kalshi.fetchTrades('FED-25JAN', {
-  resolution: '1h',
   limit: 100
 });
     ```
@@ -1075,11 +1074,38 @@ positions.forEach(pos => {
     ---
     ### `HistoryFilterParams`
 
-    
+    Deprecated - use OHLCVParams or TradesParams instead. Resolution is optional for backward compatibility.
 
     ```typescript
     interface HistoryFilterParams {
-    resolution: string; // 
+    resolution?: string; // 
+    start?: string; // 
+    end?: string; // 
+    limit?: number; // 
+    }
+    ```
+
+    ---
+    ### `OHLCVParams`
+
+    
+
+    ```typescript
+    interface OHLCVParams {
+    resolution: string; // Candle interval for aggregation
+    start?: string; // 
+    end?: string; // 
+    limit?: number; // 
+    }
+    ```
+
+    ---
+    ### `TradesParams`
+
+    Parameters for fetching trade history. No resolution parameter - trades are discrete events.
+
+    ```typescript
+    interface TradesParams {
     start?: string; // 
     end?: string; // 
     limit?: number; // 

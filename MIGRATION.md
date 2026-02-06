@@ -1,5 +1,50 @@
 # Migration Guide
 
+## Upcoming: v3.0.0 - `resolution` Parameter Deprecated in `fetchTrades()`
+
+### Deprecation Notice
+
+The `resolution` parameter in `fetchTrades()` is now deprecated and will be removed in v3.0.0.
+
+**Why?** The `resolution` parameter only applies to aggregated candle data (OHLCV), not to raw trade events. It was previously ignored by all implementations but required by the type system, causing confusion.
+
+**Timeline:**
+- **Current (v2.x.x)**: Deprecation warning appears when `resolution` is passed to `fetchTrades()`
+- **v3.0.0**: Parameter will be removed entirely
+
+### Migration Required
+
+**Before (deprecated):**
+```typescript
+// TypeScript
+const trades = await exchange.fetchTrades(outcomeId, {
+  resolution: '1h',  // ⚠️ Deprecated and ignored
+  limit: 100
+});
+```
+
+```python
+# Python
+trades = exchange.fetch_trades(outcome_id, resolution='1h', limit=100)  # ⚠️ Deprecated
+```
+
+**After (correct):**
+```typescript
+// TypeScript
+const trades = await exchange.fetchTrades(outcomeId, {
+  limit: 100  // ✅ No resolution parameter
+});
+```
+
+```python
+# Python
+trades = exchange.fetch_trades(outcome_id, limit=100)  # ✅ No resolution parameter
+```
+
+**Note:** `fetchOHLCV()` still requires the `resolution` parameter, as it determines candle aggregation intervals.
+
+---
+
 ## 2.0.0 Migration Checklist
 
 If you're upgrading from v1.x to v2.0.0, use this checklist to ensure your code is compatible:

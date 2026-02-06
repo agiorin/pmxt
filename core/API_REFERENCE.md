@@ -127,7 +127,6 @@ Get trade history.
 
 ```typescript
 const trades = await kalshi.fetchTrades('FED-25JAN', {
-  resolution: '1h',
   limit: 100
 });
 ```

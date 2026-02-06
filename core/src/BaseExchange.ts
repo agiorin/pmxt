@@ -22,7 +22,21 @@ export interface EventFetchParams {
 }
 
 export interface HistoryFilterParams {
-    resolution: CandleInterval;
+    resolution?: CandleInterval; // Optional for backward compatibility
+    start?: Date;
+    end?: Date;
+    limit?: number;
+}
+
+export interface OHLCVParams {
+    resolution: CandleInterval; // Required for candle aggregation
+    start?: Date;
+    end?: Date;
+    limit?: number;
+}
+
+export interface TradesParams {
+    // No resolution - trades are discrete events, not aggregated
     start?: Date;
     end?: Date;
     limit?: number;
@@ -184,8 +198,9 @@ export abstract class PredictionMarketExchange {
     /**
      * Fetch historical price data for a specific market outcome.
      * @param id - The Outcome ID (MarketOutcome.id). This should be the ID of the specific tradeable asset.
+     * @param params - OHLCV parameters including resolution (required)
      */
-    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
         throw new Error("Method fetchOHLCV not implemented.");
     }
 
@@ -199,8 +214,17 @@ export abstract class PredictionMarketExchange {
 
     /**
      * Fetch raw trade history.
+     * @param id - The Outcome ID
+     * @param params - Trade filter parameters (resolution is deprecated and ignored)
      */
-    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        // Deprecation warning for resolution parameter
+        if ('resolution' in params && params.resolution !== undefined) {
+            console.warn(
+                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
+                'It will be removed in v3.0.0. Please remove it from your code.'
+            );
+        }
         throw new Error("Method fetchTrades not implemented.");
     }
 

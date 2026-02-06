@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { HistoryFilterParams } from '../../BaseExchange';
+import { HistoryFilterParams, TradesParams } from '../../BaseExchange';
 import { Trade } from '../../types';
 import { DATA_API_URL } from './utils';
 import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
@@ -11,7 +11,7 @@ import { polymarketErrorMapper } from './errors';
  *
  * NOTE: Uses Polymarket Data API (public) to fetch trades.
  */
-export async function fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+export async function fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
     validateIdFormat(id, 'Trades');
     validateOutcomeId(id, 'Trades');
 

@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { HistoryFilterParams } from '../../BaseExchange';
+import { HistoryFilterParams, OHLCVParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { mapIntervalToKalshi } from './utils';
 import { validateIdFormat } from '../../utils/validation';
 import { kalshiErrorMapper } from './errors';
 
-export async function fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
     validateIdFormat(id, 'OHLCV');
 
     try {

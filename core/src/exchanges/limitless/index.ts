@@ -3,6 +3,8 @@ import {
     MarketFilterParams,
     MarketFetchParams,
     HistoryFilterParams,
+    OHLCVParams,
+    TradesParams,
     ExchangeCredentials,
     EventFetchParams,
 } from '../../BaseExchange';
@@ -101,7 +103,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return fetchEvents(params);
     }
 
-    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
         return fetchOHLCV(id, params);
     }
 
@@ -109,7 +111,14 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return fetchOrderBook(id);
     }
 
-    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        // Deprecation warning
+        if ('resolution' in params && params.resolution !== undefined) {
+            console.warn(
+                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
+                'It will be removed in v3.0.0. Please remove it from your code.'
+            );
+        }
         return fetchTrades(id, params);
     }
 

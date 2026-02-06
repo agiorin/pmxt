@@ -1,4 +1,4 @@
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
+import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
@@ -63,7 +63,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
         return fetchEvents(params);
     }
 
-    async fetchOHLCV(id: string, params: HistoryFilterParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
         return fetchOHLCV(id, params);
     }
 
@@ -71,7 +71,14 @@ export class PolymarketExchange extends PredictionMarketExchange {
         return fetchOrderBook(id);
     }
 
-    async fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        // Deprecation warning (also in base class, but adding here for consistency)
+        if ('resolution' in params && params.resolution !== undefined) {
+            console.warn(
+                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
+                'It will be removed in v3.0.0. Please remove it from your code.'
+            );
+        }
         return fetchTrades(id, params);
     }
 

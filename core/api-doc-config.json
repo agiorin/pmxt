@@ -86,7 +86,7 @@
         },
         "fetchOHLCV": {
             "python": {
-                "example": "markets = poly.search_markets('Trump')\noutcome_id = markets[0].outcomes[0].id  # Get the outcome ID\n\ncandles = poly.fetch_ohlcv(outcome_id, pmxt.HistoryFilterParams(\n    resolution='1h',  # '1m' | '5m' | '15m' | '1h' | '6h' | '1d'\n    start=datetime(2024, 1, 1),\n    end=datetime(2024, 1, 31),\n    limit=100\n))"
+                "example": "markets = poly.search_markets('Trump')\noutcome_id = markets[0].outcomes[0].id  # Get the outcome ID\n\ncandles = poly.fetch_ohlcv(outcome_id, pmxt.OHLCVParams(\n    resolution='1h',  # '1m' | '5m' | '15m' | '1h' | '6h' | '1d'\n    start=datetime(2024, 1, 1),\n    end=datetime(2024, 1, 31),\n    limit=100\n))"
             },
             "typescript": {
                 "example": "const markets = await polymarket.searchMarkets('Trump');\nconst outcomeId = markets[0].outcomes[0].id; // Get the outcome ID\n\nconst candles = await polymarket.fetchOHLCV(outcomeId, {\n  resolution: '1h', // '1m' | '5m' | '15m' | '1h' | '6h' | '1d'\n  start: new Date('2024-01-01'),\n  end: new Date('2024-01-31'),\n  limit: 100\n});"
@@ -107,10 +107,10 @@
         },
         "fetchTrades": {
             "python": {
-                "example": "trades = kalshi.fetch_trades('FED-25JAN', pmxt.HistoryFilterParams(\n    resolution='1h',\n    limit=100\n))"
+                "example": "trades = kalshi.fetch_trades('FED-25JAN', limit=100)"
             },
             "typescript": {
-                "example": "const trades = await kalshi.fetchTrades('FED-25JAN', {\n  resolution: '1h',\n  limit: 100\n});"
+                "example": "const trades = await kalshi.fetchTrades('FED-25JAN', {\n  limit: 100\n});"
             },
             "notes": [
                 "**Note**: Polymarket requires API key. Use `fetchOHLCV` for public historical data."

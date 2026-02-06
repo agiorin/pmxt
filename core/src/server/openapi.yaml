@@ -91,7 +91,7 @@ paths:
                   items:
                     oneOf:
                       - type: string
-                      - $ref: '#/components/schemas/HistoryFilterParams'
+                      - $ref: '#/components/schemas/OHLCVParams'
                 credentials:
                   $ref: '#/components/schemas/ExchangeCredentials'
       responses:
@@ -165,7 +165,7 @@ paths:
                   items:
                     oneOf:
                       - type: string
-                      - $ref: '#/components/schemas/HistoryFilterParams'
+                      - $ref: '#/components/schemas/TradesParams'
                 credentials:
                   $ref: '#/components/schemas/ExchangeCredentials'
       responses:
@@ -1105,11 +1105,41 @@ components:
 
     HistoryFilterParams:
       type: object
+      description: Deprecated - use OHLCVParams or TradesParams instead. Resolution is optional for backward compatibility.
+      properties:
+        resolution:
+          type: string
+          enum: [1m, 5m, 15m, 1h, 6h, 1d]
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        limit:
+          type: integer
+
+    OHLCVParams:
+      type: object
       required: [resolution]
       properties:
         resolution:
           type: string
           enum: [1m, 5m, 15m, 1h, 6h, 1d]
+          description: Candle interval for aggregation
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        limit:
+          type: integer
+
+    TradesParams:
+      type: object
+      description: Parameters for fetching trade history. No resolution parameter - trades are discrete events.
+      properties:
         start:
           type: string
           format: date-time

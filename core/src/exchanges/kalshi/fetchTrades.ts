@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { HistoryFilterParams } from '../../BaseExchange';
+import { HistoryFilterParams, TradesParams } from '../../BaseExchange';
 import { Trade } from '../../types';
 import { kalshiErrorMapper } from './errors';
 
-export async function fetchTrades(id: string, params: HistoryFilterParams): Promise<Trade[]> {
+export async function fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
     try {
         const ticker = id.replace(/-NO$/, '');
         const url = `https://api.elections.kalshi.com/trade-api/v2/markets/trades`;

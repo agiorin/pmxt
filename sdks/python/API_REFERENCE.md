@@ -90,13 +90,13 @@ Fetch OHLCV Candles
 **Signature:**
 
 ```python
-def fetch_o_h_l_c_v(id: str, params: Optional[HistoryFilterParams] = None) -> List[PriceCandle]:
+def fetch_o_h_l_c_v(id: str, params: Optional[OHLCVParams] = None) -> List[PriceCandle]:
 ```
 
 **Parameters:**
 
 - `id` (str): id
-- `params` (HistoryFilterParams) - **Optional**: Filter parameters
+- `params` (OHLCVParams) - **Optional**: Filter parameters
 
 **Returns:** `List[PriceCandle]` - Historical prices
 
@@ -106,7 +106,7 @@ def fetch_o_h_l_c_v(id: str, params: Optional[HistoryFilterParams] = None) -> Li
 markets = poly.search_markets('Trump')
 outcome_id = markets[0].outcomes[0].id  # Get the outcome ID
 
-candles = poly.fetch_ohlcv(outcome_id, pmxt.HistoryFilterParams(
+candles = poly.fetch_ohlcv(outcome_id, pmxt.OHLCVParams(
     resolution='1h',  # '1m' | '5m' | '15m' | '1h' | '6h' | '1d'
     start=datetime(2024, 1, 1),
     end=datetime(2024, 1, 31),
@@ -157,23 +157,20 @@ Fetch Trades
 **Signature:**
 
 ```python
-def fetch_trades(id: str, params: Optional[HistoryFilterParams] = None) -> List[Trade]:
+def fetch_trades(id: str, params: Optional[TradesParams] = None) -> List[Trade]:
 ```
 
 **Parameters:**
 
 - `id` (str): id
-- `params` (HistoryFilterParams) - **Optional**: Filter parameters
+- `params` (TradesParams) - **Optional**: Filter parameters
 
 **Returns:** `List[Trade]` - Recent trades
 
 **Example:**
 
 ```python
-trades = kalshi.fetch_trades('FED-25JAN', pmxt.HistoryFilterParams(
-    resolution='1h',
-    limit=100
-))
+trades = kalshi.fetch_trades('FED-25JAN', limit=100)
 ```
 
 **Notes:**
@@ -1071,12 +1068,39 @@ search_in: str #
 ---
 ### `HistoryFilterParams`
 
-
+Deprecated - use OHLCVParams or TradesParams instead. Resolution is optional for backward compatibility.
 
 ```python
 @dataclass
 class HistoryFilterParams:
 resolution: str # 
+start: str # 
+end: str # 
+limit: int # 
+```
+
+---
+### `OHLCVParams`
+
+
+
+```python
+@dataclass
+class OHLCVParams:
+resolution: str # Candle interval for aggregation
+start: str # 
+end: str # 
+limit: int # 
+```
+
+---
+### `TradesParams`
+
+Parameters for fetching trade history. No resolution parameter - trades are discrete events.
+
+```python
+@dataclass
+class TradesParams:
 start: str # 
 end: str # 
 limit: int # 
