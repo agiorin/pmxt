@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.2] & [2.0.3] - 2026-02-05
+## [2.0.5] - 2026-02-06
+
+### Changed
+
+- **Unified API Refined**: Split historical data parameters into `OHLCVParams` and `TradesParams` to better reflect their different nature.
+  - `fetchOHLCV` now uses `OHLCVParams` (where `resolution` is required).
+  - `fetchTrades` now uses `TradesParams` (where `resolution` is removed, as trades are discrete events).
+- **TypeScript SDK**: Added dedicated interfaces for `OHLCVParams` and `TradesParams`.
+- **Python SDK**: Updated type hints and documentation to reflect the refined parameter structure.
+- **OpenAPI**: Updated specification with dedicated schemas for OHLCV and Trade parameters.
+
+### Deprecated
+
+- **`resolution` in `fetchTrades`**: The `resolution` parameter is now deprecated for trade history lookups and will be ignored. A console warning has been added for backward compatibility; it will be removed in v3.0.0.
+
+## [2.0.2] & [2.0.3] & [2.0.4] - 2026-02-05
+
 
 ### Fixed
 
