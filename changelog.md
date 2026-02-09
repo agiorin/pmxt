@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.9] - 2026-02-09
+
+### Fixed
+
+- **Polymarket Pagination**: Implemented a parallel pagination utility for the Gamma API. This enables the discovery of events and markets beyond the first 500 results, ensuring high-volume and older markets are correctly indexed. (Fixes #37)
+
 ## [2.0.8] - 2026-02-08
 
 ### Changed
