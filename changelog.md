@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.11] - 2026-02-10
+
+### Fixed
+
+- **Limitless Pagination**: Implemented automatic pagination for limits greater than 25 markets. The Limitless API has a hard limit of 25 items per request, so this update introduces internal pagination that transparently handles any limit value. Over-fetches by 70% to account for ~33% of markets being filtered out due to missing tokens, then applies limit after filtering to ensure users get the exact requested number of valid markets. (Fixes #34)
+
 ## [2.0.10] - 2026-02-10
 
 ### Fixed
