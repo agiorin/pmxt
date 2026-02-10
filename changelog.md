@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.10] - 2026-02-10
+
+### Fixed
+
+- **Polymarket WebSocket License**: Updated `@nevuamarkets/poly-websockets` dependency from AGPL-3.0 versions to MIT version, resolving license incompatibility warnings. Removed all AGPL-3.0 references from source code comments and error messages to ensure full MIT license compliance. (Fixes #35)
+
 ## [2.0.9] - 2026-02-09
 
 ### Fixed
