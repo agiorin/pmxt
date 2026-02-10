@@ -1,15 +1,9 @@
 /**
  * @license
  * Polymarket WebSocket implementation for pmxt.
- * 
- * NOTICE: This implementation depends on "@nevuamarkets/poly-websockets", 
- * which is licensed under the AGPL-3.0 License. 
- * 
- * While pmxt is licensed under MIT, using these specific WebSocket methods 
- * may subject your application to the terms of the AGPL-3.0.
- * 
- * If you must avoid AGPL-3.0, do not use the watchOrderBook() or 
- * watchTrades() methods for Polymarket.
+ *
+ * NOTICE: This implementation depends on "@nevuamarkets/poly-websockets",
+ * which is licensed under the MIT License.
  */
 
 import { OrderBook, Trade, OrderLevel } from '../../types';
@@ -47,7 +41,7 @@ export class PolymarketWebSocket {
 
         this.initializationPromise = (async () => {
             try {
-                // Dynamic import to handle AGPL dependency optionally
+                // Dynamic import to handle optional dependency
                 const poly = await import('@nevuamarkets/poly-websockets');
 
                 this.manager = new poly.WSSubscriptionManager(
@@ -80,7 +74,7 @@ export class PolymarketWebSocket {
                 const error = e as Error;
                 if (error.message.includes('Cannot find module')) {
                     throw new Error(
-                        'Polymarket WebSocket support requires the "@nevuamarkets/poly-websockets" package (AGPL-3.0).\n' +
+                        'Polymarket WebSocket support requires the "@nevuamarkets/poly-websockets" package.\n' +
                         'To use this feature, please install it: npm install @nevuamarkets/poly-websockets'
                     );
                 }
