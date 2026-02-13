@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-02-13
+
+### Changed
+
+- **Increased Default Limits**: The default limit for fetching markets and events has been increased to **10,000** results across all exchanges (Polymarket, Kalshi, Limitless) to provide more comprehensive search results by default.
+- **Polymarket Search Optimization**: Migrated `fetchEvents` search to use the high-performance Gamma `public-search` endpoint with parallel pagination, significantly improving discovery for high-volume markets.
+- **OpenAPI Specification**: Updated `openapi.yaml` to reflect the new default limit of 10,000 for market and event queries.
+
+### Added
+
+- **CI/CD Automation**: Integrated automated GitHub release creation and unified publishing logic in `publish.yml`.
+- **Search Verification Tooling**: Added `core/verify_search.ts` script for easy testing and verification of search performance and accuracy.
+- **Improved Metadata**: Updated `readme.md` with cross-linked documentation and refreshed project statistics.
+
+### Fixed
+
+- **Workflow Reliability**: Resolved YAML syntax errors in GitHub Actions and removed redundant scripts to streamline the deployment process.
+
 ## [2.1.0] - 2026-02-13
 
 ### Added
