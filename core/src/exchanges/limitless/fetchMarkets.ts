@@ -1,4 +1,3 @@
-import { HttpClient, MarketFetcher } from '@limitless-exchange/sdk';
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
 import axios from 'axios';
@@ -10,9 +9,13 @@ export async function fetchMarkets(
     apiKey?: string
 ): Promise<UnifiedMarket[]> {
     // Limitless API currently only supports fetching active markets for lists
+    // Early return to avoid SDK initialization in tests
     if (params?.status === 'inactive' || params?.status === 'closed') {
         return [];
     }
+
+    // Lazy import SDK to avoid initialization when not needed
+    const { HttpClient, MarketFetcher } = await import('@limitless-exchange/sdk');
 
     try {
         // Create HTTP client (no auth needed for market data)
@@ -41,7 +44,7 @@ export async function fetchMarkets(
 }
 
 async function fetchMarketsBySlug(
-    marketFetcher: MarketFetcher,
+    marketFetcher: any,
     slug: string
 ): Promise<UnifiedMarket[]> {
     const market = await marketFetcher.getMarket(slug);
@@ -53,7 +56,7 @@ async function fetchMarketsBySlug(
 }
 
 async function searchMarkets(
-    marketFetcher: MarketFetcher,
+    marketFetcher: any,
     query: string,
     params?: MarketFetchParams
 ): Promise<UnifiedMarket[]> {
@@ -91,7 +94,7 @@ async function searchMarkets(
 }
 
 async function fetchMarketsDefault(
-    marketFetcher: MarketFetcher,
+    marketFetcher: any,
     params?: MarketFetchParams
 ): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 10000;
