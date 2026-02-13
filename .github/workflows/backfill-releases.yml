@@ -18,26 +18,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history and tags
+          fetch-depth: 0
 
       - name: Backfill All Missing Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "Starting backfill of all historical releases..."
 
-          # Fetch all tags
-          git fetch --tags --force
-
-          # Get all version tags, sorted
+          # Get all version tags, sorted naturally (handles v1.2 vs v1.10 correctly)
           TAGS=$(git tag -l 'v*' | sort -V)
           TOTAL=$(echo "$TAGS" | wc -l)
           CREATED=0
           SKIPPED=0
 
           echo "Found $TOTAL version tags"
-          echo ""
 
           for tag in $TAGS; do
-            # Check if release already exists
+            # 1. Check if release already exists (Idempotency)
             if gh release view "$tag" &>/dev/null; then
               echo "[$((CREATED + SKIPPED + 1))/$TOTAL] Release exists for $tag - skipping"
               SKIPPED=$((SKIPPED + 1))
@@ -46,43 +44,43 @@ jobs:
 
             echo "[$((CREATED + SKIPPED + 1))/$TOTAL] Creating release for tag: $tag"
 
-            # Extract version from tag
+            # 2. Extract version details
             VERSION=${tag#v}
+            # Strip 'f' suffix if present
+            [[ "$VERSION" == *f ]] && VERSION=${VERSION%f}
 
-            # Strip 'f' suffix if present (force release)
-            if [[ "$VERSION" == *f ]]; then
-              VERSION=${VERSION%f}
-            fi
-
-            # Detect if this is a pre-release
+            # 3. Detect pre-release
             IS_PRERELEASE=""
             if [[ "$VERSION" =~ (alpha|beta|rc|a|b) ]]; then
               IS_PRERELEASE="--prerelease"
               echo "  → Pre-release detected"
             fi
 
-            # Try to extract changelog notes for this version
-            RELEASE_NOTES=""
-            if grep -q "## \[$VERSION\]" changelog.md 2>/dev/null; then
-              # Extract the section for this version
-              RELEASE_NOTES=$(awk "/^## \[$VERSION\]/,/^## \[/" changelog.md | sed '1d;$d')
-              if [ -n "$RELEASE_NOTES" ]; then
-                echo "  → Extracted changelog notes ($(echo "$RELEASE_NOTES" | wc -l) lines)"
-              else
+            # 4. Robust Changelog Extraction
+            # This awk logic prints lines strictly BETWEEN the version header and the next header (or EOF)
+            # It avoids printing the headers themselves, removing the need for 'sed'
+            RELEASE_NOTES=$(awk -v ver="## \[$VERSION\]" '
+              $0 ~ ver { flag=1; next }           # Found start header, set flag, skip line
+              /^## \[/ && flag { flag=0; exit }   # Found next header, clear flag, exit
+              flag { print }                      # Print lines while flag is set
+            ' changelog.md)
+            
+            # Trim leading/trailing whitespace from notes
+            RELEASE_NOTES=$(echo "$RELEASE_NOTES" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+            if [ -n "$RELEASE_NOTES" ]; then
+                echo "  → Extracted changelog notes"
+            else
                 RELEASE_NOTES="Release $VERSION
 
 See [changelog.md](https://github.com/$GITHUB_REPOSITORY/blob/main/changelog.md) for details."
-                echo "  → Changelog section empty, using generic notes"
-              fi
-            else
-              RELEASE_NOTES="Release $VERSION
-
-See [changelog.md](https://github.com/$GITHUB_REPOSITORY/blob/main/changelog.md) for details."
-              echo "  → No changelog entry found, using generic notes"
+                echo "  → No specific changelog entry found, using generic notes"
             fi
 
-            # Create the release body
-            RELEASE_BODY="$RELEASE_NOTES
+            # 5. Create the release body
+            # Using a Here-Doc for cleaner formatting
+            read -r -d '' RELEASE_BODY <<EOM
+$RELEASE_NOTES
 
 ---
 
@@ -105,9 +103,11 @@ pip install pmxt==$VERSION
 
 ---
 
-*This release was automatically generated from historical tags.*"
+*This release was automatically generated from historical tags.*
+EOM
 
-            # Create release using GitHub CLI
+            # 6. Create release
+            # Added sleep 2 to be safer against secondary rate limits
             if echo "$RELEASE_BODY" | gh release create "$tag" \
               --title "v$VERSION" \
               --notes-file - \
@@ -119,16 +119,8 @@ pip install pmxt==$VERSION
               echo "  ✗ Failed to create release for $tag"
             fi
 
-            # Small delay to avoid rate limiting
-            sleep 1
+            sleep 2
           done
 
-          echo ""
           echo "========================================="
-          echo "Backfill Complete!"
-          echo "  Created: $CREATED releases"
-          echo "  Skipped: $SKIPPED releases (already existed)"
-          echo "  Total tags: $TOTAL"
-          echo "========================================="
-        env:
-          GH_TOKEN: ${{ github.token }}
+          echo "Backfill Complete! Created: $CREATED | Skipped: $SKIPPED"
