@@ -4,60 +4,26 @@ import { UnifiedMarket } from '../../types';
 import { KALSHI_API_URL, KALSHI_SERIES_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
 
-// Aggressive caching for Kalshi since we can't parallelize cursor-based pagination
-let globalMarketCache: Record<string, UnifiedMarket[]> = {};
-let globalSeriesMap: Map<string, string[]> | null = null;
-let lastCacheTime: Record<string, number> = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-// Export a function to reset the cache (useful for testing)
-export function resetCache(): void {
-    globalMarketCache = {};
-    globalSeriesMap = null;
-    lastCacheTime = {};
-}
-
-async function fetchSeriesMap(): Promise<Map<string, string[]>> {
-    try {
-        const response = await axios.get(KALSHI_SERIES_URL);
-        const seriesList = response.data.series || [];
-        const map = new Map<string, string[]>();
-        for (const series of seriesList) {
-            if (series.tags && series.tags.length > 0) {
-                map.set(series.ticker, series.tags);
-            }
-        }
-        return map;
-    } catch (e: any) {
-        throw kalshiErrorMapper.mapError(e);
-    }
-}
-
-async function fetchAllActiveMarkets(status: string = 'open'): Promise<UnifiedMarket[]> {
-    const now = Date.now();
-
-    // Check if we have valid cached data for this specific status
-    if (globalMarketCache[status] && globalSeriesMap && (now - (lastCacheTime[status] || 0) < CACHE_TTL)) {
-        return globalMarketCache[status];
-    }
-
-    // Fetch series map and events in parallel (series map doesn't use cursor)
-    const seriesMapPromise = fetchSeriesMap();
-
-    // Fetch all events using cursor-based pagination (sequential, but optimized)
+async function fetchActiveEvents(targetMarketCount?: number, status: string = 'open'): Promise<any[]> {
     let allEvents: any[] = [];
+    let totalMarketCount = 0;
     let cursor = null;
     let page = 0;
-    let totalMarkets = 0;
-    const MAX_PAGES = 100; // Safety cap
-    const BATCH_SIZE = 200; // Max limit per Kalshi API
+
+    // Note: Kalshi API uses cursor-based pagination which requires sequential fetching.
+    // We cannot parallelize requests for a single list because we need the cursor from page N to fetch page N+1.
+    // To optimize, we use the maximum allowed limit (200) and fetch until exhaustion.
+
+    const MAX_PAGES = 1000; // Safety cap against infinite loops
+    const BATCH_SIZE = 200; // Max limit per Kalshi API docs
 
     do {
         try {
+
             const queryParams: any = {
                 limit: BATCH_SIZE,
                 with_nested_markets: true,
-                status: status
+                status: status // Filter by status (default 'open')
             };
             if (cursor) queryParams.cursor = cursor;
 
@@ -67,16 +33,25 @@ async function fetchAllActiveMarkets(status: string = 'open'): Promise<UnifiedMa
             if (events.length === 0) break;
 
             allEvents = allEvents.concat(events);
+
+            // Count markets in this batch for early termination
+            if (targetMarketCount) {
+                for (const event of events) {
+                    totalMarketCount += (event.markets || []).length;
+                }
+
+                // Early termination: if we have enough markets, stop fetching
+                // Use 1.5x multiplier to ensure we have enough for sorting/filtering
+                if (totalMarketCount >= targetMarketCount * 1.5) {
+                    break;
+                }
+            }
+
             cursor = response.data.cursor;
             page++;
 
-            // Smart early termination: count markets and stop when we have enough
-            // For search, we want ~5000 markets. Use 1.5x for buffer after filtering.
-            for (const event of events) {
-                totalMarkets += (event.markets || []).length;
-            }
-
-            if (totalMarkets >= 7500) { // 5000 * 1.5
+            // Additional safety: if no target specified, limit to reasonable number of pages
+            if (!targetMarketCount && page >= 10) {
                 break;
             }
 
@@ -85,70 +60,62 @@ async function fetchAllActiveMarkets(status: string = 'open'): Promise<UnifiedMa
         }
     } while (cursor && page < MAX_PAGES);
 
-    // Wait for series map
-    const seriesMap = await seriesMapPromise;
 
-    // Extract ALL markets from all events
-    const allMarkets: UnifiedMarket[] = [];
+    return allEvents;
+}
 
-    for (const event of allEvents) {
-        // Enrich event with tags from Series
-        if (event.series_ticker && seriesMap.has(event.series_ticker)) {
-            if (!event.tags || event.tags.length === 0) {
-                event.tags = seriesMap.get(event.series_ticker);
+async function fetchSeriesMap(): Promise<Map<string, string[]>> {
+    try {
+
+        const response = await axios.get(KALSHI_SERIES_URL);
+        const seriesList = response.data.series || [];
+        const map = new Map<string, string[]>();
+        for (const series of seriesList) {
+            if (series.tags && series.tags.length > 0) {
+                map.set(series.ticker, series.tags);
             }
         }
 
-        const markets = event.markets || [];
-        for (const market of markets) {
-            const unifiedMarket = mapMarketToUnified(event, market);
-            if (unifiedMarket) {
-                allMarkets.push(unifiedMarket);
-            }
-        }
+        return map;
+    } catch (e: any) {
+        throw kalshiErrorMapper.mapError(e);
     }
+}
 
-    // Cache the results
-    globalMarketCache[status] = allMarkets;
-    globalSeriesMap = seriesMap;
-    lastCacheTime[status] = now;
+// Simple in-memory cache to avoid redundant API calls within a short period
+let cachedEvents: any[] | null = null;
+let cachedSeriesMap: Map<string, string[]> | null = null;
+let lastCacheTime: number = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-    return allMarkets;
+// Export a function to reset the cache (useful for testing)
+export function resetCache(): void {
+    cachedEvents = null;
+    cachedSeriesMap = null;
+    lastCacheTime = 0;
 }
 
 export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     try {
-        // Handle slug-based lookup (direct API call, no cache)
+        // Handle slug-based lookup (event ticker)
         if (params?.slug) {
             return await fetchMarketsBySlug(params.slug);
         }
 
-        // Handle query-based search with native API
+        // Handle query-based search
         if (params?.query) {
-            try {
-                return await searchMarketsNative(params.query, params);
-            } catch (error) {
-                // Fallback to cached search if native fails
-                console.warn('[Kalshi] Falling back to cached search');
-                const status = params?.status || 'active';
-                const apiStatus = status === 'closed' ? 'closed' : 'open';
-                const allMarkets = await fetchAllActiveMarkets(apiStatus);
-                return searchMarkets(allMarkets, params.query, params);
-            }
+            return await searchMarkets(params.query, params);
         }
 
-        // Default: fetch markets using cache
-        const status = params?.status || 'active';
-        const apiStatus = status === 'closed' ? 'closed' : 'open';
-        const allMarkets = await fetchAllActiveMarkets(apiStatus);
-        return applyFiltersAndPagination(allMarkets, params);
-
+        // Default: fetch markets
+        return await fetchMarketsDefault(params);
     } catch (error: any) {
         throw kalshiErrorMapper.mapError(error);
     }
 }
 
 async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]> {
+    // Kalshi API expects uppercase tickers, but URLs use lowercase
     const normalizedTicker = eventTicker.toUpperCase();
     const url = `https://api.elections.kalshi.com/trade-api/v2/events/${normalizedTicker}`;
     const response = await axios.get(url, {
@@ -187,93 +154,109 @@ async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]>
     return unifiedMarkets;
 }
 
-async function searchMarketsNative(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-    // Use Kalshi's native search on the markets endpoint for massive speedup
-    const marketsUrl = 'https://api.elections.kalshi.com/trade-api/v2/markets';
-
-    try {
-        const response = await axios.get(marketsUrl, {
-            params: {
-                q: query,
-                limit: params?.limit || 20,
-                status: params?.status === 'closed' ? 'closed' : 'open'
-            }
-        });
-
-        const markets = response.data.markets || [];
-
-        // We need to enrich markets with event data
-        // Fetch the parent events to get titles and tags
-        const eventTickers = [...new Set(markets.map((m: any) => m.event_ticker))];
-
-        // Fetch events in parallel (much faster than serial)
-        const eventsUrl = 'https://api.elections.kalshi.com/trade-api/v2/events';
-        const eventPromises = eventTickers.map(ticker =>
-            axios.get(`${eventsUrl}/${ticker}`).catch(() => null)
-        );
-
-        const eventResponses = await Promise.all(eventPromises);
-        const eventsMap = new Map();
-
-        for (const res of eventResponses) {
-            if (res?.data?.event) {
-                eventsMap.set(res.data.event.event_ticker, res.data.event);
-            }
-        }
-
-        // Map to unified format
-        const unifiedMarkets: UnifiedMarket[] = [];
-        for (const market of markets) {
-            const event = eventsMap.get(market.event_ticker);
-            if (event) {
-                const unifiedMarket = mapMarketToUnified(event, market);
-                if (unifiedMarket) {
-                    unifiedMarkets.push(unifiedMarket);
-                }
-            }
-        }
-
-        return applyFiltersAndPagination(unifiedMarkets, params);
-
-    } catch (error: any) {
-        // Fallback to cached search if native search fails
-        console.warn('[Kalshi] Native search failed, falling back to cached search');
-        throw error; // Let the caller handle this
-    }
-}
-
-function searchMarkets(allMarkets: UnifiedMarket[], query: string, params?: MarketFetchParams): UnifiedMarket[] {
+async function searchMarkets(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+    // We must fetch ALL markets to search them locally since we don't have server-side search
+    const searchLimit = 5000;
+    const markets = await fetchMarketsDefault({ ...params, limit: searchLimit });
     const lowerQuery = query.toLowerCase();
-    const searchIn = params?.searchIn || 'title';
+    const searchIn = params?.searchIn || 'title'; // Default to title-only search
 
-    const filtered = allMarkets.filter(market => {
+    const filtered = markets.filter(market => {
         const titleMatch = (market.title || '').toLowerCase().includes(lowerQuery);
         const descMatch = (market.description || '').toLowerCase().includes(lowerQuery);
 
         if (searchIn === 'title') return titleMatch;
         if (searchIn === 'description') return descMatch;
-        return titleMatch || descMatch;
+        return titleMatch || descMatch; // 'both'
     });
 
-    return applyFiltersAndPagination(filtered, params);
+    const limit = params?.limit || 20;
+    return filtered.slice(0, limit);
 }
 
-function applyFiltersAndPagination(markets: UnifiedMarket[], params?: MarketFetchParams): UnifiedMarket[] {
-    let result = [...markets];
-
-    // Sort
-    if (params?.sort === 'volume') {
-        result.sort((a, b) => b.volume24h - a.volume24h);
-    } else if (params?.sort === 'liquidity') {
-        result.sort((a, b) => b.liquidity - a.liquidity);
-    } else if (params?.sort === 'newest') {
-        result.sort((a, b) => b.resolutionDate.getTime() - a.resolutionDate.getTime());
-    }
-
-    // Pagination
+async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 50;
     const offset = params?.offset || 0;
+    const now = Date.now();
+    const status = params?.status || 'active'; // Default to 'active'
 
-    return result.slice(offset, offset + limit);
+    // Map 'active' -> 'open', 'closed' -> 'closed'
+    // Kalshi statuses: 'open', 'closed', 'settled'
+    let apiStatus = 'open';
+    if (status === 'closed') apiStatus = 'closed';
+    else if (status === 'all') apiStatus = 'open'; // Fallback for all? Or loop? For now default to open.
+
+    try {
+        let events: any[];
+        let seriesMap: Map<string, string[]>;
+
+        // Check if we have valid cached data
+        // Only use global cache for the default 'active'/'open' case
+        const useCache = (status === 'active' || !params?.status);
+
+        if (useCache && cachedEvents && cachedSeriesMap && (now - lastCacheTime < CACHE_TTL)) {
+            events = cachedEvents;
+            seriesMap = cachedSeriesMap;
+        } else {
+            // Optimize fetch limit based on request parameters
+            // If sorting is required (e.g. by volume), we need to fetch a larger set (or all) to sort correctly.
+            // If no sorting is requested, we only need to fetch enough to satisfy the limit.
+            const isSorted = params?.sort && (params.sort === 'volume' || params.sort === 'liquidity');
+            const fetchLimit = isSorted ? 1000 : limit;
+
+            const [allEvents, fetchedSeriesMap] = await Promise.all([
+                fetchActiveEvents(fetchLimit, apiStatus),
+                fetchSeriesMap()
+            ]);
+
+            events = allEvents;
+            seriesMap = fetchedSeriesMap;
+
+            events = allEvents;
+            seriesMap = fetchedSeriesMap;
+
+            // Cache the dataset ONLY if:
+            // 1. We fetched a comprehensive set (>= 1000)
+            // 2. It's the standard 'open' status query
+            if (fetchLimit >= 1000 && useCache) {
+                cachedEvents = allEvents;
+                cachedSeriesMap = fetchedSeriesMap;
+                lastCacheTime = now;
+            }
+        }
+
+        // Extract ALL markets from all events
+        const allMarkets: UnifiedMarket[] = [];
+        // ... rest of the logic
+
+        for (const event of events) {
+            // Enrich event with tags from Series
+            if (event.series_ticker && seriesMap.has(event.series_ticker)) {
+                // If event has no tags or empty tags, use series tags
+                if (!event.tags || event.tags.length === 0) {
+                    event.tags = seriesMap.get(event.series_ticker);
+                }
+            }
+
+            const markets = event.markets || [];
+            for (const market of markets) {
+                const unifiedMarket = mapMarketToUnified(event, market);
+                if (unifiedMarket) {
+                    allMarkets.push(unifiedMarket);
+                }
+            }
+        }
+
+        // Sort by 24h volume
+        if (params?.sort === 'volume') {
+            allMarkets.sort((a, b) => b.volume24h - a.volume24h);
+        } else if (params?.sort === 'liquidity') {
+            allMarkets.sort((a, b) => b.liquidity - a.liquidity);
+        }
+
+        return allMarkets.slice(offset, offset + limit);
+
+    } catch (error: any) {
+        throw kalshiErrorMapper.mapError(error);
+    }
 }
-

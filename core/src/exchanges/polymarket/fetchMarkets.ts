@@ -47,65 +47,30 @@ async function fetchMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
 }
 
 async function searchMarkets(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-    // Use Polymarket's native search endpoint for massive speedup
-    const searchUrl = 'https://gamma-api.polymarket.com/public-search';
+    const searchLimit = 5000; // Fetch enough markets for a good search pool
 
-    try {
-        const status = params?.status || 'active';
-        let eventsStatus = 'active';
-        if (status === 'closed') eventsStatus = 'closed';
-        else if (status === 'all') eventsStatus = 'all';
+    // Fetch markets with a higher limit
+    const markets = await fetchMarketsDefault({
+        ...params,
+        limit: searchLimit
+    });
 
-        const response = await axios.get(searchUrl, {
-            params: {
-                q: query,
-                events_status: eventsStatus,
-                // Polymarket search returns events, not individual markets
-                // So we need to extract markets from events
-            }
-        });
+    // Client-side text filtering
+    const lowerQuery = query.toLowerCase();
+    const searchIn = params?.searchIn || 'title'; // Default to title-only search
 
-        const events = response.data.events || [];
-        const unifiedMarkets: UnifiedMarket[] = [];
+    const filtered = markets.filter(market => {
+        const titleMatch = (market.title || '').toLowerCase().includes(lowerQuery);
+        const descMatch = (market.description || '').toLowerCase().includes(lowerQuery);
 
-        for (const event of events) {
-            if (!event.markets) continue;
+        if (searchIn === 'title') return titleMatch;
+        if (searchIn === 'description') return descMatch;
+        return titleMatch || descMatch; // 'both'
+    });
 
-            for (const market of event.markets) {
-                const unifiedMarket = mapMarketToUnified(event, market);
-                if (unifiedMarket) {
-                    unifiedMarkets.push(unifiedMarket);
-                }
-            }
-        }
-
-        // Apply limit to filtered results
-        const limit = params?.limit || 20;
-        return unifiedMarkets.slice(0, limit);
-
-    } catch (error: any) {
-        // Fallback to old method if search endpoint fails
-        console.warn('[Polymarket] Native search failed, falling back to client-side filtering');
-        const markets = await fetchMarketsDefault({
-            ...params,
-            limit: 5000
-        });
-
-        const lowerQuery = query.toLowerCase();
-        const searchIn = params?.searchIn || 'title';
-
-        const filtered = markets.filter(market => {
-            const titleMatch = (market.title || '').toLowerCase().includes(lowerQuery);
-            const descMatch = (market.description || '').toLowerCase().includes(lowerQuery);
-
-            if (searchIn === 'title') return titleMatch;
-            if (searchIn === 'description') return descMatch;
-            return titleMatch || descMatch;
-        });
-
-        const limit = params?.limit || 20;
-        return filtered.slice(0, limit);
-    }
+    // Apply limit to filtered results
+    const limit = params?.limit || 20;
+    return filtered.slice(0, limit);
 }
 
 async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
