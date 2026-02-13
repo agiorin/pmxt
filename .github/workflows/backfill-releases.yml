@@ -26,7 +26,7 @@ jobs:
         run: |
           echo "Starting backfill of all historical releases..."
 
-          # Get all version tags, sorted naturally (handles v1.2 vs v1.10 correctly)
+          # Get all version tags, sorted naturally
           TAGS=$(git tag -l 'v*' | sort -V)
           TOTAL=$(echo "$TAGS" | wc -l)
           CREATED=0
@@ -57,60 +57,46 @@ jobs:
             fi
 
             # 4. Robust Changelog Extraction
-            # This awk logic prints lines strictly BETWEEN the version header and the next header (or EOF)
-            # It avoids printing the headers themselves, removing the need for 'sed'
+            # This awk logic prints lines strictly BETWEEN the version header and the next header
             RELEASE_NOTES=$(awk -v ver="## \[$VERSION\]" '
               $0 ~ ver { flag=1; next }           # Found start header, set flag, skip line
               /^## \[/ && flag { flag=0; exit }   # Found next header, clear flag, exit
               flag { print }                      # Print lines while flag is set
             ' changelog.md)
             
-            # Trim leading/trailing whitespace from notes
+            # Trim leading/trailing whitespace
             RELEASE_NOTES=$(echo "$RELEASE_NOTES" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
-            if [ -n "$RELEASE_NOTES" ]; then
-                echo "  → Extracted changelog notes"
-            else
-                RELEASE_NOTES="Release $VERSION
-
-See [changelog.md](https://github.com/$GITHUB_REPOSITORY/blob/main/changelog.md) for details."
-                echo "  → No specific changelog entry found, using generic notes"
+            if [ -z "$RELEASE_NOTES" ]; then
+                RELEASE_NOTES="Release $VERSION"
+                echo "  → No specific changelog entry found, using generic title"
             fi
 
-            # 5. Create the release body
-            # Using a Here-Doc for cleaner formatting
-            read -r -d '' RELEASE_BODY <<EOM
-$RELEASE_NOTES
+            # 5. Create the release body file (Safe Method)
+            echo "$RELEASE_NOTES" > release_body.md
+            echo "" >> release_body.md
+            echo "---" >> release_body.md
+            echo "## Installation" >> release_body.md
+            echo "**npm:**" >> release_body.md
+            echo "\`\`\`bash" >> release_body.md
+            echo "npm install pmxtjs@$VERSION" >> release_body.md
+            echo "\`\`\`" >> release_body.md
+            echo "**PyPI:**" >> release_body.md
+            echo "\`\`\`bash" >> release_body.md
+            echo "pip install pmxt==$VERSION" >> release_body.md
+            echo "\`\`\`" >> release_body.md
+            echo "## Links" >> release_body.md
+            echo "- [npm: pmxtjs](https://www.npmjs.com/package/pmxtjs/v/$VERSION)" >> release_body.md
+            echo "- [npm: pmxt-core](https://www.npmjs.com/package/pmxt-core/v/$VERSION)" >> release_body.md
+            echo "- [PyPI: pmxt](https://pypi.org/project/pmxt/$VERSION/)" >> release_body.md
+            echo "" >> release_body.md
+            echo "---" >> release_body.md
+            echo "*This release was automatically generated from historical tags.*" >> release_body.md
 
----
-
-## Installation
-
-**npm:**
-\`\`\`bash
-npm install pmxtjs@$VERSION
-\`\`\`
-
-**PyPI:**
-\`\`\`bash
-pip install pmxt==$VERSION
-\`\`\`
-
-## Links
-- [npm: pmxtjs](https://www.npmjs.com/package/pmxtjs/v/$VERSION)
-- [npm: pmxt-core](https://www.npmjs.com/package/pmxt-core/v/$VERSION)
-- [PyPI: pmxt](https://pypi.org/project/pmxt/$VERSION/)
-
----
-
-*This release was automatically generated from historical tags.*
-EOM
-
-            # 6. Create release
-            # Added sleep 2 to be safer against secondary rate limits
-            if echo "$RELEASE_BODY" | gh release create "$tag" \
+            # 6. Create release using the file
+            if gh release create "$tag" \
               --title "v$VERSION" \
-              --notes-file - \
+              --notes-file release_body.md \
               $IS_PRERELEASE \
               --verify-tag 2>/dev/null; then
               echo "  ✓ Successfully created release for $tag"
