@@ -274,7 +274,7 @@ jobs:
             else
               RELEASE_NOTES="Release $VERSION
 
-See [changelog.md](https://github.com/${{ github.repository }}/blob/main/changelog.md) for details."
+See [changelog.md](https://github.com/$GITHUB_REPOSITORY/blob/main/changelog.md) for details."
               echo "  → No changelog entry found, using generic notes"
             fi
 
