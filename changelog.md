@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-02-13
+
+### Added
+
+- **Status Filtering**: Introduced a unified `status` parameter (`active`, `closed`, `all`) for both `fetchMarkets` and `fetchEvents`. This allows querying resolved/archived markets in addition to active ones. (Closes #33)
+  - **Polymarket**: Full support for active/closed filtering via Gamma API integration.
+  - **Kalshi**: Implemented status-aware fetching with cache-isolation to prevent data pollution.
+  - **Limitless**: Added compliance handling that returns empty results for closed markets (unsupported by the provider).
+- **OpenAPI Specification**: Updated `MarketFilterParams` and `EventFetchParams` schemas to include the new `status` property.
+- **Compliance Tests**: New test suite in `core/test/status-filtering.test.ts` ensuring correct parameter mapping and exchange-safe behavior.
+
 ## [2.0.11] - 2026-02-10
 
 ### Fixed
