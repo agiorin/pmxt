@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2026-02-13
+
+### Fixed
+
+- **Kalshi Pagination**: Implemented recursive pagination for Kalshi search, enabling the retrieval of up to 10,000 results per query (previously hard-limited to 200).
+- **Kalshi 'All' Status**: Enhanced the `'all'` status filter to simultaneously fetch from `open`, `closed`, and `settled` endpoints, providing a truly comprehensive view of Kalshi events.
+- **Polymarket Status Verification**: Added strict client-side status verification for Polymarket search to prevent "active" events from leaking into "closed" queries, ensuring high search precision.
+- **Limitless Status Filtering**: Standardized status filtering for Limitless to correctly distinguish between active, expired, and resolved markets within search results.
+
+### Changed
+
+- **Unified Status Terminology**: Introduced `'inactive'` as a universal alias for `'closed'` across all exchange methods to provide a more intuitive API for non-binary market states.
+- **Improved Documentation**: Enriched JSDoc metadata for `fetchMarkets` and `fetchEvents` with exchange-specific implementation details and usage examples.
+
+
 ## [2.1.1] - 2026-02-13
 
 ### Changed
