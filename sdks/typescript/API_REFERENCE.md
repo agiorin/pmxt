@@ -984,6 +984,7 @@ positions.forEach(pos => {
     limit?: number; // 
     offset?: number; // 
     sort?: string; // 
+    status?: string; // Filter by market status (default: active)
     searchIn?: string; // 
     query?: string; // 
     slug?: string; // 
@@ -1002,6 +1003,7 @@ positions.forEach(pos => {
     query?: string; // 
     limit?: number; // 
     offset?: number; // 
+    status?: string; // Filter by event status (default: active)
     searchIn?: string; // 
     }
     ```

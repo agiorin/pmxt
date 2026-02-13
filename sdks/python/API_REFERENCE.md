@@ -971,6 +971,7 @@ class MarketFilterParams:
 limit: int # 
 offset: int # 
 sort: str # 
+status: str # Filter by market status (default: active)
 search_in: str # 
 query: str # 
 slug: str # 
@@ -989,6 +990,7 @@ class EventFetchParams:
 query: str # 
 limit: int # 
 offset: int # 
+status: str # Filter by event status (default: active)
 search_in: str # 
 ```
 
