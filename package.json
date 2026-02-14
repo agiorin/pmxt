@@ -1,6 +1,9 @@
 {
     "name": "pmxt-monorepo",
     "private": true,
+    "engines": {
+        "node": ">=18.0.0"
+    },
     "workspaces": [
         "core",
         "sdks/*"

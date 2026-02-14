@@ -10,6 +10,29 @@ Welcome! We love contributors. This project is a monorepo setup to support multi
 - **[sdks/python](./sdks/python)**: The Python SDK. (Pip package `pmxt`).
 - **[sdks/typescript](./sdks/typescript)**: The future home of the HTTP-based TypeScript/Node.js SDK (`pmxtjs`).
 
+## Prerequisites
+
+- **Node.js >= 18** (20+ recommended; used in CI)
+- **npm** (comes with Node.js)
+
+## Monorepo Basics
+
+This project uses [npm workspaces](https://docs.npmjs.com/cli/using-npm/workspaces). Run `npm install` from the **root** -- it installs dependencies for all packages. Root-level scripts delegate to the right workspace automatically:
+
+```bash
+npm run dev       # builds core in watch mode + starts server
+npm run server    # starts the sidecar server (core workspace)
+npm run generate  # regenerates all SDK clients from the OpenAPI spec
+npm test          # runs the full verification suite
+```
+
+If you need to run a script in a specific workspace directly:
+
+```bash
+npm run build --workspace=pmxt-core
+npm test --workspace=pmxtjs
+```
+
 ## Getting Started
 
 ### 1. Running the Server (Core)
