@@ -22,6 +22,7 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
 
             outcomes.push({
                 outcomeId: outcomeIdValue,
+                marketId: market.slug,
                 label: label.charAt(0).toUpperCase() + label.slice(1), // Capitalize 'yes'/'no'
                 price: outcomePrice,
                 priceChange24h: 0, // Not directly available in this flat list, can be computed if needed

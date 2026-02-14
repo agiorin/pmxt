@@ -896,6 +896,9 @@ components:
         outcomeId:
           type: string
           description: "Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)"
+        marketId:
+          type: string
+          description: "The market this outcome belongs to (set automatically)"
         label:
           type: string
         price:

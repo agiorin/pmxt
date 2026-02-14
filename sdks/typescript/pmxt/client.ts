@@ -45,6 +45,7 @@ import { ServerManager } from "./server-manager.js";
 function convertMarket(raw: any): UnifiedMarket {
     const outcomes: MarketOutcome[] = (raw.outcomes || []).map((o: any) => ({
         outcomeId: o.outcomeId,
+        marketId: o.marketId,
         label: o.label,
         price: o.price,
         priceChange24h: o.priceChange24h,
@@ -53,6 +54,7 @@ function convertMarket(raw: any): UnifiedMarket {
 
     const convertOutcome = (o: any) => o ? ({
         outcomeId: o.outcomeId,
+        marketId: o.marketId,
         label: o.label,
         price: o.price,
         priceChange24h: o.priceChange24h,
@@ -571,9 +573,29 @@ export abstract class Exchange {
     async createOrder(params: any): Promise<Order> {
         await this.initPromise;
         try {
+            // Resolve outcome shorthand: extract marketId/outcomeId from outcome object
+            let marketId = params.marketId;
+            let outcomeId = params.outcomeId;
+
+            if (params.outcome) {
+                if (marketId !== undefined || outcomeId !== undefined) {
+                    throw new Error(
+                        "Cannot specify both 'outcome' and 'marketId'/'outcomeId'. Use one or the other."
+                    );
+                }
+                const outcome: MarketOutcome = params.outcome;
+                if (!outcome.marketId) {
+                    throw new Error(
+                        "outcome.marketId is not set. Ensure the outcome comes from a fetched market."
+                    );
+                }
+                marketId = outcome.marketId;
+                outcomeId = outcome.outcomeId;
+            }
+
             const paramsDict: any = {
-                marketId: params.marketId,
-                outcomeId: params.outcomeId,
+                marketId,
+                outcomeId,
                 side: params.side,
                 type: params.type,
                 amount: params.amount,

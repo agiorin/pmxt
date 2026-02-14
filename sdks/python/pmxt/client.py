@@ -51,6 +51,7 @@ def _convert_outcome(raw: Dict[str, Any]) -> MarketOutcome:
         price=raw.get("price"),
         price_change_24h=raw.get("priceChange24h"),
         metadata=raw.get("metadata"),
+        market_id=raw.get("marketId"),
     )
 
 
@@ -961,30 +962,36 @@ class Exchange(ABC):
     
     def create_order(
         self,
-        market_id: str,
-        outcome_id: str,
-        side: Literal["buy", "sell"],
-        type: Literal["market", "limit"],
-        amount: float,
+        market_id: Optional[str] = None,
+        outcome_id: Optional[str] = None,
+        side: Literal["buy", "sell"] = "buy",
+        type: Literal["market", "limit"] = "market",
+        amount: float = 0,
         price: Optional[float] = None,
         fee: Optional[int] = None,
+        outcome: Optional[MarketOutcome] = None,
     ) -> Order:
         """
         Create a new order.
 
+        You can specify the market either with explicit market_id/outcome_id,
+        or by passing an outcome object directly (e.g., market.yes).
+
         Args:
-            market_id: Market ID
-            outcome_id: Outcome ID
+            market_id: Market ID (or use outcome instead)
+            outcome_id: Outcome ID (or use outcome instead)
             side: Order side (buy/sell)
             type: Order type (market/limit)
             amount: Number of contracts
             price: Limit price (required for limit orders, 0.0-1.0)
             fee: Optional fee rate (e.g., 1000 for 0.1%)
+            outcome: A MarketOutcome object (e.g., market.yes). Extracts market_id and outcome_id automatically.
 
         Returns:
             Created order
 
         Example:
+            >>> # Using explicit IDs:
             >>> order = exchange.create_order(
             ...     market_id="663583",
             ...     outcome_id="10991849...",
@@ -993,8 +1000,33 @@ class Exchange(ABC):
             ...     amount=10,
             ...     price=0.55
             ... )
+            >>>
+            >>> # Using outcome shorthand:
+            >>> order = exchange.create_order(
+            ...     outcome=market.yes,
+            ...     side="buy",
+            ...     type="market",
+            ...     amount=10,
+            ... )
         """
         try:
+            # Resolve outcome shorthand
+            if outcome is not None:
+                if market_id is not None or outcome_id is not None:
+                    raise ValueError(
+                        "Cannot specify both 'outcome' and 'market_id'/'outcome_id'. Use one or the other."
+                    )
+                if not outcome.market_id:
+                    raise ValueError(
+                        "outcome.market_id is not set. Ensure the outcome comes from a fetched market."
+                    )
+                market_id = outcome.market_id
+                outcome_id = outcome.outcome_id
+            elif market_id is None or outcome_id is None:
+                raise ValueError(
+                    "Either provide 'outcome' or both 'market_id' and 'outcome_id'."
+                )
+
             params_dict = {
                 "marketId": market_id,
                 "outcomeId": outcome_id,

@@ -15,6 +15,9 @@ export interface MarketOutcome {
      */
     outcomeId: string;
 
+    /** The market this outcome belongs to (set automatically). */
+    marketId?: string;
+
     /** Human-readable label (e.g., "Trump", "Yes") */
     label: string;
 

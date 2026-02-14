@@ -166,17 +166,21 @@ import pmxt
 import os
 
 # Initialize with credentials (e.g., Polymarket)
-exchange = pmxt.Exchange(...)
+exchange = pmxt.Polymarket(
+    private_key=os.getenv('POLYMARKET_PRIVATE_KEY'),
+    proxy_address=os.getenv('POLYMARKET_PROXY_ADDRESS')
+)
 
 # 1. Check Balance
 balance = exchange.fetch_balance()
 print(f"Available balance: {balance[0].available}")
 
-# 2. Place an Order
-# Use market.market_id and outcome.outcome_id from your market data
+# 2. Fetch markets
+markets = exchange.fetch_markets(query='Trump')
+
+# 3. Place an Order (using outcome shorthand)
 order = exchange.create_order(
-    market_id='market-123',      # From market.market_id
-    outcome_id='outcome-456',    # From outcome.outcome_id
+    outcome=markets[0].yes,
     side='buy',
     type='limit',
     price=0.33,

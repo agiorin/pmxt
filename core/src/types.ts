@@ -6,6 +6,8 @@
 export interface MarketOutcome {
     /** Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi) */
     outcomeId: string;
+    /** The market this outcome belongs to (set automatically when outcomes are built) */
+    marketId?: string;
     label: string;
     price: number;
     priceChange24h?: number;

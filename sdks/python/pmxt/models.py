@@ -30,15 +30,18 @@ class MarketOutcome:
 
     label: str
     """Human-readable label (e.g., "Trump", "Yes")"""
-    
+
     price: float
     """Current price (0.0 to 1.0, representing probability)"""
-    
+
     price_change_24h: Optional[float] = None
     """24-hour price change"""
-    
+
     metadata: Optional[Dict[str, Any]] = None
     """Exchange-specific metadata"""
+
+    market_id: Optional[str] = None
+    """The market this outcome belongs to (set automatically)."""
 
 
 @dataclass

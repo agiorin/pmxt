@@ -89,10 +89,10 @@ poly = pmxt.Polymarket(
 balances = poly.fetch_balance()
 print(f"Available: ${balances[0].available}")
 
-# Place order
+# Place order (using outcome shorthand)
+markets = poly.fetch_markets(query="Trump")
 order = poly.create_order(
-    market_id="663583",
-    outcome_id="10991849...",
+    outcome=markets[0].yes,
     side="buy",
     type="limit",
     amount=10,

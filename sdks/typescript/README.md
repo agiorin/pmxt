@@ -107,9 +107,9 @@ const limitless = new pmxt.Limitless({
 
 - `createOrder(params)` - Place a new order
   ```typescript
+  // Using outcome shorthand (recommended)
   await poly.createOrder({
-      marketId: market.marketId,
-      outcomeId: outcome.outcomeId,
+      outcome: market.yes,
       side: 'buy',
       type: 'limit',
       amount: 10,
