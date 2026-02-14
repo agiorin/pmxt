@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-02-14
+
+### Features
+
+- **MarketList Convenience Class**: Introduced a new `MarketList` class to simplify market discovery and filtering. This provides a more ergonomic way to search and interact with collections of markets across different exchanges.
+- **Developer Experience**: Added `npm run dev` command to support streamlined local development with automatic rebuilding and sidecar management.
+
+### Documentation
+
+- **Architecture Overview**: Added a comprehensive `ARCHITECTURE.md` guide explaining the project's internal structure and core principles.
+- **Exchange Contribution Guide**: Created `core/ADDING_AN_EXCHANGE.md` to provide clear instructions for developers looking to integrate new prediction markets.
+- **Improved Onboarding**: Updated `CONTRIBUTING.md` with detailed monorepo structure and prerequisites. Added `.env.example` to simplify local environment setup.
+- **Node.js Environment**: Explicitly defined supported Node.js versions in `package.json` to ensure development environment consistency.
+
+
 ## [2.1.3] - 2026-02-14
 
 ### Features

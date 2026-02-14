@@ -92,12 +92,12 @@ outcome_id = market.yes.id  #  Removed
 candles = poly.fetch_ohlcv(outcome_id, pmxt.HistoryFilterParams(resolution='1h', limit=100))  #  Removed
 order = poly.create_order(pmxt.CreateOrderParams(market_id='...', outcome_id='...', side='buy', type='limit', amount=10, price=0.5))  #  Removed
 
-# v2.0.0 Code
+# v2.2.0+ Code
 events = poly.fetch_events(query='Fed Chair')
-market = poly.filter_markets(events[0].markets, 'Kevin Warsh')[0]  # 
-outcome_id = market.yes.outcome_id  # 
-candles = poly.fetch_ohlcv(outcome_id, resolution='1h', limit=100)  # 
-order = poly.create_order(market_id='...', outcome_id='...', side='buy', type='limit', amount=10, price=0.5)  # 
+market = events[0].markets.match('Kevin Warsh')  #
+outcome_id = market.yes.outcome_id  #
+candles = poly.fetch_ohlcv(outcome_id, resolution='1h', limit=100)  #
+order = poly.create_order(market_id='...', outcome_id='...', side='buy', type='limit', amount=10, price=0.5)  #
 ```
 
 ### Testing Your Migration
@@ -170,8 +170,11 @@ Instead of manually filtering lists using list comprehensions or `filter()`, use
 # OLD
 warsh = fed_event.search_markets('Kevin Warsh')[0]
 
-# NEW
+# NEW (v2.0.0)
 warsh = api.filter_markets(fed_event.markets, "Kevin Warsh")[0]
+
+# NEWER (v2.1.0+)
+warsh = fed_event.markets.match("Kevin Warsh")
 ```
 
 ---
