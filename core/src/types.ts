@@ -129,4 +129,5 @@ export interface CreateOrderParams {
     price?: number; // Required for limit orders
     fee?: number;   // Optional fee rate (e.g., 1000 for 0.1%)
     tickSize?: number; // Optional override for Limitless/Polymarket
+    negRisk?: boolean; // Optional override to skip neg-risk lookup (Polymarket)
 }

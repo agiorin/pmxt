@@ -100,6 +100,21 @@ export class PolymarketExchange extends PredictionMarketExchange {
         return this.auth;
     }
 
+    /**
+     * Pre-warm the SDK's internal caches for a token by fetching tick size,
+     * fee rate, and neg-risk in parallel. Call this when you start watching
+     * a market so that subsequent createOrder calls hit only POST /order.
+     */
+    async preWarmMarket(outcomeId: string): Promise<void> {
+        const auth = this.ensureAuth();
+        const client = await auth.getClobClient();
+        await Promise.all([
+            client.getTickSize(outcomeId),
+            client.getFeeRateBps(outcomeId),
+            client.getNegRisk(outcomeId),
+        ]);
+    }
+
     async createOrder(params: CreateOrderParams): Promise<Order> {
         try {
             const auth = this.ensureAuth();
@@ -116,20 +131,8 @@ export class PolymarketExchange extends PredictionMarketExchange {
             // For market orders, use max slippage: 0.99 for BUY (willing to pay up to 99%), 0.01 for SELL (willing to accept down to 1%)
             const price = params.price || (side === Side.BUY ? 0.99 : 0.01);
 
-            // Auto-detect tick size if not provided
-            let tickSize: string;
-            if (params.tickSize) {
-                tickSize = params.tickSize.toString();
-            } else {
-                // Fetch the order book to infer tick size from price levels
-                try {
-                    const orderBook = await this.fetchOrderBook(params.outcomeId);
-                    tickSize = this.inferTickSize(orderBook);
-                } catch (error) {
-                    // Fallback to 0.01 if order book fetch fails (standard for Polymarket)
-                    tickSize = "0.01";
-                }
-            }
+            // Use provided tickSize, or let the SDK resolve it from its own cache / API
+            const tickSize = params.tickSize ? params.tickSize.toString() : undefined;
 
             const orderArgs: any = {
                 tokenID: params.outcomeId,
@@ -142,10 +145,15 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 orderArgs.feeRateBps = params.fee;
             }
 
-            // We use createAndPostOrder which handles signing and posting
-            const response = await client.createAndPostOrder(orderArgs, {
-                tickSize: tickSize as any
-            });
+            const options: any = {};
+            if (tickSize) {
+                options.tickSize = tickSize;
+            }
+            if (params.negRisk !== undefined) {
+                options.negRisk = params.negRisk;
+            }
+
+            const response = await client.createAndPostOrder(orderArgs, options);
 
             if (!response || !response.success) {
                 throw new Error(`${response?.errorMsg || 'Order placement failed'} (Response: ${JSON.stringify(response)})`);
@@ -168,41 +176,6 @@ export class PolymarketExchange extends PredictionMarketExchange {
         } catch (error: any) {
             throw polymarketErrorMapper.mapError(error);
         }
-    }
-
-    /**
-     * Infer the tick size from order book price levels.
-     * Analyzes the decimal precision of existing orders to determine the market's tick size.
-     */
-    private inferTickSize(orderBook: OrderBook): string {
-        const allPrices = [
-            ...orderBook.bids.map(b => b.price),
-            ...orderBook.asks.map(a => a.price)
-        ];
-
-        if (allPrices.length === 0) {
-            return "0.01"; // Default fallback for Polymarket
-        }
-
-        // Find the smallest non-zero decimal increment
-        let minIncrement = 1;
-        for (const price of allPrices) {
-            const priceStr = price.toString();
-            const decimalPart = priceStr.split('.')[1];
-            if (decimalPart) {
-                const decimals = decimalPart.length;
-                const increment = Math.pow(10, -decimals);
-                if (increment < minIncrement) {
-                    minIncrement = increment;
-                }
-            }
-        }
-
-        // Map to valid tick sizes: 0.1, 0.01, 0.001, 0.0001
-        if (minIncrement >= 0.1) return "0.1";
-        if (minIncrement >= 0.01) return "0.01";
-        if (minIncrement >= 0.001) return "0.001";
-        return "0.0001";
     }
 
     async cancelOrder(orderId: string): Promise<Order> {
