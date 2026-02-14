@@ -35,7 +35,7 @@ See the [Python SDK Development Guide](./sdks/SDK_DEVELOPMENT.md) for detailed i
 
 ## Development Workflow
 
-This project uses a **Sidecar Architecture**: the core logic is in TypeScript (`core/`), which SDKs spawn as a background process.
+This project uses a **Sidecar Server Architecture**: the core logic is in TypeScript (`core/`), which SDKs spawn as a background process.
 
 ### Quick Start: Single Command Dev Mode
 From the root directory, run:
@@ -70,5 +70,10 @@ If the server doesn't shut down cleanly, use:
 ```bash
 python3 -c "import sys; sys.path.insert(0, 'sdks/python'); import pmxt; pmxt.stop_server()"
 ```
+
+## Further Reading
+
+- **[Architecture Overview](./ARCHITECTURE.md)** -- How the sidecar pattern works, request lifecycle, and where different types of changes go
+- **[Adding an Exchange](./core/ADDING_AN_EXCHANGE.md)** -- Step-by-step guide for implementing a new exchange integration
 
 Thank you for helping us build the future of prediction markets!
