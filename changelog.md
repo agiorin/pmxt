@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-02-14
+
+### Features
+
+- **Outcome Shorthand for Trading**: You can now pass a `MarketOutcome` object directly to `createOrder` (TS) or `create_order` (Python) instead of manually specifying `marketId` and `outcomeId`.
+- **`marketId` in `MarketOutcome`**: Market outcome objects now include the `marketId` they belong to, enabling the new shorthand functionality and better data traceability.
+
+### Changed
+
+- **Improved Type Safety**: Enhanced input validation for order creation to ensure consistent behavior across different parameter combinations.
+- **Documentation & Examples**: Updated trading examples to demonstrate the new recommended shorthand pattern.
+
 ## [2.2.0] - 2026-02-14
 
 ### Features
