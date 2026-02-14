@@ -37,26 +37,38 @@ See the [Python SDK Development Guide](./sdks/SDK_DEVELOPMENT.md) for detailed i
 
 This project uses a **Sidecar Architecture**: the core logic is in TypeScript (`core/`), which SDKs spawn as a background process.
 
-### 1. Active Development (Auto-Restart)
-To have the server automatically update when you change TypeScript code:
+### Quick Start: Single Command Dev Mode
+From the root directory, run:
 
 ```bash
-# In one terminal
-cd core && npm run build -- --watch
+npm run dev
 ```
 
-The SDKs detect these changes via a version hash and will **auto-restart** the server on the next request.
+This starts both the build watcher and the server concurrently. The SDKs will auto-restart on code changes via a version hash.
 
-### 2. Manual Forced Restart
+### Manual Setup (if needed)
+If you prefer to run things separately:
+
+```bash
+# Terminal 1: Build watcher
+cd core && npm run build -- --watch
+
+# Terminal 2: Server
+npm run server
+```
+
+### Manual Forced Restart
 If you need a guaranteed fresh server state:
 ```bash
 export PMXT_ALWAYS_RESTART=1
 # Run your SDK script
 ```
 
-## Summary Workflow
-1. Modify code in `core/src`.
-2. Ensure `npm run build -- --watch` is running in the background.
-3. Run your Python/TS scripts; the server will hot-swap automatically.
+## Stopping the Server
+If the server doesn't shut down cleanly, use:
+
+```bash
+python3 -c "import sys; sys.path.insert(0, 'sdks/python'); import pmxt; pmxt.stop_server()"
+```
 
 Thank you for helping us build the future of prediction markets!
