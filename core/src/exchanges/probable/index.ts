@@ -1,0 +1,378 @@
+import {
+    PredictionMarketExchange,
+    MarketFetchParams,
+    EventFetchParams,
+    ExchangeCredentials,
+    OHLCVParams,
+    HistoryFilterParams,
+    TradesParams,
+} from '../../BaseExchange';
+import {
+    UnifiedMarket,
+    UnifiedEvent,
+    OrderBook,
+    PriceCandle,
+    Trade,
+    Order,
+    Position,
+    Balance,
+    CreateOrderParams,
+} from '../../types';
+import { fetchMarkets } from './fetchMarkets';
+import { fetchEvents, fetchEventById, fetchEventBySlug } from './fetchEvents';
+import { fetchOrderBook } from './fetchOrderBook';
+import { fetchOHLCV } from './fetchOHLCV';
+import { fetchPositions } from './fetchPositions';
+import { fetchTrades } from './fetchTrades';
+import { ProbableAuth } from './auth';
+import { ProbableWebSocket, ProbableWebSocketConfig } from './websocket';
+import { probableErrorMapper } from './errors';
+import { AuthenticationError } from '../../errors';
+import { OrderSide } from '@prob/clob';
+
+const BSC_USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
+
+export class ProbableExchange extends PredictionMarketExchange {
+    private auth?: ProbableAuth;
+    private ws?: ProbableWebSocket;
+    private wsConfig?: ProbableWebSocketConfig;
+
+    constructor(credentials?: ExchangeCredentials, wsConfig?: ProbableWebSocketConfig) {
+        super(credentials);
+        this.wsConfig = wsConfig;
+
+        if (credentials?.privateKey && credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
+            this.auth = new ProbableAuth(credentials);
+        }
+    }
+
+    get name(): string {
+        return 'Probable';
+    }
+
+    private ensureAuth(): ProbableAuth {
+        if (!this.auth) {
+            throw new AuthenticationError(
+                'Trading operations require authentication. ' +
+                'Initialize ProbableExchange with credentials: new ProbableExchange({ privateKey: "0x...", apiKey: "...", apiSecret: "...", passphrase: "..." })',
+                'Probable'
+            );
+        }
+        return this.auth;
+    }
+
+    // --------------------------------------------------------------------------
+    // Market Data (read-only, no auth needed)
+    // --------------------------------------------------------------------------
+
+    protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+        return fetchMarkets(params);
+    }
+
+    protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
+        return fetchEvents(params);
+    }
+
+    async getEventById(id: string): Promise<UnifiedEvent | null> {
+        return fetchEventById(id);
+    }
+
+    async getEventBySlug(slug: string): Promise<UnifiedEvent | null> {
+        return fetchEventBySlug(slug);
+    }
+
+    async fetchOrderBook(id: string): Promise<OrderBook> {
+        return fetchOrderBook(id);
+    }
+
+    async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
+        return fetchOHLCV(id, params);
+    }
+
+    // --------------------------------------------------------------------------
+    // Trading Methods
+    // --------------------------------------------------------------------------
+
+    async createOrder(params: CreateOrderParams): Promise<Order> {
+        try {
+            const auth = this.ensureAuth();
+            const client = auth.getClobClient();
+
+            const side = params.side.toLowerCase() === 'buy' ? OrderSide.Buy : OrderSide.Sell;
+
+            let unsignedOrder;
+
+            if (params.type === 'market') {
+                unsignedOrder = await client.createMarketOrder({
+                    tokenId: params.outcomeId,
+                    size: params.amount,
+                    side,
+                });
+            } else {
+                if (!params.price) {
+                    throw new Error('Price is required for limit orders');
+                }
+
+                unsignedOrder = await client.createLimitOrder({
+                    tokenId: params.outcomeId,
+                    price: params.price,
+                    size: params.amount,
+                    side,
+                });
+            }
+
+            if (params.fee !== undefined && params.fee !== null) {
+                (unsignedOrder as any).feeRateBps = BigInt(params.fee);
+            }
+
+            const response = await client.postOrder(unsignedOrder);
+
+            // postOrder returns PostOrderResponse which can be success or error
+            if (response && 'code' in response && (response as any).code !== undefined) {
+                throw new Error((response as any).msg || 'Order placement failed');
+            }
+
+            const orderResponse = response as any;
+
+            return {
+                id: String(orderResponse.orderId || orderResponse.id || ''),
+                marketId: params.marketId,
+                outcomeId: params.outcomeId,
+                side: params.side,
+                type: params.type,
+                price: params.price || parseFloat(orderResponse.price || '0'),
+                amount: params.amount,
+                status: 'open',
+                filled: parseFloat(orderResponse.executedQty || '0'),
+                remaining: params.amount - parseFloat(orderResponse.executedQty || '0'),
+                fee: params.fee,
+                timestamp: orderResponse.time || Date.now(),
+            };
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    /**
+     * Cancel an order.
+     * The Probable SDK requires both orderId and tokenId for cancellation.
+     * Pass a compound key as "orderId:tokenId" to provide both values.
+     */
+    async cancelOrder(orderId: string): Promise<Order> {
+        try {
+            const auth = this.ensureAuth();
+            const client = auth.getClobClient();
+
+            const [actualOrderId, tokenId] = parseCompoundId(orderId);
+
+            if (!tokenId) {
+                throw new Error(
+                    'Probable cancelOrder requires a compound ID in the format "orderId:tokenId". ' +
+                    'The tokenId (outcomeId) is required by the Probable SDK.'
+                );
+            }
+
+            await client.cancelOrder({
+                orderId: actualOrderId,
+                tokenId,
+            });
+
+            return {
+                id: actualOrderId,
+                marketId: 'unknown',
+                outcomeId: tokenId,
+                side: 'buy',
+                type: 'limit',
+                amount: 0,
+                status: 'cancelled',
+                filled: 0,
+                remaining: 0,
+                timestamp: Date.now(),
+            };
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    /**
+     * Fetch a single order by ID.
+     * Pass a compound key as "orderId:tokenId" since the SDK requires both.
+     */
+    async fetchOrder(orderId: string): Promise<Order> {
+        try {
+            const auth = this.ensureAuth();
+            const client = auth.getClobClient();
+
+            const [actualOrderId, tokenId] = parseCompoundId(orderId);
+
+            if (!tokenId) {
+                throw new Error(
+                    'Probable fetchOrder requires a compound ID in the format "orderId:tokenId".'
+                );
+            }
+
+            const order = await client.getOrder({
+                orderId: actualOrderId,
+                tokenId,
+            });
+
+            if (!order || ('code' in (order as any))) {
+                throw new Error((order as any)?.msg || 'Order not found');
+            }
+
+            const o = order as any;
+            return {
+                id: String(o.orderId || o.id),
+                marketId: o.symbol || 'unknown',
+                outcomeId: o.tokenId || tokenId,
+                side: (o.side || '').toLowerCase() as 'buy' | 'sell',
+                type: o.type === 'LIMIT' || o.timeInForce === 'GTC' ? 'limit' : 'market',
+                price: parseFloat(o.price || '0'),
+                amount: parseFloat(o.origQty || '0'),
+                status: mapOrderStatus(o.status),
+                filled: parseFloat(o.executedQty || '0'),
+                remaining: parseFloat(o.origQty || '0') - parseFloat(o.executedQty || '0'),
+                timestamp: o.time || o.updateTime || Date.now(),
+            };
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchOpenOrders(marketId?: string): Promise<Order[]> {
+        try {
+            const auth = this.ensureAuth();
+            const client = auth.getClobClient();
+
+            const params: any = {};
+            if (marketId) {
+                params.eventId = marketId;
+            }
+
+            const orders = await client.getOpenOrders(params);
+            const orderList = Array.isArray(orders) ? orders : (orders as any)?.data || [];
+
+            return orderList.map((o: any) => ({
+                id: String(o.orderId || o.id),
+                marketId: o.symbol || 'unknown',
+                outcomeId: o.tokenId || '',
+                side: (o.side || '').toLowerCase() as 'buy' | 'sell',
+                type: 'limit' as const,
+                price: parseFloat(o.price || '0'),
+                amount: parseFloat(o.origQty || '0'),
+                status: 'open' as const,
+                filled: parseFloat(o.executedQty || '0'),
+                remaining: parseFloat(o.origQty || '0') - parseFloat(o.executedQty || '0'),
+                timestamp: o.time || o.updateTime || Date.now(),
+            }));
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchPositions(): Promise<Position[]> {
+        try {
+            const auth = this.ensureAuth();
+            const address = auth.getAddress();
+            return fetchPositions(address);
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchBalance(): Promise<Balance[]> {
+        try {
+            const auth = this.ensureAuth();
+
+            let total = 0;
+            try {
+                const { createPublicClient, http, parseAbi, formatUnits } = require('viem');
+                const { bsc } = require('viem/chains');
+
+                const publicClient = createPublicClient({
+                    chain: bsc,
+                    transport: http(),
+                });
+
+                const balance = await publicClient.readContract({
+                    address: BSC_USDT_ADDRESS as `0x${string}`,
+                    abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+                    functionName: 'balanceOf',
+                    args: [auth.getAddress() as `0x${string}`],
+                });
+
+                total = parseFloat(formatUnits(balance as bigint, 18));
+            } catch (chainError: any) {
+                // On-chain check failed, return 0
+            }
+
+            // Calculate locked from open BUY orders
+            let locked = 0;
+            try {
+                const openOrders = await this.fetchOpenOrders();
+                for (const order of openOrders) {
+                    if (order.side === 'buy' && order.price) {
+                        locked += order.remaining * order.price;
+                    }
+                }
+            } catch {
+                // If we can't fetch orders, locked stays 0
+            }
+
+            return [{
+                currency: 'USDT',
+                total,
+                available: total - locked,
+                locked,
+            }];
+        } catch (error: any) {
+            throw probableErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        const auth = this.ensureAuth();
+        const client = auth.getClobClient();
+        return fetchTrades(id, params, client);
+    }
+
+    // --------------------------------------------------------------------------
+    // WebSocket Streaming (public, no auth needed)
+    // --------------------------------------------------------------------------
+
+    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+        if (!this.ws) {
+            this.ws = new ProbableWebSocket(this.wsConfig);
+        }
+        return this.ws.watchOrderBook(id);
+    }
+
+    async close(): Promise<void> {
+        if (this.ws) {
+            await this.ws.close();
+            this.ws = undefined;
+        }
+    }
+}
+
+/**
+ * Parse a compound ID in the format "orderId:tokenId".
+ * Returns [orderId, tokenId] where tokenId may be undefined.
+ */
+function parseCompoundId(compoundId: string): [string, string | undefined] {
+    const colonIndex = compoundId.indexOf(':');
+    if (colonIndex === -1) {
+        return [compoundId, undefined];
+    }
+    return [compoundId.substring(0, colonIndex), compoundId.substring(colonIndex + 1)];
+}
+
+function mapOrderStatus(status: string): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+    if (!status) return 'open';
+    const lower = status.toLowerCase();
+    if (lower === 'new' || lower === 'open' || lower === 'partially_filled') return 'open';
+    if (lower === 'filled' || lower === 'trade') return 'filled';
+    if (lower === 'canceled' || lower === 'cancelled' || lower === 'expired') return 'cancelled';
+    if (lower === 'rejected') return 'rejected';
+    return 'open';
+}

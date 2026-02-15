@@ -1,0 +1,140 @@
+import { EventFetchParams } from '../../BaseExchange';
+import { UnifiedEvent } from '../../types';
+import axios from 'axios';
+import { BASE_URL, SEARCH_PATH, EVENTS_PATH, mapEventToUnified, enrichMarketsWithPrices } from './utils';
+import { probableErrorMapper } from './errors';
+
+export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+    try {
+        // Query-based search: use the search endpoint (only endpoint with text search)
+        if (params.query) {
+            return await searchEvents(params);
+        }
+
+        // Default: use the dedicated events API for listing
+        return await fetchEventsList(params);
+    } catch (error: any) {
+        throw probableErrorMapper.mapError(error);
+    }
+}
+
+export async function fetchEventById(id: string): Promise<UnifiedEvent | null> {
+    try {
+        const numericId = Number(id);
+        if (isNaN(numericId)) return null;
+
+        const response = await axios.get(`${BASE_URL}${EVENTS_PATH}${numericId}`);
+        const event = mapEventToUnified(response.data);
+        if (event) await enrichMarketsWithPrices(event.markets);
+        return event;
+    } catch (error: any) {
+        if (isNotFoundError(error)) return null;
+        throw probableErrorMapper.mapError(error);
+    }
+}
+
+export async function fetchEventBySlug(slug: string): Promise<UnifiedEvent | null> {
+    try {
+        const response = await axios.get(`${BASE_URL}${EVENTS_PATH}slug/${slug}`);
+        const event = mapEventToUnified(response.data);
+        if (event) await enrichMarketsWithPrices(event.markets);
+        return event;
+    } catch (error: any) {
+        if (isNotFoundError(error)) return null;
+        throw probableErrorMapper.mapError(error);
+    }
+}
+
+async function fetchEventsList(params: EventFetchParams): Promise<UnifiedEvent[]> {
+    const limit = params.limit || 20;
+    const page = params.offset ? Math.floor(params.offset / limit) + 1 : 1;
+
+    const queryParams: Record<string, any> = {
+        page,
+        limit,
+    };
+
+    // Map status
+    if (params.status) {
+        switch (params.status) {
+            case 'active':
+                queryParams.status = 'active';
+                break;
+            case 'inactive':
+            case 'closed':
+                queryParams.status = 'closed';
+                break;
+            case 'all':
+                queryParams.status = 'all';
+                break;
+        }
+    } else {
+        queryParams.status = 'active';
+    }
+
+    // Default sort by volume
+    queryParams.sort = 'volume';
+    queryParams.ascending = false;
+
+    const response = await axios.get(`${BASE_URL}${EVENTS_PATH}`, {
+        params: queryParams,
+    });
+
+    const events = response.data?.events || [];
+
+    const result = events
+        .map((event: any) => mapEventToUnified(event))
+        .filter((e: any): e is UnifiedEvent => e !== null);
+    const allMarkets = result.flatMap((e: UnifiedEvent) => e.markets);
+    await enrichMarketsWithPrices(allMarkets);
+    return result;
+}
+
+async function searchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+    const limit = params.limit || 20;
+    const page = params.offset ? Math.floor(params.offset / limit) + 1 : 1;
+
+    const response = await axios.get(`${BASE_URL}${SEARCH_PATH}`, {
+        params: {
+            q: params.query,
+            page,
+            limit,
+            events_status: mapStatus(params.status),
+            keep_closed_markets: params.status === 'all' || params.status === 'inactive' || params.status === 'closed' ? 1 : 0,
+        },
+    });
+
+    const events = response.data?.events || [];
+
+    const result = events
+        .map((event: any) => mapEventToUnified(event))
+        .filter((e: any): e is UnifiedEvent => e !== null);
+    const allMarkets = result.flatMap((e: UnifiedEvent) => e.markets);
+    await enrichMarketsWithPrices(allMarkets);
+    return result;
+}
+
+function isNotFoundError(error: any): boolean {
+    const status = error.response?.status;
+    if (status === 404 || status === 400) return true;
+    // API returns 500 with plain-text "not found" message for missing resources
+    if (status === 500) {
+        const data = error.response?.data;
+        const msg = typeof data === 'string' ? data : (data?.detail || data?.message || '');
+        return /not found/i.test(String(msg));
+    }
+    return false;
+}
+
+function mapStatus(status?: string): string {
+    switch (status) {
+        case 'inactive':
+        case 'closed':
+            return 'closed';
+        case 'all':
+            return 'all';
+        case 'active':
+        default:
+            return 'active';
+    }
+}

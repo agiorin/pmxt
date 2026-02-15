@@ -802,7 +802,7 @@ components:
       name: exchange
       schema:
         type: string
-        enum: [polymarket, kalshi, limitless]
+        enum: [polymarket, kalshi, limitless, probable]
       required: true
       description: The prediction market exchange to target.
 

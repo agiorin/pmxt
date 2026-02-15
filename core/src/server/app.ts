@@ -3,6 +3,7 @@ import cors from 'cors';
 import { PolymarketExchange } from '../exchanges/polymarket';
 import { LimitlessExchange } from '../exchanges/limitless';
 import { KalshiExchange } from '../exchanges/kalshi';
+import { ProbableExchange } from '../exchanges/probable';
 import { ExchangeCredentials } from '../BaseExchange';
 import { BaseError } from '../errors';
 
@@ -10,7 +11,8 @@ import { BaseError } from '../errors';
 const defaultExchanges: Record<string, any> = {
     polymarket: null,
     limitless: null,
-    kalshi: null
+    kalshi: null,
+    probable: null
 };
 
 export async function startServer(port: number, accessToken: string) {
@@ -143,6 +145,13 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
             return new KalshiExchange({
                 apiKey: credentials?.apiKey || process.env.KALSHI_API_KEY,
                 privateKey: credentials?.privateKey || process.env.KALSHI_PRIVATE_KEY
+            });
+        case 'probable':
+            return new ProbableExchange({
+                apiKey: credentials?.apiKey || process.env.PROBABLE_API_KEY,
+                apiSecret: credentials?.apiSecret || process.env.PROBABLE_API_SECRET,
+                passphrase: credentials?.passphrase || process.env.PROBABLE_PASSPHRASE,
+                privateKey: credentials?.privateKey || process.env.PROBABLE_PRIVATE_KEY,
             });
         default:
             throw new Error(`Unknown exchange: ${name}`);

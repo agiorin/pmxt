@@ -7,7 +7,7 @@ module.exports = {
     '^.+\\.jsx?$': 'ts-jest',
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(@polymarket|ethers|@ethersproject|axios)/)"
+    "node_modules/(?!(@polymarket|ethers|@ethersproject|axios|@prob|ky|viem|ox)/)"
   ],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
 };
