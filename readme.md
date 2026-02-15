@@ -64,11 +64,13 @@ Different prediction market platforms have different APIs, data formats, and con
 ### Supported Exchanges
 
 <p align="center">
-  <img src="https://polymarket.com/favicon.ico" alt="Polymarket" width="24" height="24"> <b>Polymarket</b>
+  <a href="https://polymarket.com" style="color: inherit; text-decoration: none;"><img src="https://polymarket.com/favicon.ico" alt="Polymarket" width="24" height="24"> <b>Polymarket</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://kalshi.com/favicon.ico" alt="Kalshi" width="24" height="24"> <b>Kalshi</b>
+  <a href="https://kalshi.com" style="color: inherit; text-decoration: none;"><img src="https://kalshi.com/favicon.ico" alt="Kalshi" width="24" height="24"> <b>Kalshi</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://limitless.exchange/assets/images/logo.svg" alt="Limitless" width="24" height="24"> <b>Limitless</b>
+  <a href="https://limitless.exchange" style="color: inherit; text-decoration: none;"><img src="https://limitless.exchange/assets/images/logo.svg" alt="Limitless" width="24" height="24"> <b>Limitless</b></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://probable.markets" style="color: inherit; text-decoration: none;"><img src="https://developer.probable.markets/logo.svg" alt="Probable" width="100"></a>
 </p>
 
 [Feature Support & Compliance](core/COMPLIANCE.md).
