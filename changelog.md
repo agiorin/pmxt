@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2026-02-15
+
+### Added
+
+- **Probable Exchange Integration**: Initial release of the Probable exchange integration, bringing full support for the Probable prediction market platform.
+  - **Market & Event Discovery**: Implemented `fetchMarkets` and `fetchEvents` for comprehensive market discovery.
+  - **Trading**: Full trading support including `createOrder`, `cancelOrder`, `fetchOrder`, and `fetchOpenOrders`.
+  - **Market Data**: Access to `fetchOrderBook`, `fetchTrades`, and `fetchOHLCV` for historical and real-time market analysis.
+  - **Account Management**: Implemented `fetchBalance` and `fetchPositions` to track portfolio performance.
+  - **Real-time Data**: Added WebSocket support for live order book updates via `watchOrderBook`. (Note: `watchTrades` is not yet supported).
+  - **Examples**: Added comprehensive examples in `core/examples/api-reference` covering all major functionality.
+
+
 ## [2.3.0] - 2026-02-14
 
 ### Features
