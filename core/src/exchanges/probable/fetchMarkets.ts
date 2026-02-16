@@ -6,9 +6,27 @@ import { probableErrorMapper } from './errors';
 
 export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     try {
+        // Handle marketId lookup (numeric ID or slug)
+        if (params?.marketId) {
+            return await fetchMarketByIdOrSlug(params.marketId);
+        }
+
         // Slug-based lookup: try market ID or slug via dedicated endpoint
         if (params?.slug) {
             return await fetchMarketByIdOrSlug(params.slug);
+        }
+
+        // Handle outcomeId lookup (no direct API, fetch and filter client-side)
+        if (params?.outcomeId) {
+            const markets = await fetchMarketsList(params);
+            return markets.filter(m =>
+                m.outcomes.some(o => o.outcomeId === params.outcomeId)
+            );
+        }
+
+        // Handle eventId lookup (use markets list with eventId param)
+        if (params?.eventId) {
+            return await fetchMarketsList(params);
         }
 
         // Query-based search: use the search endpoint (only endpoint with text search)

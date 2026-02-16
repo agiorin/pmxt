@@ -1,5 +1,6 @@
 import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from './types';
 import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } from './utils/math';
+import { MarketNotFound, EventNotFound } from './errors';
 
 export interface MarketFilterParams {
     limit?: number;
@@ -9,6 +10,9 @@ export interface MarketFilterParams {
     searchIn?: 'title' | 'description' | 'both'; // Where to search (default: 'title')
     query?: string;  // For keyword search
     slug?: string;   // For slug/ticker lookup
+    marketId?: string;    // Direct lookup by market ID
+    outcomeId?: string;   // Reverse lookup -- find market containing this outcome
+    eventId?: string;     // Find markets belonging to an event
     page?: number;   // For pagination (used by Limitless)
     similarityThreshold?: number; // For semantic search (used by Limitless)
 }
@@ -16,11 +20,13 @@ export interface MarketFilterParams {
 export interface MarketFetchParams extends MarketFilterParams { }
 
 export interface EventFetchParams {
-    query?: string;  // For keyword search (will be required in practice)
+    query?: string;  // For keyword search
     limit?: number;
     offset?: number;
     status?: 'active' | 'inactive' | 'closed' | 'all'; // Filter by event status (default: 'active', 'inactive' and 'closed' are interchangeable)
     searchIn?: 'title' | 'description' | 'both';
+    eventId?: string;    // Direct lookup by event ID
+    slug?: string;       // Lookup by event slug
 }
 
 export interface HistoryFilterParams {
@@ -186,10 +192,59 @@ export abstract class PredictionMarketExchange {
      * print(fed_event.title, len(fed_event.markets), 'markets')
      */
     async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]> {
-        if (!params?.query) {
-            throw new Error("fetchEvents() requires a query parameter");
+        if (!params?.query && !params?.eventId && !params?.slug) {
+            throw new Error("fetchEvents() requires a query, eventId, or slug parameter");
         }
-        return this.fetchEventsImpl(params);
+        return this.fetchEventsImpl(params!);
+    }
+
+    /**
+     * Fetch a single market by lookup parameters.
+     * Convenience wrapper around fetchMarkets() that returns a single result or throws MarketNotFound.
+     *
+     * @param params - Lookup parameters (marketId, outcomeId, slug, etc.)
+     * @returns A single unified market
+     * @throws MarketNotFound if no market matches the parameters
+     *
+     * @example-ts Fetch by market ID
+     * const market = await exchange.fetchMarket({ marketId: '663583' });
+     *
+     * @example-ts Fetch by outcome ID
+     * const market = await exchange.fetchMarket({ outcomeId: '10991849...' });
+     *
+     * @example-python Fetch by market ID
+     * market = exchange.fetch_market(market_id='663583')
+     */
+    async fetchMarket(params?: MarketFetchParams): Promise<UnifiedMarket> {
+        const markets = await this.fetchMarkets(params);
+        if (markets.length === 0) {
+            const identifier = params?.marketId || params?.outcomeId || params?.slug || params?.eventId || params?.query || 'unknown';
+            throw new MarketNotFound(identifier, this.name);
+        }
+        return markets[0];
+    }
+
+    /**
+     * Fetch a single event by lookup parameters.
+     * Convenience wrapper around fetchEvents() that returns a single result or throws EventNotFound.
+     *
+     * @param params - Lookup parameters (eventId, slug, query)
+     * @returns A single unified event
+     * @throws EventNotFound if no event matches the parameters
+     *
+     * @example-ts Fetch by event ID
+     * const event = await exchange.fetchEvent({ eventId: 'TRUMP25DEC' });
+     *
+     * @example-python Fetch by event ID
+     * event = exchange.fetch_event(event_id='TRUMP25DEC')
+     */
+    async fetchEvent(params?: EventFetchParams): Promise<UnifiedEvent> {
+        const events = await this.fetchEvents(params);
+        if (events.length === 0) {
+            const identifier = params?.eventId || params?.slug || params?.query || 'unknown';
+            throw new EventNotFound(identifier, this.name);
+        }
+        return events[0];
     }
 
     // ----------------------------------------------------------------------------

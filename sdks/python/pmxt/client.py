@@ -408,6 +408,155 @@ class Exchange(ABC):
         except ApiException as e:
             raise Exception(f"Failed to fetch events: {self._extract_api_error(e)}") from None
 
+    def fetch_market(
+        self,
+        market_id: Optional[str] = None,
+        outcome_id: Optional[str] = None,
+        event_id: Optional[str] = None,
+        slug: Optional[str] = None,
+        query: Optional[str] = None,
+        **kwargs
+    ) -> UnifiedMarket:
+        """
+        Fetch a single market by lookup parameters.
+        Returns the first matching market or raises an exception if not found.
+
+        Args:
+            market_id: Direct lookup by market ID
+            outcome_id: Reverse lookup by outcome ID
+            event_id: Find market belonging to an event
+            slug: Lookup by slug/ticker
+            query: Search keyword
+            **kwargs: Additional parameters (limit, status, etc.)
+
+        Returns:
+            A single unified market
+
+        Raises:
+            Exception: If no market matches the parameters
+
+        Example:
+            >>> market = exchange.fetch_market(market_id='663583')
+            >>> market = exchange.fetch_market(slug='will-trump-win')
+        """
+        try:
+            search_params = {}
+            if market_id:
+                search_params["marketId"] = market_id
+            if outcome_id:
+                search_params["outcomeId"] = outcome_id
+            if event_id:
+                search_params["eventId"] = event_id
+            if slug:
+                search_params["slug"] = slug
+            if query:
+                search_params["query"] = query
+
+            # Convert snake_case kwargs to camelCase
+            key_map = {
+                "search_in": "searchIn",
+                "similarity_threshold": "similarityThreshold",
+            }
+            for key, value in kwargs.items():
+                camel_key = key_map.get(key, key)
+                search_params[camel_key] = value
+
+            body_dict = {"args": [search_params] if search_params else []}
+
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+
+            url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/fetchMarket"
+
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._api_client.default_headers)
+
+            response = self._api_client.call_api(
+                method="POST",
+                url=url,
+                body=body_dict,
+                header_params=headers
+            )
+
+            response.read()
+            data_json = json.loads(response.data)
+
+            data = self._handle_response(data_json)
+            return _convert_market(data)
+        except Exception as e:
+            raise Exception(f"Failed to fetch market: {self._extract_api_error(e)}") from None
+
+    def fetch_event(
+        self,
+        event_id: Optional[str] = None,
+        slug: Optional[str] = None,
+        query: Optional[str] = None,
+        **kwargs
+    ) -> UnifiedEvent:
+        """
+        Fetch a single event by lookup parameters.
+        Returns the first matching event or raises an exception if not found.
+
+        Args:
+            event_id: Direct lookup by event ID
+            slug: Lookup by event slug
+            query: Search keyword
+            **kwargs: Additional parameters (limit, status, etc.)
+
+        Returns:
+            A single unified event
+
+        Raises:
+            Exception: If no event matches the parameters
+
+        Example:
+            >>> event = exchange.fetch_event(event_id='TRUMP25DEC')
+            >>> event = exchange.fetch_event(slug='us-election')
+        """
+        try:
+            search_params = {}
+            if event_id:
+                search_params["eventId"] = event_id
+            if slug:
+                search_params["slug"] = slug
+            if query:
+                search_params["query"] = query
+
+            # Convert snake_case kwargs to camelCase
+            key_map = {
+                "search_in": "searchIn",
+            }
+            for key, value in kwargs.items():
+                camel_key = key_map.get(key, key)
+                search_params[camel_key] = value
+
+            body_dict = {"args": [search_params] if search_params else []}
+
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+
+            url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/fetchEvent"
+
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._api_client.default_headers)
+
+            response = self._api_client.call_api(
+                method="POST",
+                url=url,
+                body=body_dict,
+                header_params=headers
+            )
+
+            response.read()
+            data_json = json.loads(response.data)
+
+            data = self._handle_response(data_json)
+            return _convert_event(data)
+        except Exception as e:
+            raise Exception(f"Failed to fetch event: {self._extract_api_error(e)}") from None
+
     # ----------------------------------------------------------------------------
     # Filtering Methods
     # ----------------------------------------------------------------------------

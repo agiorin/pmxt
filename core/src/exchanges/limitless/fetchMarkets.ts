@@ -26,9 +26,27 @@ export async function fetchMarkets(
 
         const marketFetcher = new MarketFetcher(httpClient);
 
+        // Handle marketId lookup (Limitless marketId is the slug)
+        if (params?.marketId) {
+            return await fetchMarketsBySlug(marketFetcher, params.marketId);
+        }
+
         // Handle slug-based lookup
         if (params?.slug) {
             return await fetchMarketsBySlug(marketFetcher, params.slug);
+        }
+
+        // Handle outcomeId lookup (no direct API, fetch and filter client-side)
+        if (params?.outcomeId) {
+            const markets = await fetchMarketsDefault(marketFetcher, params);
+            return markets.filter(m =>
+                m.outcomes.some(o => o.outcomeId === params.outcomeId)
+            );
+        }
+
+        // Handle eventId lookup (same as slug for Limitless)
+        if (params?.eventId) {
+            return await fetchMarketsBySlug(marketFetcher, params.eventId);
         }
 
         // Handle query-based search

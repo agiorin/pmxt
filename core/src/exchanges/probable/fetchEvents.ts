@@ -6,6 +6,18 @@ import { probableErrorMapper } from './errors';
 
 export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     try {
+        // Handle eventId lookup
+        if (params.eventId) {
+            const event = await fetchEventById(params.eventId);
+            return event ? [event] : [];
+        }
+
+        // Handle slug lookup
+        if (params.slug) {
+            const event = await fetchEventBySlug(params.slug);
+            return event ? [event] : [];
+        }
+
         // Query-based search: use the search endpoint (only endpoint with text search)
         if (params.query) {
             return await searchEvents(params);

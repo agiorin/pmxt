@@ -329,6 +329,109 @@ export abstract class Exchange {
     }
 
     /**
+     * Fetch a single market by lookup parameters.
+     * Returns the first matching market or throws if not found.
+     *
+     * @param params - Lookup parameters (marketId, outcomeId, slug, eventId, query)
+     * @returns A single unified market
+     * @throws Error if no market matches
+     *
+     * @example
+     * ```typescript
+     * const market = await exchange.fetchMarket({ marketId: '663583' });
+     * const market = await exchange.fetchMarket({ outcomeId: '10991849...' });
+     * const market = await exchange.fetchMarket({ slug: 'will-trump-win' });
+     * ```
+     */
+    async fetchMarket(params?: any): Promise<UnifiedMarket> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            if (params) {
+                args.push(params);
+            }
+
+            const requestBody: any = {
+                args,
+                credentials: this.getCredentials()
+            };
+
+            const url = `${this.config.basePath}/api/${this.exchangeName}/fetchMarket`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.config.headers
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || response.statusText);
+            }
+
+            const json = await response.json();
+            const data = this.handleResponse(json);
+            return convertMarket(data);
+        } catch (error) {
+            throw new Error(`Failed to fetch market: ${error}`);
+        }
+    }
+
+    /**
+     * Fetch a single event by lookup parameters.
+     * Returns the first matching event or throws if not found.
+     *
+     * @param params - Lookup parameters (eventId, slug, query)
+     * @returns A single unified event
+     * @throws Error if no event matches
+     *
+     * @example
+     * ```typescript
+     * const event = await exchange.fetchEvent({ eventId: 'TRUMP25DEC' });
+     * const event = await exchange.fetchEvent({ slug: 'us-election' });
+     * ```
+     */
+    async fetchEvent(params?: any): Promise<UnifiedEvent> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            if (params) {
+                args.push(params);
+            }
+
+            const requestBody: any = {
+                args,
+                credentials: this.getCredentials()
+            };
+
+            const url = `${this.config.basePath}/api/${this.exchangeName}/fetchEvent`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.config.headers
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || response.statusText);
+            }
+
+            const json = await response.json();
+            const data = this.handleResponse(json);
+            return convertEvent(data);
+        } catch (error) {
+            throw new Error(`Failed to fetch event: ${error}`);
+        }
+    }
+
+    /**
      * Get historical price candles.
      *
      * @param outcomeId - Outcome ID (from market.outcomes[].outcomeId)

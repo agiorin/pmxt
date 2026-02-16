@@ -69,6 +69,47 @@ paths:
                         items:
                           $ref: '#/components/schemas/UnifiedMarket'
 
+  /api/{exchange}/fetchMarket:
+    post:
+      summary: Fetch Single Market
+      operationId: fetchMarket
+      description: >
+        Fetch a single market by lookup parameters. Returns the first matching market
+        or a 404 error if no market is found. Convenience wrapper around fetchMarkets.
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                args:
+                  type: array
+                  maxItems: 1
+                  items:
+                    $ref: '#/components/schemas/MarketFilterParams'
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: A single unified market
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UnifiedMarket'
+        '404':
+          description: Market not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/{exchange}/fetchOHLCV:
     post:
       summary: Fetch OHLCV Candles
@@ -216,6 +257,47 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/UnifiedEvent'
+
+  /api/{exchange}/fetchEvent:
+    post:
+      summary: Fetch Single Event
+      operationId: fetchEvent
+      description: >
+        Fetch a single event by lookup parameters. Returns the first matching event
+        or a 404 error if no event is found. Convenience wrapper around fetchEvents.
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                args:
+                  type: array
+                  maxItems: 1
+                  items:
+                    $ref: '#/components/schemas/EventFetchParams'
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+      responses:
+        '200':
+          description: A single unified event
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UnifiedEvent'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ---------------------------------------------------------------------------
   # WebSocket Streaming Endpoints
@@ -1093,6 +1175,15 @@ components:
           type: string
         slug:
           type: string
+        marketId:
+          type: string
+          description: "Direct lookup by market ID"
+        outcomeId:
+          type: string
+          description: "Reverse lookup -- find market containing this outcome"
+        eventId:
+          type: string
+          description: "Find markets belonging to an event"
         page:
           type: integer
         similarityThreshold:
@@ -1115,6 +1206,12 @@ components:
         searchIn:
           type: string
           enum: [title, description, both]
+        eventId:
+          type: string
+          description: "Direct lookup by event ID"
+        slug:
+          type: string
+          description: "Lookup by event slug"
 
     HistoryFilterParams:
       type: object

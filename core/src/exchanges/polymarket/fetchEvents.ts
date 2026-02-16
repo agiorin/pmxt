@@ -1,14 +1,88 @@
+import axios from 'axios';
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
-import { GAMMA_SEARCH_URL, mapMarketToUnified, paginateSearchParallel } from './utils';
+import { GAMMA_API_URL, GAMMA_SEARCH_URL, mapMarketToUnified, paginateSearchParallel } from './utils';
 import { polymarketErrorMapper } from './errors';
+
+async function fetchEventByGammaId(id: string): Promise<UnifiedEvent[]> {
+    const response = await axios.get(GAMMA_API_URL, {
+        params: { id }
+    });
+
+    const events = response.data;
+    if (!events || events.length === 0) return [];
+
+    return events.map((event: any) => {
+        const markets: UnifiedMarket[] = [];
+        if (event.markets && Array.isArray(event.markets)) {
+            for (const market of event.markets) {
+                const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+                if (unifiedMarket) {
+                    markets.push(unifiedMarket);
+                }
+            }
+        }
+
+        return {
+            id: event.id || event.slug,
+            title: event.title,
+            description: event.description || '',
+            slug: event.slug,
+            markets,
+            url: `https://polymarket.com/event/${event.slug}`,
+            image: event.image || `https://polymarket.com/api/og?slug=${event.slug}`,
+            category: event.category || event.tags?.[0]?.label,
+            tags: event.tags?.map((t: any) => t.label) || []
+        } as UnifiedEvent;
+    });
+}
+
+async function fetchEventBySlug(slug: string): Promise<UnifiedEvent[]> {
+    const response = await axios.get(GAMMA_API_URL, {
+        params: { slug }
+    });
+
+    const events = response.data;
+    if (!events || events.length === 0) return [];
+
+    return events.map((event: any) => {
+        const markets: UnifiedMarket[] = [];
+        if (event.markets && Array.isArray(event.markets)) {
+            for (const market of event.markets) {
+                const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+                if (unifiedMarket) {
+                    markets.push(unifiedMarket);
+                }
+            }
+        }
+
+        return {
+            id: event.id || event.slug,
+            title: event.title,
+            description: event.description || '',
+            slug: event.slug,
+            markets,
+            url: `https://polymarket.com/event/${event.slug}`,
+            image: event.image || `https://polymarket.com/api/og?slug=${event.slug}`,
+            category: event.category || event.tags?.[0]?.label,
+            tags: event.tags?.map((t: any) => t.label) || []
+        } as UnifiedEvent;
+    });
+}
 
 export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     try {
+        // Handle eventId lookup (Gamma event ID)
+        if (params.eventId) {
+            return await fetchEventByGammaId(params.eventId);
+        }
+
+        // Handle slug lookup
+        if (params.slug) {
+            return await fetchEventBySlug(params.slug);
+        }
+
         if (!params.query) {
-            // If no query is provided, we can't use the search endpoint effectively.
-            // However, the BaseExchange interface enforces query presence for fetchEvents.
-            // Just in case, we return empty or throw.
             throw new Error("Query is required for Polymarket event search");
         }
 

@@ -94,6 +94,15 @@ export class MarketNotFound extends BaseError {
 }
 
 /**
+ * 404 Not Found - The requested event doesn't exist
+ */
+export class EventNotFound extends BaseError {
+    constructor(identifier: string, exchange?: string) {
+        super(`Event not found: ${identifier}`, 404, 'EVENT_NOT_FOUND', false, exchange);
+    }
+}
+
+/**
  * 429 Too Many Requests - Rate limit exceeded
  */
 export class RateLimitExceeded extends BaseError {

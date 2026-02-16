@@ -97,9 +97,25 @@ export function resetCache(): void {
 
 export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     try {
+        // Handle marketId lookup (Kalshi marketId is the ticker)
+        if (params?.marketId) {
+            return await fetchMarketsBySlug(params.marketId);
+        }
+
         // Handle slug-based lookup (event ticker)
         if (params?.slug) {
             return await fetchMarketsBySlug(params.slug);
+        }
+
+        // Handle outcomeId lookup (strip -NO suffix, use as ticker)
+        if (params?.outcomeId) {
+            const ticker = params.outcomeId.replace(/-NO$/, '');
+            return await fetchMarketsBySlug(ticker);
+        }
+
+        // Handle eventId lookup (event ticker works the same way)
+        if (params?.eventId) {
+            return await fetchMarketsBySlug(params.eventId);
         }
 
         // Handle query-based search

@@ -4,8 +4,52 @@ import axios from 'axios';
 import { KALSHI_API_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
 
+async function fetchEventByTicker(eventTicker: string): Promise<UnifiedEvent[]> {
+    const normalizedTicker = eventTicker.toUpperCase();
+    const url = `https://api.elections.kalshi.com/trade-api/v2/events/${normalizedTicker}`;
+    const response = await axios.get(url, {
+        params: { with_nested_markets: true }
+    });
+
+    const event = response.data.event;
+    if (!event) return [];
+
+    const markets: UnifiedMarket[] = [];
+    if (event.markets) {
+        for (const market of event.markets) {
+            const unifiedMarket = mapMarketToUnified(event, market);
+            if (unifiedMarket) {
+                markets.push(unifiedMarket);
+            }
+        }
+    }
+
+    const unifiedEvent: UnifiedEvent = {
+        id: event.event_ticker,
+        title: event.title,
+        description: event.mututals_description || "",
+        slug: event.event_ticker,
+        markets: markets,
+        url: `https://kalshi.com/events/${event.event_ticker}`,
+        image: event.image_url,
+        category: event.category,
+        tags: event.tags || []
+    };
+    return [unifiedEvent];
+}
+
 export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
     try {
+        // Handle eventId lookup (direct API call)
+        if (params.eventId) {
+            return await fetchEventByTicker(params.eventId);
+        }
+
+        // Handle slug lookup (slug IS the event ticker on Kalshi)
+        if (params.slug) {
+            return await fetchEventByTicker(params.slug);
+        }
+
         const status = params?.status || 'active';
         const limit = params?.limit || 10000;
         const query = (params?.query || '').toLowerCase();

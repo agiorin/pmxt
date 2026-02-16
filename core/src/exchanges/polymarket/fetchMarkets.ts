@@ -6,9 +6,27 @@ import { polymarketErrorMapper } from './errors';
 
 export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
     try {
+        // Handle marketId lookup (Gamma market condition ID)
+        if (params?.marketId) {
+            return await fetchMarketById(params.marketId);
+        }
+
         // Handle slug-based lookup
         if (params?.slug) {
             return await fetchMarketsBySlug(params.slug);
+        }
+
+        // Handle outcomeId lookup (CLOB token ID -- no direct API, fetch and filter)
+        if (params?.outcomeId) {
+            const markets = await fetchMarketsDefault(params);
+            return markets.filter(m =>
+                m.outcomes.some(o => o.outcomeId === params.outcomeId)
+            );
+        }
+
+        // Handle eventId lookup (Gamma event ID)
+        if (params?.eventId) {
+            return await fetchMarketsByEventId(params.eventId);
         }
 
         // Handle query-based search
@@ -21,6 +39,51 @@ export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedM
     } catch (error: any) {
         throw polymarketErrorMapper.mapError(error);
     }
+}
+
+async function fetchMarketById(marketId: string): Promise<UnifiedMarket[]> {
+    const GAMMA_MARKETS_URL = 'https://gamma-api.polymarket.com/markets';
+    const response = await axios.get(GAMMA_MARKETS_URL, {
+        params: { id: marketId }
+    });
+
+    const markets = response.data;
+    if (!markets || markets.length === 0) return [];
+
+    const unifiedMarkets: UnifiedMarket[] = [];
+
+    for (const market of markets) {
+        // The /markets endpoint returns markets with an embedded 'events' array
+        const event = market.events?.[0] || market;
+        const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+        if (unifiedMarket) {
+            unifiedMarkets.push(unifiedMarket);
+        }
+    }
+    return unifiedMarkets;
+}
+
+async function fetchMarketsByEventId(eventId: string): Promise<UnifiedMarket[]> {
+    const response = await axios.get(GAMMA_API_URL, {
+        params: { id: eventId }
+    });
+
+    const events = response.data;
+    if (!events || events.length === 0) return [];
+
+    const unifiedMarkets: UnifiedMarket[] = [];
+
+    for (const event of events) {
+        if (!event.markets) continue;
+
+        for (const market of event.markets) {
+            const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+            if (unifiedMarket) {
+                unifiedMarkets.push(unifiedMarket);
+            }
+        }
+    }
+    return unifiedMarkets;
 }
 
 async function fetchMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
