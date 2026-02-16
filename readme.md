@@ -73,6 +73,8 @@ Different prediction market platforms have different APIs, data formats, and con
   <a href="https://limitless.exchange" style="color: inherit; text-decoration: none;"><img src="https://limitless.exchange/assets/images/logo.svg" alt="Limitless" width="24" height="24"> <b>Limitless</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://probable.markets" style="color: inherit; text-decoration: none;"><img src="https://developer.probable.markets/logo.svg" alt="Probable" width="100"></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://baozi.bet" style="color: inherit; text-decoration: none;"><img src="https://baozi.bet/favicon.ico" alt="Baozi" width="24" height="24"> <b>Baozi</b></a>
 </p>
 
 [Feature Support & Compliance](core/COMPLIANCE.md).
