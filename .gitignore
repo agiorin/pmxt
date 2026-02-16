@@ -153,9 +153,9 @@ build/
 venv/
 env/
 
-# SDK Generated Files (DO NOT COMMIT - regenerate from OpenAPI spec)
-# We commit the generated code so users don't need the generator
-# But mark it clearly as auto-generated
+# SDK Generated Files (regenerated from OpenAPI spec during CI)
+sdks/python/generated/
+sdks/typescript/generated/
 pmxt dev.txt
 scripts/simple_buy.py
 scripts/debug_slug.py
