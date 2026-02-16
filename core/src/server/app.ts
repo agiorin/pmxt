@@ -4,6 +4,7 @@ import { PolymarketExchange } from '../exchanges/polymarket';
 import { LimitlessExchange } from '../exchanges/limitless';
 import { KalshiExchange } from '../exchanges/kalshi';
 import { ProbableExchange } from '../exchanges/probable';
+import { BaoziExchange } from '../exchanges/baozi';
 import { ExchangeCredentials } from '../BaseExchange';
 import { BaseError } from '../errors';
 
@@ -12,7 +13,8 @@ const defaultExchanges: Record<string, any> = {
     polymarket: null,
     limitless: null,
     kalshi: null,
-    probable: null
+    probable: null,
+    baozi: null
 };
 
 export async function startServer(port: number, accessToken: string) {
@@ -152,6 +154,10 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
                 apiSecret: credentials?.apiSecret || process.env.PROBABLE_API_SECRET,
                 passphrase: credentials?.passphrase || process.env.PROBABLE_PASSPHRASE,
                 privateKey: credentials?.privateKey || process.env.PROBABLE_PRIVATE_KEY,
+            });
+        case 'baozi':
+            return new BaoziExchange({
+                privateKey: credentials?.privateKey || process.env.BAOZI_PRIVATE_KEY,
             });
         default:
             throw new Error(`Unknown exchange: ${name}`);

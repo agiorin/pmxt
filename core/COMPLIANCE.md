@@ -4,26 +4,26 @@ This document details the feature support and compliance status for each exchang
 
 ## Functions Status
 
-| Category | Function | Polymarket | Kalshi | Limitless | Notes |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **Identity** | `name` | | | | |
-| **Market Data** | `fetchMarkets` | | | | |
-| | `searchMarkets` | | | | |
-| | `getMarketsBySlug` | | | | |
-| | `searchEvents` | | | | |
-| **Public Data** | `fetchOHLCV` | | | | |
-| | `fetchOrderBook` | | | | |
-| | `fetchTrades` | | |  | Limitless: No public trades API |
-| **Private Data** | `fetchBalance` | | | | Verified (Real API calls, balances fetched) |
-| | `fetchPositions` | | | | |
-| **Trading** | `createOrder` | | | | All Exchange verified (Mock/Rejected due to funds) |
-| | `cancelOrder` | | | | Verified (Interface correct, returns Not Found for dummy IDs) |
-| | `fetchOrder` | | |  | Limitless: Not supported (requires market slug) |
-| | `fetchOpenOrders` | | | | Verified (Empty results pass for private data) |
-| **Calculations** | `getExecutionPrice` | | | | |
-| | `getExecutionPriceDetailed` | | | | |
-| **Real-time** | `watchOrderBook` | | |  | Limitless: No websocket support |
-| | `watchTrades` | | |  | Limitless: No websocket support |
+| Category | Function | Polymarket | Kalshi | Limitless | Baozi | Notes |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **Identity** | `name` | | | | | |
+| **Market Data** | `fetchMarkets` | | | | | Baozi: On-chain Market + RaceMarket accounts |
+| | `searchMarkets` | | | | | |
+| | `getMarketsBySlug` | | | | | |
+| | `searchEvents` | | | | | Baozi: 1:1 market-to-event mapping |
+| **Public Data** | `fetchOHLCV` | | | |  | Baozi: No historical price data (no indexer) |
+| | `fetchOrderBook` | | | | | Baozi: Synthetic from pool ratios (pari-mutuel) |
+| | `fetchTrades` | | |  |  | Limitless/Baozi: No public trades API |
+| **Private Data** | `fetchBalance` | | | | | Baozi: SOL balance via getBalance() |
+| | `fetchPositions` | | | | | Baozi: UserPosition + RacePosition PDAs |
+| **Trading** | `createOrder` | | | | | Baozi: place_bet_sol / bet_on_race_outcome_sol |
+| | `cancelOrder` | | | |  | Baozi: Pari-mutuel bets are irrevocable |
+| | `fetchOrder` | | |  | | Baozi: Transaction signature lookup |
+| | `fetchOpenOrders` | | | | | Baozi: Always empty (instant execution) |
+| **Calculations** | `getExecutionPrice` | | | | | |
+| | `getExecutionPriceDetailed` | | | | | |
+| **Real-time** | `watchOrderBook` | | |  | | Baozi: Solana onAccountChange subscription |
+| | `watchTrades` | | |  |  | Limitless/Baozi: No trade stream |
 
 ## Legend
 - Compliance Verified (Strict Test Passed)

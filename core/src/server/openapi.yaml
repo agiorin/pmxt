@@ -884,7 +884,7 @@ components:
       name: exchange
       schema:
         type: string
-        enum: [polymarket, kalshi, limitless, probable]
+        enum: [polymarket, kalshi, limitless, probable, baozi]
       required: true
       description: The prediction market exchange to target.
 
