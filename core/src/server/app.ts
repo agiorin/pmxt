@@ -5,6 +5,7 @@ import { LimitlessExchange } from '../exchanges/limitless';
 import { KalshiExchange } from '../exchanges/kalshi';
 import { ProbableExchange } from '../exchanges/probable';
 import { BaoziExchange } from '../exchanges/baozi';
+import { MyriadExchange } from '../exchanges/myriad';
 import { ExchangeCredentials } from '../BaseExchange';
 import { BaseError } from '../errors';
 
@@ -14,7 +15,8 @@ const defaultExchanges: Record<string, any> = {
     limitless: null,
     kalshi: null,
     probable: null,
-    baozi: null
+    baozi: null,
+    myriad: null
 };
 
 export async function startServer(port: number, accessToken: string) {
@@ -158,6 +160,11 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
         case 'baozi':
             return new BaoziExchange({
                 privateKey: credentials?.privateKey || process.env.BAOZI_PRIVATE_KEY,
+            });
+        case 'myriad':
+            return new MyriadExchange({
+                apiKey: credentials?.apiKey || process.env.MYRIAD_API_KEY || process.env.MYRIAD_PROD,
+                privateKey: credentials?.privateKey || process.env.MYRIAD_WALLET_ADDRESS,
             });
         default:
             throw new Error(`Unknown exchange: ${name}`);

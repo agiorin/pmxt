@@ -4,26 +4,26 @@ This document details the feature support and compliance status for each exchang
 
 ## Functions Status
 
-| Category | Function | Polymarket | Kalshi | Limitless | Baozi | Notes |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Identity** | `name` | | | | | |
-| **Market Data** | `fetchMarkets` | | | | | Baozi: On-chain Market + RaceMarket accounts |
-| | `searchMarkets` | | | | | |
-| | `getMarketsBySlug` | | | | | |
-| | `searchEvents` | | | | | Baozi: 1:1 market-to-event mapping |
-| **Public Data** | `fetchOHLCV` | | | |  | Baozi: No historical price data (no indexer) |
-| | `fetchOrderBook` | | | | | Baozi: Synthetic from pool ratios (pari-mutuel) |
-| | `fetchTrades` | | |  |  | Limitless/Baozi: No public trades API |
-| **Private Data** | `fetchBalance` | | | | | Baozi: SOL balance via getBalance() |
-| | `fetchPositions` | | | | | Baozi: UserPosition + RacePosition PDAs |
-| **Trading** | `createOrder` | | | | | Baozi: place_bet_sol / bet_on_race_outcome_sol |
-| | `cancelOrder` | | | |  | Baozi: Pari-mutuel bets are irrevocable |
-| | `fetchOrder` | | |  | | Baozi: Transaction signature lookup |
-| | `fetchOpenOrders` | | | | | Baozi: Always empty (instant execution) |
-| **Calculations** | `getExecutionPrice` | | | | | |
-| | `getExecutionPriceDetailed` | | | | | |
-| **Real-time** | `watchOrderBook` | | |  | | Baozi: Solana onAccountChange subscription |
-| | `watchTrades` | | |  |  | Limitless/Baozi: No trade stream |
+| Category | Function | Polymarket | Kalshi | Limitless | Baozi | Myriad | Notes |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Identity** | `name` | | | | | | |
+| **Market Data** | `fetchMarkets` | | | | | | Myriad: Multi-chain (Abstract, Linea, BNB) |
+| | `searchMarkets` | | | | | | Myriad: keyword param on /markets |
+| | `getMarketsBySlug` | | | | | | |
+| | `searchEvents` | | | | | | Myriad: keyword param on /questions |
+| **Public Data** | `fetchOHLCV` | | | |  |  | Baozi: No historical data. Myriad: Fixed timeframe charts only |
+| | `fetchOrderBook` | | | | |  | Baozi: Synthetic from pool ratios. Myriad: Synthetic from AMM price |
+| | `fetchTrades` | | |  |  | | Myriad: via /markets/:id/events (buy/sell actions) |
+| **Private Data** | `fetchBalance` | | | | |  | Myriad: Approximated from portfolio (no balance endpoint) |
+| | `fetchPositions` | | | | | | Myriad: via /users/:address/portfolio |
+| **Trading** | `createOrder` | | | | |  | Myriad: Returns quote + calldata (AMM, no on-chain execution) |
+| | `cancelOrder` | | | |  |  | Baozi/Myriad: Not supported (pari-mutuel/AMM) |
+| | `fetchOrder` | | |  |  |  | Myriad: Not supported (AMM) |
+| | `fetchOpenOrders` | | | | | | Myriad: Always empty (AMM, instant execution) |
+| **Calculations** | `getExecutionPrice` | | | | | | |
+| | `getExecutionPriceDetailed` | | | | | | |
+| **Real-time** | `watchOrderBook` | | |  |  |  | Myriad: Poll-based fallback (no WebSocket API) |
+| | `watchTrades` | | |  |  |  | Myriad: Poll-based fallback (no WebSocket API) |
 
 ## Legend
 - Compliance Verified (Strict Test Passed)
@@ -42,4 +42,7 @@ KALSHI_API_KEY=...
 KALSHI_PRIVATE_KEY=... (RSA Private Key)
 # Limitless
 LIMITLESS_PRIVATE_KEY=0x...
+# Myriad
+MYRIAD_API_KEY=...
+MYRIAD_WALLET_ADDRESS=0x...
 ```
