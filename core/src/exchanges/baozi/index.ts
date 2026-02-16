@@ -169,8 +169,8 @@ export class BaoziExchange extends PredictionMarketExchange {
 
                     // Try to fetch the market to get current prices
                     const marketPda = deriveMarketPda(pos.marketId);
-                    let currentYesPrice = 0.5;
-                    let currentNoPrice = 0.5;
+                    let currentYesPrice = 0;
+                    let currentNoPrice = 0;
                     let marketTitle = `Market #${pos.marketId}`;
 
                     try {
@@ -178,8 +178,8 @@ export class BaoziExchange extends PredictionMarketExchange {
                         if (marketInfo) {
                             const market = parseMarket(marketInfo.data);
                             const unified = mapBooleanToUnified(market, marketPda.toString());
-                            currentYesPrice = unified.yes?.price ?? 0.5;
-                            currentNoPrice = unified.no?.price ?? 0.5;
+                            currentYesPrice = unified.yes?.price ?? 0;
+                            currentNoPrice = unified.no?.price ?? 0;
                             marketTitle = market.question;
                         }
                     } catch {
@@ -224,18 +224,34 @@ export class BaoziExchange extends PredictionMarketExchange {
                     if (pos.claimed) continue;
 
                     const racePda = deriveRaceMarketPda(pos.marketId);
+                    const racePdaStr = racePda.toString();
+
+                    // Try to fetch the race market to get current prices and labels
+                    let outcomePrices: number[] = [];
+                    let outcomeLabels: string[] = [];
+                    try {
+                        const marketInfo = await this.connection.getAccountInfo(racePda);
+                        if (marketInfo) {
+                            const raceMarket = parseRaceMarket(marketInfo.data);
+                            const unified = mapRaceToUnified(raceMarket, racePdaStr);
+                            outcomePrices = unified.outcomes.map(o => o.price);
+                            outcomeLabels = unified.outcomes.map(o => o.label);
+                        }
+                    } catch {
+                        // Use defaults if market fetch fails
+                    }
 
                     for (let i = 0; i < pos.bets.length; i++) {
                         const betSOL = Number(pos.bets[i]) / LAMPORTS_PER_SOL;
                         if (betSOL <= 0) continue;
 
                         positions.push({
-                            marketId: racePda.toString(),
-                            outcomeId: `${racePda.toString()}-${i}`,
-                            outcomeLabel: `Outcome ${i}`,
+                            marketId: racePdaStr,
+                            outcomeId: `${racePdaStr}-${i}`,
+                            outcomeLabel: outcomeLabels[i] || `Outcome ${i}`,
                             size: betSOL,
                             entryPrice: 0,
-                            currentPrice: 0,
+                            currentPrice: outcomePrices[i] ?? 0,
                             unrealizedPnL: 0,
                         });
                     }
@@ -302,9 +318,15 @@ export class BaoziExchange extends PredictionMarketExchange {
                 });
             } else {
                 // Build bet_on_race_outcome_sol instruction
-                const parts = outcomeId.split('-');
-                const outcomeIndex = parseInt(parts[parts.length - 1], 10);
-                const marketPubkey = new PublicKey(parts.slice(0, -1).join('-'));
+                const lastDash = outcomeId.lastIndexOf('-');
+                if (lastDash === -1) {
+                    throw new InvalidOrder(
+                        `Invalid race outcomeId format: ${outcomeId}. Expected "{marketPubkey}-{index}"`,
+                        'Baozi',
+                    );
+                }
+                const outcomeIndex = parseInt(outcomeId.slice(lastDash + 1), 10);
+                const marketPubkey = new PublicKey(outcomeId.slice(0, lastDash));
 
                 // Fetch race market to get market_id
                 const marketInfo = await this.connection.getAccountInfo(marketPubkey);
@@ -378,7 +400,7 @@ export class BaoziExchange extends PredictionMarketExchange {
 
     async fetchOrder(orderId: string): Promise<Order> {
         // In pari-mutuel, there are no pending orders. The "order" is the tx signature.
-        // We can verify the transaction was confirmed.
+        // We can verify the transaction was confirmed and extract market info.
         try {
             const tx = await this.connection.getTransaction(orderId, {
                 maxSupportedTransactionVersion: 0,
@@ -388,15 +410,56 @@ export class BaoziExchange extends PredictionMarketExchange {
                 throw new Error(`Transaction not found: ${orderId}`);
             }
 
+            // Try to extract market/outcome from the transaction instruction
+            let marketId = '';
+            let outcomeId = '';
+            let amount = 0;
+
+            const message = tx.transaction.message;
+            const programIdIndex = message.staticAccountKeys.findIndex(
+                (key: PublicKey) => key.equals(PROGRAM_ID),
+            );
+
+            if (programIdIndex !== -1) {
+                for (const ix of message.compiledInstructions) {
+                    if (ix.programIdIndex !== programIdIndex) continue;
+                    const data = Buffer.from(ix.data);
+                    if (data.length < 17) continue;
+
+                    const discriminator = data.subarray(0, 8);
+                    const isBooleanBet = discriminator.equals(PLACE_BET_SOL_DISCRIMINATOR);
+                    const isRaceBet = discriminator.equals(BET_ON_RACE_OUTCOME_SOL_DISCRIMINATOR);
+
+                    if (!isBooleanBet && !isRaceBet) continue;
+
+                    // Account keys[1] is the market PDA for both instruction types
+                    const marketKeyIndex = ix.accountKeyIndexes[1];
+                    const marketKey = message.staticAccountKeys[marketKeyIndex];
+                    marketId = marketKey.toString();
+
+                    const lamports = data.readBigUInt64LE(9);
+                    amount = Number(lamports) / LAMPORTS_PER_SOL;
+
+                    if (isBooleanBet) {
+                        const outcome = data.readUInt8(8);
+                        outcomeId = `${marketId}-${outcome === 1 ? 'YES' : 'NO'}`;
+                    } else {
+                        const outcomeIndex = data.readUInt8(8);
+                        outcomeId = `${marketId}-${outcomeIndex}`;
+                    }
+                    break;
+                }
+            }
+
             return {
                 id: orderId,
-                marketId: 'unknown',
-                outcomeId: 'unknown',
+                marketId,
+                outcomeId,
                 side: 'buy',
                 type: 'market',
-                amount: 0,
+                amount,
                 status: tx.meta?.err ? 'rejected' : 'filled',
-                filled: 0,
+                filled: tx.meta?.err ? 0 : amount,
                 remaining: 0,
                 timestamp: (tx.blockTime || 0) * 1000,
             };
