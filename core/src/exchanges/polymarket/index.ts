@@ -1,5 +1,7 @@
+import { createHmac } from 'crypto';
 import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
+import { parseOpenApiSpec } from '../../utils/openapi';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
@@ -11,6 +13,9 @@ import { Side, OrderType, AssetType } from '@polymarket/clob-client';
 import { PolymarketWebSocket, PolymarketWebSocketConfig } from './websocket';
 import { polymarketErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { polymarketClobSpec } from './api-clob';
+import { polymarketGammaSpec } from './api-gamma';
+import { polymarketDataSpec } from './api-data';
 
 // Re-export for external use
 export type { PolymarketWebSocketConfig };
@@ -39,6 +44,8 @@ export class PolymarketExchange extends PredictionMarketExchange {
 
     private auth?: PolymarketAuth;
     private wsConfig?: PolymarketWebSocketConfig;
+    private cachedApiCreds?: { key: string; secret: string; passphrase: string };
+    private cachedAddress?: string;
 
     constructor(options?: ExchangeCredentials | PolymarketExchangeOptions) {
         // Support both old signature (credentials only) and new signature (options object)
@@ -61,10 +68,87 @@ export class PolymarketExchange extends PredictionMarketExchange {
         if (credentials?.privateKey) {
             this.auth = new PolymarketAuth(credentials);
         }
+
+        // If L2 API creds are provided directly, cache them for sync sign()
+        if (credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
+            this.cachedApiCreds = {
+                key: credentials.apiKey,
+                secret: credentials.apiSecret,
+                passphrase: credentials.passphrase,
+            };
+        }
+
+        // Register implicit APIs for all 3 Polymarket services
+        const clobDescriptor = parseOpenApiSpec(polymarketClobSpec);
+        this.defineImplicitApi(clobDescriptor);
+
+        const gammaDescriptor = parseOpenApiSpec(polymarketGammaSpec);
+        this.defineImplicitApi(gammaDescriptor);
+
+        const dataDescriptor = parseOpenApiSpec(polymarketDataSpec);
+        this.defineImplicitApi(dataDescriptor);
     }
 
     get name(): string {
         return 'Polymarket';
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implicit API Auth & Error Mapping
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Initialize L2 API credentials for implicit API signing.
+     * Must be called before using private implicit API endpoints if only
+     * a privateKey was provided (not apiKey/apiSecret/passphrase).
+     */
+    async initAuth(): Promise<void> {
+        const auth = this.ensureAuth();
+        const creds = await auth.getApiCredentials();
+        this.cachedApiCreds = {
+            key: creds.key,
+            secret: creds.secret,
+            passphrase: creds.passphrase,
+        };
+        this.cachedAddress = auth.getFunderAddress();
+    }
+
+    protected override sign(method: string, path: string, _params: Record<string, any>): Record<string, string> {
+        if (!this.cachedApiCreds) {
+            throw new AuthenticationError(
+                'API credentials not initialized. Either provide apiKey/apiSecret/passphrase ' +
+                'in credentials, or call initAuth() before using private implicit API endpoints.',
+                'Polymarket'
+            );
+        }
+
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const message = timestamp + method.toUpperCase() + path;
+
+        // Decode the base64url secret
+        const secretB64 = this.cachedApiCreds.secret
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        const secretBuffer = Buffer.from(secretB64, 'base64');
+
+        // HMAC-SHA256 -> base64url
+        const hmac = createHmac('sha256', secretBuffer);
+        hmac.update(message);
+        const signature = hmac.digest('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+
+        return {
+            'POLY_ADDRESS': this.cachedAddress || (this.auth ? this.auth.getFunderAddress() : ''),
+            'POLY_SIGNATURE': signature,
+            'POLY_TIMESTAMP': timestamp,
+            'POLY_API_KEY': this.cachedApiCreds.key,
+            'POLY_PASSPHRASE': this.cachedApiCreds.passphrase,
+        };
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw polymarketErrorMapper.mapError(error);
     }
 
     // ----------------------------------------------------------------------------

@@ -9,6 +9,8 @@ import { KalshiAuth } from './auth';
 import { KalshiWebSocket, KalshiWebSocketConfig } from './websocket';
 import { kalshiErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { kalshiApiSpec } from './api';
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -58,14 +60,30 @@ export class KalshiExchange extends PredictionMarketExchange {
         if (credentials?.apiKey && credentials?.privateKey) {
             this.auth = new KalshiAuth(credentials);
         }
+
+        const descriptor = parseOpenApiSpec(kalshiApiSpec);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {
         return "Kalshi";
     }
 
-    private getBaseUrl(): string {
+    protected getBaseUrl(): string {
         return 'https://api.elections.kalshi.com';
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implicit API Auth & Error Mapping
+    // ----------------------------------------------------------------------------
+
+    protected override sign(method: string, path: string, _params: Record<string, any>): Record<string, string> {
+        const auth = this.ensureAuth();
+        return auth.getHeaders(method, path);
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw kalshiErrorMapper.mapError(error);
     }
 
     // ----------------------------------------------------------------------------

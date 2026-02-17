@@ -3,6 +3,29 @@ import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } fr
 import { MarketNotFound, EventNotFound } from './errors';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
+// ----------------------------------------------------------------------------
+// Implicit API Types (OpenAPI-driven method generation)
+// ----------------------------------------------------------------------------
+
+export interface ApiEndpoint {
+    method: string;
+    path: string;
+    isPrivate?: boolean;
+    operationId?: string;
+}
+
+export interface ApiDescriptor {
+    baseUrl: string;
+    endpoints: Record<string, ApiEndpoint>;
+}
+
+export interface ImplicitApiMethodInfo {
+    name: string;
+    method: string;
+    path: string;
+    isPrivate: boolean;
+}
+
 export interface MarketFilterParams {
     limit?: number;
     offset?: number;
@@ -150,6 +173,8 @@ export interface ExchangeCredentials {
 // ----------------------------------------------------------------------------
 
 export abstract class PredictionMarketExchange {
+    [key: string]: any; // Allow dynamic method assignment for implicit API
+
     protected credentials?: ExchangeCredentials;
     public verbose: boolean = false;
     public http: AxiosInstance;
@@ -158,6 +183,10 @@ export abstract class PredictionMarketExchange {
     public markets: Record<string, UnifiedMarket> = {};
     public marketsBySlug: Record<string, UnifiedMarket> = {};
     public loadedMarkets: boolean = false;
+
+    // Implicit API (merged across multiple defineImplicitApi calls)
+    protected apiDescriptor?: ApiDescriptor;
+    private apiDescriptors: ApiDescriptor[] = [];
 
     readonly has: ExchangeHas = {
         fetchMarkets: false,
@@ -1046,5 +1075,122 @@ export abstract class PredictionMarketExchange {
     async close(): Promise<void> {
         // Default implementation: no-op
         // Exchanges with WebSocket support should override this
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implicit API (OpenAPI-driven method generation)
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Parse an API descriptor and generate callable methods on this instance.
+     * Existing methods (unified API) are never overwritten.
+     */
+    protected defineImplicitApi(descriptor: ApiDescriptor): void {
+        this.apiDescriptors.push(descriptor);
+
+        // Merge into a single apiDescriptor for the implicitApi getter
+        if (!this.apiDescriptor) {
+            this.apiDescriptor = { baseUrl: descriptor.baseUrl, endpoints: { ...descriptor.endpoints } };
+        } else {
+            Object.assign(this.apiDescriptor.endpoints, descriptor.endpoints);
+        }
+
+        for (const [name, endpoint] of Object.entries(descriptor.endpoints)) {
+            // Never overwrite existing methods (unified API wins)
+            if (name in this) {
+                continue;
+            }
+            (this as any)[name] = this.createImplicitMethod(name, endpoint, descriptor.baseUrl);
+        }
+    }
+
+    /**
+     * Creates an async function for an implicit API endpoint.
+     */
+    private createImplicitMethod(
+        name: string,
+        endpoint: ApiEndpoint,
+        baseUrl: string
+    ): (params?: Record<string, any>) => Promise<any> {
+        return async (params?: Record<string, any>): Promise<any> => {
+            const allParams = { ...(params || {}) };
+
+            // Substitute path parameters like {ticker} from params
+            let resolvedPath = endpoint.path.replace(/\{([^}]+)\}/g, (_match, key) => {
+                const value = allParams[key];
+                if (value === undefined) {
+                    throw new Error(
+                        `Missing required path parameter "${key}" for ${name}(). ` +
+                        `Path: ${endpoint.path}`
+                    );
+                }
+                delete allParams[key];
+                return encodeURIComponent(String(value));
+            });
+
+            // Get auth headers for private endpoints
+            let headers: Record<string, string> = {};
+            if (endpoint.isPrivate) {
+                headers = this.sign(endpoint.method, resolvedPath, allParams);
+            }
+
+            const url = `${baseUrl}${resolvedPath}`;
+            const method = endpoint.method.toUpperCase();
+
+            try {
+                let response;
+                if (method === 'GET' || method === 'DELETE') {
+                    // Remaining params go to query string
+                    response = await this.http.request({
+                        method: method as any,
+                        url,
+                        params: Object.keys(allParams).length > 0 ? allParams : undefined,
+                        headers,
+                    });
+                } else {
+                    // POST/PUT/PATCH: remaining params go to JSON body
+                    response = await this.http.request({
+                        method: method as any,
+                        url,
+                        data: Object.keys(allParams).length > 0 ? allParams : undefined,
+                        headers: { 'Content-Type': 'application/json', ...headers },
+                    });
+                }
+
+                return response.data;
+            } catch (error: any) {
+                throw this.mapImplicitApiError(error);
+            }
+        };
+    }
+
+    /**
+     * Returns auth headers for a private API call.
+     * Exchanges should override this to provide authentication.
+     */
+    protected sign(_method: string, _path: string, _params: Record<string, any>): Record<string, string> {
+        return {};
+    }
+
+    /**
+     * Maps errors from implicit API calls through the exchange's error mapper.
+     * Exchanges should override this to use their specific error mapper.
+     */
+    protected mapImplicitApiError(error: any): any {
+        throw error;
+    }
+
+    /**
+     * Introspection getter: returns info about all implicit API methods.
+     */
+    get implicitApi(): ImplicitApiMethodInfo[] {
+        if (!this.apiDescriptor) return [];
+
+        return Object.entries(this.apiDescriptor.endpoints).map(([name, endpoint]) => ({
+            name,
+            method: endpoint.method,
+            path: endpoint.path,
+            isPrivate: !!endpoint.isPrivate,
+        }));
     }
 }

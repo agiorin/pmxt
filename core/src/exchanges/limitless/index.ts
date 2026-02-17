@@ -32,6 +32,8 @@ import { limitlessErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { PortfolioFetcher, getContractAddress } from '@limitless-exchange/sdk';
 import { Contract, providers } from 'ethers';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { limitlessApiSpec } from './api';
 
 // Re-export for external use
 export type { LimitlessWebSocketConfig };
@@ -99,10 +101,22 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 console.warn('Failed to initialize Limitless auth:', error);
             }
         }
+
+        // Register implicit API for Limitless REST endpoints
+        const apiDescriptor = parseOpenApiSpec(limitlessApiSpec);
+        this.defineImplicitApi(apiDescriptor);
     }
 
     get name(): string {
         return 'Limitless';
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implicit API Error Mapping
+    // ----------------------------------------------------------------------------
+
+    protected override mapImplicitApiError(error: any): any {
+        throw limitlessErrorMapper.mapError(error);
     }
 
     // ----------------------------------------------------------------------------

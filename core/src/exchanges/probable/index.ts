@@ -29,6 +29,8 @@ import { ProbableWebSocket, ProbableWebSocketConfig } from './websocket';
 import { probableErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { OrderSide } from '@prob/clob';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { probableApiSpec } from './api';
 
 const BSC_USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 
@@ -60,6 +62,9 @@ export class ProbableExchange extends PredictionMarketExchange {
         if (credentials?.privateKey && credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
             this.auth = new ProbableAuth(credentials);
         }
+
+        const descriptor = parseOpenApiSpec(probableApiSpec);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {

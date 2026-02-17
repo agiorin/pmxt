@@ -11,6 +11,8 @@ import { MyriadWebSocket } from './websocket';
 import { myriadErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { BASE_URL } from './utils';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { myriadApiSpec } from './api';
 
 export class MyriadExchange extends PredictionMarketExchange {
     override readonly has = {
@@ -37,6 +39,9 @@ export class MyriadExchange extends PredictionMarketExchange {
         if (credentials?.apiKey) {
             this.auth = new MyriadAuth(credentials);
         }
+
+        const descriptor = parseOpenApiSpec(myriadApiSpec, BASE_URL);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {
@@ -48,6 +53,14 @@ export class MyriadExchange extends PredictionMarketExchange {
             return this.auth.getHeaders();
         }
         return { 'Content-Type': 'application/json' };
+    }
+
+    protected override sign(_method: string, _path: string, _params: Record<string, any>): Record<string, string> {
+        return this.getHeaders();
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw myriadErrorMapper.mapError(error);
     }
 
     private ensureAuth(): MyriadAuth {
