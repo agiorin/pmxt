@@ -85,7 +85,7 @@ async function searchMarkets(
     const response = await http.get(`${LIMITLESS_API_URL}/markets/search`, {
         params: {
             query: query,
-            limit: params?.limit || 10000,
+            limit: params?.limit || 250000,
             page: params?.page || 1,
             similarityThreshold: params?.similarityThreshold || 0.5
         }
@@ -109,14 +109,14 @@ async function searchMarkets(
 
     return allMarkets
         .filter((m: any): m is UnifiedMarket => m !== null && m.outcomes.length > 0)
-        .slice(0, params?.limit || 10000);
+        .slice(0, params?.limit || 250000);
 }
 
 async function fetchMarketsDefault(
     marketFetcher: any,
     params?: MarketFetchParams
 ): Promise<UnifiedMarket[]> {
-    const limit = params?.limit || 10000;
+    const limit = params?.limit || 250000;
     const offset = params?.offset || 0;
 
     // Map sort parameter to SDK's sortBy

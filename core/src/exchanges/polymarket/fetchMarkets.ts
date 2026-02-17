@@ -110,7 +110,7 @@ async function fetchMarketsBySlug(slug: string, http: AxiosInstance): Promise<Un
 }
 
 async function searchMarkets(query: string, params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
-    const limit = params?.limit || 10000;
+    const limit = params?.limit || 250000;
 
     // Use parallel pagination to fetch all matching events
     // Each event can contain multiple markets, so we need a larger pool
@@ -156,7 +156,7 @@ async function searchMarkets(query: string, params: MarketFetchParams | undefine
 }
 
 async function fetchMarketsDefault(params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
-    const limit = params?.limit || 10000;  // Higher default for better coverage
+    const limit = params?.limit || 250000;  // Higher default for better coverage
     const offset = params?.offset || 0;
 
     // Map generic sort params to Polymarket Gamma API params

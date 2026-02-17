@@ -154,6 +154,11 @@ export abstract class PredictionMarketExchange {
     public verbose: boolean = false;
     public http: AxiosInstance;
 
+    // Market Cache
+    public markets: Record<string, UnifiedMarket> = {};
+    public marketsBySlug: Record<string, UnifiedMarket> = {};
+    public loadedMarkets: boolean = false;
+
     readonly has: ExchangeHas = {
         fetchMarkets: false,
         fetchEvents: false,
@@ -209,6 +214,37 @@ export abstract class PredictionMarketExchange {
     }
 
     abstract get name(): string;
+
+    /**
+     * Load and cache markets from the exchange.
+     * This method populates `this.markets` and `this.marketsBySlug`.
+     * 
+     * @param reload - Force a reload of markets from the API even if already loaded
+     * @returns Dictionary of markets indexed by marketId
+     */
+    async loadMarkets(reload: boolean = false): Promise<Record<string, UnifiedMarket>> {
+        if (this.loadedMarkets && !reload) {
+            return this.markets;
+        }
+
+        // Fetch all markets (implementation dependent, usually fetches active markets)
+        const markets = await this.fetchMarkets();
+
+        // Reset caches
+        this.markets = {};
+        this.marketsBySlug = {};
+
+        for (const market of markets) {
+            this.markets[market.marketId] = market;
+            // Some exchanges provide slugs, if so cache them
+            if (market.slug) {
+                this.marketsBySlug[market.slug] = market;
+            }
+        }
+
+        this.loadedMarkets = true;
+        return this.markets;
+    }
 
     /**
      * Fetch markets with optional filtering, search, or slug lookup.
@@ -291,6 +327,16 @@ export abstract class PredictionMarketExchange {
      * market = exchange.fetch_market(market_id='663583')
      */
     async fetchMarket(params?: MarketFetchParams): Promise<UnifiedMarket> {
+        // Try to fetch from cache first if we have loaded markets and have an ID/slug
+        if (this.loadedMarkets) {
+            if (params?.marketId && this.markets[params.marketId]) {
+                return this.markets[params.marketId];
+            }
+            if (params?.slug && this.marketsBySlug[params.slug]) {
+                return this.marketsBySlug[params.slug];
+            }
+        }
+
         const markets = await this.fetchMarkets(params);
         if (markets.length === 0) {
             const identifier = params?.marketId || params?.outcomeId || params?.slug || params?.eventId || params?.query || 'unknown';
