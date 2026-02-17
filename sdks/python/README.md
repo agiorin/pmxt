@@ -110,7 +110,8 @@ import pmxt
 
 kalshi = pmxt.Kalshi(
     api_key=os.getenv("KALSHI_API_KEY"),
-    private_key=os.getenv("KALSHI_PRIVATE_KEY")
+    private_key=os.getenv("KALSHI_PRIVATE_KEY"),
+    demo_mode=os.getenv("KALSHI_DEMO_MODE") == "true"  # Optional: Use demo environment
 )
 
 # Check positions

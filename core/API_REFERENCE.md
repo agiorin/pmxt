@@ -335,7 +335,8 @@ import pmxt from 'pmxtjs';
 
 const kalshi = new pmxt.Kalshi({
   apiKey: process.env.KALSHI_API_KEY,
-  privateKey: process.env.KALSHI_PRIVATE_KEY
+  privateKey: process.env.KALSHI_PRIVATE_KEY,
+  demoMode: process.env.KALSHI_DEMO_MODE === 'true' // Optional: Use demo environment
 });
 ```
 
