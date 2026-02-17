@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { TradesParams, HistoryFilterParams } from '../../BaseExchange';
 import { Trade } from '../../types';
 import { BASE_URL } from './utils';
@@ -7,7 +7,8 @@ import { myriadErrorMapper } from './errors';
 export async function fetchTrades(
     id: string,
     params: TradesParams | HistoryFilterParams,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    http: AxiosInstance = axios
 ): Promise<Trade[]> {
     try {
         // id format: {networkId}:{marketId}:{outcomeId} or {networkId}:{marketId}
@@ -43,7 +44,7 @@ export async function fetchTrades(
             queryParams.until = Math.floor(ensureDate(params.end).getTime() / 1000);
         }
 
-        const response = await axios.get(`${BASE_URL}/markets/${marketId}/events`, {
+        const response = await http.get(`${BASE_URL}/markets/${marketId}/events`, {
             params: queryParams,
             headers,
         });

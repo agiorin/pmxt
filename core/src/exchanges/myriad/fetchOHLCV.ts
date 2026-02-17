@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OHLCVParams, HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle, CandleInterval } from '../../types';
 import { BASE_URL } from './utils';
@@ -29,7 +29,8 @@ function selectTimeframe(interval: CandleInterval): string {
 export async function fetchOHLCV(
     id: string,
     params: OHLCVParams | HistoryFilterParams,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    http: AxiosInstance = axios
 ): Promise<PriceCandle[]> {
     if (!params.resolution) {
         throw new Error('fetchOHLCV requires a resolution parameter.');
@@ -47,7 +48,7 @@ export async function fetchOHLCV(
         const marketId = parts[1];
         const outcomeId = parts.length >= 3 ? parts[2] : undefined;
 
-        const response = await axios.get(`${BASE_URL}/markets/${marketId}`, {
+        const response = await http.get(`${BASE_URL}/markets/${marketId}`, {
             params: { network_id: Number(networkId) },
             headers,
         });

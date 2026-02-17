@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
 import { GAMMA_API_URL, GAMMA_SEARCH_URL, mapMarketToUnified, paginateSearchParallel } from './utils';
 import { polymarketErrorMapper } from './errors';
 
-async function fetchEventByGammaId(id: string): Promise<UnifiedEvent[]> {
-    const response = await axios.get(GAMMA_API_URL, {
+async function fetchEventByGammaId(id: string, http: AxiosInstance): Promise<UnifiedEvent[]> {
+    const response = await http.get(GAMMA_API_URL, {
         params: { id }
     });
 
@@ -37,8 +37,8 @@ async function fetchEventByGammaId(id: string): Promise<UnifiedEvent[]> {
     });
 }
 
-async function fetchEventBySlug(slug: string): Promise<UnifiedEvent[]> {
-    const response = await axios.get(GAMMA_API_URL, {
+async function fetchEventBySlug(slug: string, http: AxiosInstance): Promise<UnifiedEvent[]> {
+    const response = await http.get(GAMMA_API_URL, {
         params: { slug }
     });
 
@@ -70,16 +70,16 @@ async function fetchEventBySlug(slug: string): Promise<UnifiedEvent[]> {
     });
 }
 
-export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
     try {
         // Handle eventId lookup (Gamma event ID)
         if (params.eventId) {
-            return await fetchEventByGammaId(params.eventId);
+            return await fetchEventByGammaId(params.eventId, http);
         }
 
         // Handle slug lookup
         if (params.slug) {
-            return await fetchEventBySlug(params.slug);
+            return await fetchEventBySlug(params.slug, http);
         }
 
         if (!params.query) {
@@ -98,7 +98,7 @@ export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEven
 
         const fetchWithStatus = async (eventStatus: string | undefined) => {
             const currentParams = { ...queryParams, events_status: eventStatus };
-            return paginateSearchParallel(GAMMA_SEARCH_URL, currentParams, limit * 10);
+            return paginateSearchParallel(GAMMA_SEARCH_URL, currentParams, limit * 10, http);
         };
 
         // Client-side filtering logic

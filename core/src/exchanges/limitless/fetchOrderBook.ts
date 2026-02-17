@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OrderBook } from '../../types';
 import { LIMITLESS_API_URL } from './utils';
 import { validateIdFormat } from '../../utils/validation';
@@ -18,14 +18,14 @@ function convertSize(rawSize: number): number {
  * Fetch the current order book for a specific market.
  * @param id - The market slug (preferred) or CLOB token ID
  */
-export async function fetchOrderBook(id: string): Promise<OrderBook> {
+export async function fetchOrderBook(id: string, http: AxiosInstance = axios): Promise<OrderBook> {
     validateIdFormat(id, 'OrderBook');
 
     try {
         // New API uses slugs: /markets/{slug}/orderbook
         // If 'id' is a numeric token ID, this might fail unless we look up the slug.
         const url = `${LIMITLESS_API_URL}/markets/${id}/orderbook`;
-        const response = await axios.get(url);
+        const response = await http.get(url);
 
         const data = response.data;
 

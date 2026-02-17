@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { HistoryFilterParams, OHLCVParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { mapIntervalToKalshi } from './utils';
 import { validateIdFormat } from '../../utils/validation';
 import { kalshiErrorMapper } from './errors';
 
-export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
+export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams, http: AxiosInstance = axios): Promise<PriceCandle[]> {
     validateIdFormat(id, 'OHLCV');
 
     // Validate resolution is provided
@@ -63,7 +63,7 @@ export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilter
         queryParams.start_ts = startTs;
         queryParams.end_ts = endTs;
 
-        const response = await axios.get(url, { params: queryParams });
+        const response = await http.get(url, { params: queryParams });
         const candles = response.data.candlesticks || [];
 
         const mappedCandles: PriceCandle[] = candles.map((c: any) => {

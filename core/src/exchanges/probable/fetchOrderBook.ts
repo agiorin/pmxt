@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OrderBook } from '../../types';
 import { CLOB_BASE_URL } from './utils';
 import { probableErrorMapper } from './errors';
 
-export async function fetchOrderBook(id: string): Promise<OrderBook> {
+export async function fetchOrderBook(id: string, http: AxiosInstance = axios): Promise<OrderBook> {
     try {
-        const response = await axios.get(`${CLOB_BASE_URL}/book`, {
+        const response = await http.get(`${CLOB_BASE_URL}/book`, {
             params: { token_id: id },
         });
 

@@ -1,41 +1,41 @@
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent } from '../../types';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { BASE_URL, SEARCH_PATH, EVENTS_PATH, mapEventToUnified, enrichMarketsWithPrices } from './utils';
 import { probableErrorMapper } from './errors';
 
-export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
     try {
         // Handle eventId lookup
         if (params.eventId) {
-            const event = await fetchEventById(params.eventId);
+            const event = await fetchEventById(params.eventId, http);
             return event ? [event] : [];
         }
 
         // Handle slug lookup
         if (params.slug) {
-            const event = await fetchEventBySlug(params.slug);
+            const event = await fetchEventBySlug(params.slug, http);
             return event ? [event] : [];
         }
 
         // Query-based search: use the search endpoint (only endpoint with text search)
         if (params.query) {
-            return await searchEvents(params);
+            return await searchEvents(params, http);
         }
 
         // Default: use the dedicated events API for listing
-        return await fetchEventsList(params);
+        return await fetchEventsList(params, http);
     } catch (error: any) {
         throw probableErrorMapper.mapError(error);
     }
 }
 
-export async function fetchEventById(id: string): Promise<UnifiedEvent | null> {
+export async function fetchEventById(id: string, http: AxiosInstance = axios): Promise<UnifiedEvent | null> {
     try {
         const numericId = Number(id);
         if (isNaN(numericId)) return null;
 
-        const response = await axios.get(`${BASE_URL}${EVENTS_PATH}${numericId}`);
+        const response = await http.get(`${BASE_URL}${EVENTS_PATH}${numericId}`);
         const event = mapEventToUnified(response.data);
         if (event) await enrichMarketsWithPrices(event.markets);
         return event;
@@ -45,9 +45,9 @@ export async function fetchEventById(id: string): Promise<UnifiedEvent | null> {
     }
 }
 
-export async function fetchEventBySlug(slug: string): Promise<UnifiedEvent | null> {
+export async function fetchEventBySlug(slug: string, http: AxiosInstance = axios): Promise<UnifiedEvent | null> {
     try {
-        const response = await axios.get(`${BASE_URL}${EVENTS_PATH}slug/${slug}`);
+        const response = await http.get(`${BASE_URL}${EVENTS_PATH}slug/${slug}`);
         const event = mapEventToUnified(response.data);
         if (event) await enrichMarketsWithPrices(event.markets);
         return event;
@@ -57,7 +57,7 @@ export async function fetchEventBySlug(slug: string): Promise<UnifiedEvent | nul
     }
 }
 
-async function fetchEventsList(params: EventFetchParams): Promise<UnifiedEvent[]> {
+async function fetchEventsList(params: EventFetchParams, http: AxiosInstance): Promise<UnifiedEvent[]> {
     const limit = params.limit || 20;
     const page = params.offset ? Math.floor(params.offset / limit) + 1 : 1;
 
@@ -88,7 +88,7 @@ async function fetchEventsList(params: EventFetchParams): Promise<UnifiedEvent[]
     queryParams.sort = 'volume';
     queryParams.ascending = false;
 
-    const response = await axios.get(`${BASE_URL}${EVENTS_PATH}`, {
+    const response = await http.get(`${BASE_URL}${EVENTS_PATH}`, {
         params: queryParams,
     });
 
@@ -102,11 +102,11 @@ async function fetchEventsList(params: EventFetchParams): Promise<UnifiedEvent[]
     return result;
 }
 
-async function searchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+async function searchEvents(params: EventFetchParams, http: AxiosInstance): Promise<UnifiedEvent[]> {
     const limit = params.limit || 20;
     const page = params.offset ? Math.floor(params.offset / limit) + 1 : 1;
 
-    const response = await axios.get(`${BASE_URL}${SEARCH_PATH}`, {
+    const response = await http.get(`${BASE_URL}${SEARCH_PATH}`, {
         params: {
             q: params.query,
             page,

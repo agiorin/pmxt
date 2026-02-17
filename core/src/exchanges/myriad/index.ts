@@ -65,19 +65,19 @@ export class MyriadExchange extends PredictionMarketExchange {
     // ------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params, this.getHeaders());
+        return fetchMarkets(params, this.getHeaders(), this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params, this.getHeaders());
+        return fetchEvents(params, this.getHeaders(), this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params, this.getHeaders());
+        return fetchOHLCV(id, params, this.getHeaders(), this.http);
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id, this.getHeaders());
+        return fetchOrderBook(id, this.getHeaders(), this.http);
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -87,7 +87,7 @@ export class MyriadExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params, this.getHeaders());
+        return fetchTrades(id, params, this.getHeaders(), this.http);
     }
 
     // ------------------------------------------------------------------------
@@ -128,7 +128,7 @@ export class MyriadExchange extends PredictionMarketExchange {
                 quoteBody.slippage = 0.01;
             }
 
-            const response = await axios.post(`${BASE_URL}/markets/quote`, quoteBody, { headers });
+            const response = await this.http.post(`${BASE_URL}/markets/quote`, quoteBody, { headers });
             const quote = response.data;
 
             return {
@@ -175,7 +175,7 @@ export class MyriadExchange extends PredictionMarketExchange {
                 );
             }
 
-            const response = await axios.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
+            const response = await this.http.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
                 params: { limit: 100 },
                 headers,
             });
@@ -212,7 +212,7 @@ export class MyriadExchange extends PredictionMarketExchange {
                 );
             }
 
-            const response = await axios.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
+            const response = await this.http.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
                 params: { limit: 100 },
                 headers,
             });

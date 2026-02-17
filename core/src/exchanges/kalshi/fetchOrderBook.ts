@@ -1,9 +1,9 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OrderBook } from '../../types';
 import { validateIdFormat } from '../../utils/validation';
 import { kalshiErrorMapper } from './errors';
 
-export async function fetchOrderBook(id: string): Promise<OrderBook> {
+export async function fetchOrderBook(id: string, http: AxiosInstance = axios): Promise<OrderBook> {
     validateIdFormat(id, 'OrderBook');
 
     try {
@@ -11,7 +11,7 @@ export async function fetchOrderBook(id: string): Promise<OrderBook> {
         const isNoOutcome = id.endsWith('-NO');
         const ticker = id.replace(/-NO$/, '');
         const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${ticker}/orderbook`;
-        const response = await axios.get(url);
+        const response = await http.get(url);
         const data = response.data.orderbook;
 
         // Structure: { yes: [[price, qty], ...], no: [[price, qty], ...] }

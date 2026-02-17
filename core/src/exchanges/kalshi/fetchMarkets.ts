@@ -1,10 +1,10 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
 import { KALSHI_API_URL, KALSHI_SERIES_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
 
-async function fetchActiveEvents(targetMarketCount?: number, status: string = 'open'): Promise<any[]> {
+async function fetchActiveEvents(http: AxiosInstance, targetMarketCount?: number, status: string = 'open'): Promise<any[]> {
     let allEvents: any[] = [];
     let totalMarketCount = 0;
     let cursor = null;
@@ -27,7 +27,7 @@ async function fetchActiveEvents(targetMarketCount?: number, status: string = 'o
             };
             if (cursor) queryParams.cursor = cursor;
 
-            const response = await axios.get(KALSHI_API_URL, { params: queryParams });
+            const response = await http.get(KALSHI_API_URL, { params: queryParams });
             const events = response.data.events || [];
 
             if (events.length === 0) break;
@@ -64,10 +64,10 @@ async function fetchActiveEvents(targetMarketCount?: number, status: string = 'o
     return allEvents;
 }
 
-async function fetchSeriesMap(): Promise<Map<string, string[]>> {
+async function fetchSeriesMap(http: AxiosInstance): Promise<Map<string, string[]>> {
     try {
 
-        const response = await axios.get(KALSHI_SERIES_URL);
+        const response = await http.get(KALSHI_SERIES_URL);
         const seriesList = response.data.series || [];
         const map = new Map<string, string[]>();
         for (const series of seriesList) {
@@ -95,46 +95,46 @@ export function resetCache(): void {
     lastCacheTime = 0;
 }
 
-export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+export async function fetchMarkets(params?: MarketFetchParams, http: AxiosInstance = axios): Promise<UnifiedMarket[]> {
     try {
         // Handle marketId lookup (Kalshi marketId is the ticker)
         if (params?.marketId) {
-            return await fetchMarketsBySlug(params.marketId);
+            return await fetchMarketsBySlug(params.marketId, http);
         }
 
         // Handle slug-based lookup (event ticker)
         if (params?.slug) {
-            return await fetchMarketsBySlug(params.slug);
+            return await fetchMarketsBySlug(params.slug, http);
         }
 
         // Handle outcomeId lookup (strip -NO suffix, use as ticker)
         if (params?.outcomeId) {
             const ticker = params.outcomeId.replace(/-NO$/, '');
-            return await fetchMarketsBySlug(ticker);
+            return await fetchMarketsBySlug(ticker, http);
         }
 
         // Handle eventId lookup (event ticker works the same way)
         if (params?.eventId) {
-            return await fetchMarketsBySlug(params.eventId);
+            return await fetchMarketsBySlug(params.eventId, http);
         }
 
         // Handle query-based search
         if (params?.query) {
-            return await searchMarkets(params.query, params);
+            return await searchMarkets(params.query, params, http);
         }
 
         // Default: fetch markets
-        return await fetchMarketsDefault(params);
+        return await fetchMarketsDefault(params, http);
     } catch (error: any) {
         throw kalshiErrorMapper.mapError(error);
     }
 }
 
-async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]> {
+async function fetchMarketsBySlug(eventTicker: string, http: AxiosInstance): Promise<UnifiedMarket[]> {
     // Kalshi API expects uppercase tickers, but URLs use lowercase
     const normalizedTicker = eventTicker.toUpperCase();
     const url = `https://api.elections.kalshi.com/trade-api/v2/events/${normalizedTicker}`;
-    const response = await axios.get(url, {
+    const response = await http.get(url, {
         params: { with_nested_markets: true }
     });
 
@@ -145,7 +145,7 @@ async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]>
     if (event.series_ticker) {
         try {
             const seriesUrl = `${KALSHI_SERIES_URL}/${event.series_ticker}`;
-            const seriesResponse = await axios.get(seriesUrl);
+            const seriesResponse = await http.get(seriesUrl);
             const series = seriesResponse.data.series;
             if (series && series.tags && series.tags.length > 0) {
                 if (!event.tags || event.tags.length === 0) {
@@ -170,10 +170,10 @@ async function fetchMarketsBySlug(eventTicker: string): Promise<UnifiedMarket[]>
     return unifiedMarkets;
 }
 
-async function searchMarkets(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+async function searchMarkets(query: string, params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
     // We must fetch ALL markets to search them locally since we don't have server-side search
     const searchLimit = 10000;
-    const markets = await fetchMarketsDefault({ ...params, limit: searchLimit });
+    const markets = await fetchMarketsDefault({ ...params, limit: searchLimit }, http);
     const lowerQuery = query.toLowerCase();
     const searchIn = params?.searchIn || 'title'; // Default to title-only search
 
@@ -190,7 +190,7 @@ async function searchMarkets(query: string, params?: MarketFetchParams): Promise
     return filtered.slice(0, limit);
 }
 
-async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+async function fetchMarketsDefault(params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 10000;
     const offset = params?.offset || 0;
     const now = Date.now();
@@ -221,15 +221,14 @@ async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedM
             const fetchLimit = isSorted ? 1000 : limit;
 
             const [allEvents, fetchedSeriesMap] = await Promise.all([
-                fetchActiveEvents(fetchLimit, apiStatus),
-                fetchSeriesMap()
+                fetchActiveEvents(http, fetchLimit, apiStatus),
+                fetchSeriesMap(http)
             ]);
 
             events = allEvents;
             seriesMap = fetchedSeriesMap;
 
-            events = allEvents;
-            seriesMap = fetchedSeriesMap;
+
 
             // Cache the dataset ONLY if:
             // 1. We fetched a comprehensive set (>= 1000)

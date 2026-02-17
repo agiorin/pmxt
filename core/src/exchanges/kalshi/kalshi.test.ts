@@ -3,8 +3,35 @@ import { CreateOrderParams } from '../../types';
 import axios from 'axios';
 import { KalshiAuth } from './auth';
 
-// Mock axios
-jest.mock('axios');
+// Jest hoisting means we can't use outer variables in jest.mock factory
+// unless they start with 'mock'. However, let's just define it inline to be safe and simple.
+// To access the inner methods, we'll grab the instance returned by axios.create().
+
+jest.mock('axios', () => {
+    const mockInstance = {
+        interceptors: {
+            request: { use: jest.fn() },
+            response: { use: jest.fn() },
+        },
+        get: jest.fn(),
+        post: jest.fn(),
+        delete: jest.fn(),
+        defaults: { headers: { common: {} } },
+    };
+    const mockAxios = {
+        create: jest.fn(() => mockInstance),
+    };
+    // Support both default and named exports
+    return {
+        __esModule: true,
+        ...mockAxios,
+        default: mockAxios,
+    };
+});
+
+// Access the mocked instance for assertions
+// Since our factory returns the same object reference, this works.
+const mockAxiosInstance = axios.create();
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock KalshiAuth
@@ -20,6 +47,12 @@ describe('KalshiExchange', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+
+        // Reset the mock instance methods to ensure clean state
+        (mockAxiosInstance.get as jest.Mock).mockReset();
+        (mockAxiosInstance.post as jest.Mock).mockReset();
+        (mockAxiosInstance.delete as jest.Mock).mockReset();
+
 
         // Mock the getHeaders method
         MockedKalshiAuth.prototype.getHeaders = jest.fn().mockReturnValue({
@@ -61,7 +94,7 @@ describe('KalshiExchange', () => {
                     ]
                 }
             };
-            mockedAxios.get.mockResolvedValue(mockResponse);
+            (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
             const markets = await exchange.fetchMarkets();
             expect(markets).toBeDefined();
@@ -98,11 +131,11 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.post.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
 
                 const order = await exchange.createOrder(orderParams);
 
-                expect(mockedAxios.post).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders',
                     expect.objectContaining({
                         ticker: 'TEST-MARKET',
@@ -143,11 +176,11 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.post.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
 
                 await exchange.createOrder(orderParams);
 
-                expect(mockedAxios.post).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders',
                     expect.objectContaining({
                         ticker: 'TEST-MARKET',
@@ -181,12 +214,12 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 await exchange.fetchOpenOrders();
 
                 // Verify the request URL includes query params
-                expect(mockedAxios.get).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
                     'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders?status=resting',
                     expect.any(Object)
                 );
@@ -200,11 +233,11 @@ describe('KalshiExchange', () => {
 
             it('should include ticker in query params when marketId provided', async () => {
                 const mockResponse = { data: { orders: [] } };
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 await exchange.fetchOpenOrders('TEST-MARKET');
 
-                expect(mockedAxios.get).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
                     'https://api.elections.kalshi.com/trade-api/v2/portfolio/orders?status=resting&ticker=TEST-MARKET',
                     expect.any(Object)
                 );
@@ -227,7 +260,7 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 const positions = await exchange.fetchPositions();
 
@@ -251,7 +284,7 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 const positions = await exchange.fetchPositions();
 
@@ -277,7 +310,7 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 const positions = await exchange.fetchPositions();
 
@@ -295,7 +328,7 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.get.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
                 const balances = await exchange.fetchBalance();
 
@@ -322,7 +355,7 @@ describe('KalshiExchange', () => {
                     }
                 };
 
-                mockedAxios.delete.mockResolvedValue(mockResponse);
+                (mockAxiosInstance.delete as jest.Mock).mockResolvedValue(mockResponse);
 
                 const order = await exchange.cancelOrder('order-123');
 
@@ -351,7 +384,7 @@ describe('KalshiExchange', () => {
                 }
             };
 
-            mockedAxios.get.mockResolvedValue(mockResponse);
+            (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
             const order = await exchange.fetchOrder('order-123');
             expect(order.status).toBe('open');
         });
@@ -369,7 +402,7 @@ describe('KalshiExchange', () => {
                 }
             };
 
-            mockedAxios.get.mockResolvedValue(mockResponse);
+            (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
             const order = await exchange.fetchOrder('order-123');
             expect(order.status).toBe('filled');
         });

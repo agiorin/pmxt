@@ -112,19 +112,19 @@ export class LimitlessExchange extends PredictionMarketExchange {
     protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
         // Pass API key if available for authenticated requests
         const apiKey = this.auth?.getApiKey();
-        return fetchMarkets(params, apiKey);
+        return fetchMarkets(params, apiKey, this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params);
+        return fetchEvents(params, this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params);
+        return fetchOHLCV(id, params, this.http);
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id);
+        return fetchOrderBook(id, this.http);
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -135,7 +135,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params);
+        return fetchTrades(id, params, this.http);
     }
 
     // ----------------------------------------------------------------------------

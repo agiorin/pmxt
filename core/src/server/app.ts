@@ -76,6 +76,15 @@ export async function startServer(port: number, accessToken: string) {
                 exchange = defaultExchanges[exchangeName];
             }
 
+            // Set verbose flag if present in request
+            if (req.body.verbose === true) {
+                exchange.verbose = true;
+            } else {
+                // Reset to false for singleton instances to avoid leaking state between requests
+                // For new instances it defaults to false anyway
+                exchange.verbose = false;
+            }
+
             // 2. Validate Method
             if (typeof exchange[methodName] !== 'function') {
                 res.status(404).json({ success: false, error: `Method '${methodName}' not found on ${exchangeName}` });

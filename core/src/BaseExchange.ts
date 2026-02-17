@@ -1,6 +1,7 @@
 import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from './types';
 import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } from './utils/math';
 import { MarketNotFound, EventNotFound } from './errors';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 export interface MarketFilterParams {
     limit?: number;
@@ -150,6 +151,8 @@ export interface ExchangeCredentials {
 
 export abstract class PredictionMarketExchange {
     protected credentials?: ExchangeCredentials;
+    public verbose: boolean = false;
+    public http: AxiosInstance;
 
     readonly has: ExchangeHas = {
         fetchMarkets: false,
@@ -169,6 +172,40 @@ export abstract class PredictionMarketExchange {
 
     constructor(credentials?: ExchangeCredentials) {
         this.credentials = credentials;
+        this.http = axios.create();
+
+        // Request Interceptor
+        this.http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+            if (this.verbose) {
+                console.log(`\n[pmxt] → ${config.method?.toUpperCase()} ${config.url}`);
+                if (config.params) console.log('[pmxt] params:', config.params);
+                if (config.data) console.log('[pmxt] body:', JSON.stringify(config.data, null, 2));
+            }
+            return config;
+        });
+
+        // Response Interceptor
+        this.http.interceptors.response.use(
+            (response: AxiosResponse) => {
+                if (this.verbose) {
+                    console.log(`\n[pmxt] ← ${response.status} ${response.statusText} ${response.config.url}`);
+                    // console.log('[pmxt] response:', JSON.stringify(response.data, null, 2)); 
+                    // Commented out full body log to avoid spam, but headers might be useful
+                }
+                return response;
+            },
+            (error: any) => {
+                if (this.verbose) {
+                    console.log(`\n[pmxt] ✖ REQUEST FAILED: ${error.config?.url}`);
+                    console.log('[pmxt] error:', error.message);
+                    if (error.response) {
+                        console.log('[pmxt] status:', error.response.status);
+                        console.log('[pmxt] data:', JSON.stringify(error.response.data, null, 2));
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
     }
 
     abstract get name(): string;

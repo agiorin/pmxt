@@ -111,14 +111,14 @@ export function mapIntervalToFidelity(interval: CandleInterval): number {
  * Fetch all results from Gamma API using parallel pagination for best DX.
  * Polymarket Gamma API has a hard limit of 500 results per request.
  */
-export async function paginateParallel(url: string, params: any, maxResults: number = 10000): Promise<any[]> {
+export async function paginateParallel(url: string, params: any, http: any, maxResults: number = 10000): Promise<any[]> {
     const PAGE_SIZE = 500;
     const initialLimit = Math.min(params.limit || PAGE_SIZE, PAGE_SIZE);
 
     // 1. Fetch the first page to see if we even need more
-    const firstPageResponse = await import('axios').then(axios => axios.default.get(url, {
+    const firstPageResponse = await http.get(url, {
         params: { ...params, limit: initialLimit, offset: 0 }
-    }));
+    });
 
     const firstPage = firstPageResponse.data || [];
 
@@ -137,10 +137,9 @@ export async function paginateParallel(url: string, params: any, maxResults: num
     }
 
     // 3. Fetch remaining pages in parallel
-    const axios = (await import('axios')).default;
     const remainingPages = await Promise.all(offsets.map(async (offset) => {
         try {
-            const res = await axios.get(url, {
+            const res = await http.get(url, {
                 params: { ...params, limit: PAGE_SIZE, offset }
             });
             return res.data || [];
@@ -156,11 +155,9 @@ export async function paginateParallel(url: string, params: any, maxResults: num
  * Fetch all results from Gamma public-search API using parallel pagination.
  * Uses 'page' parameter instead of 'offset'.
  */
-export async function paginateSearchParallel(url: string, params: any, maxResults: number = 10000): Promise<any[]> {
-    const axios = (await import('axios')).default;
-
+export async function paginateSearchParallel(url: string, params: any, maxResults: number = 10000, http: any): Promise<any[]> {
     // 1. Fetch the first page to check pagination info
-    const firstPageResponse = await axios.get(url, {
+    const firstPageResponse = await http.get(url, {
         params: { ...params, page: 1 }
     });
 
@@ -186,7 +183,7 @@ export async function paginateSearchParallel(url: string, params: any, maxResult
 
     const remainingPages = await Promise.all(pageNumbers.map(async (pageNum) => {
         try {
-            const res = await axios.get(url, {
+            const res = await http.get(url, {
                 params: { ...params, page: pageNum }
             });
             return res.data?.events || [];

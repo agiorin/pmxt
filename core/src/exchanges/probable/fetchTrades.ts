@@ -1,3 +1,4 @@
+import axios, { AxiosInstance } from 'axios';
 import { createClobClient } from '@prob/clob';
 import { TradesParams, HistoryFilterParams } from '../../BaseExchange';
 import { Trade } from '../../types';
@@ -12,7 +13,8 @@ import { probableErrorMapper } from './errors';
 export async function fetchTrades(
     id: string,
     params: TradesParams | HistoryFilterParams,
-    client: ReturnType<typeof createClobClient>,
+    client: any,
+    http: AxiosInstance = axios
 ): Promise<Trade[]> {
     try {
         const queryParams: any = {
@@ -35,7 +37,7 @@ export async function fetchTrades(
             amount: parseFloat(String(trade.qty || trade.size || trade.amount || '0')),
             side: trade.side === 'BUY' ? 'buy' as const
                 : trade.side === 'SELL' ? 'sell' as const
-                : 'unknown' as const,
+                    : 'unknown' as const,
         }));
     } catch (error: any) {
         throw probableErrorMapper.mapError(error);

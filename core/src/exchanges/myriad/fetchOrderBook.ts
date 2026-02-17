@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OrderBook } from '../../types';
 import { BASE_URL } from './utils';
 import { myriadErrorMapper } from './errors';
@@ -9,7 +9,8 @@ import { myriadErrorMapper } from './errors';
 
 export async function fetchOrderBook(
     id: string,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    http: AxiosInstance = axios
 ): Promise<OrderBook> {
     try {
         // id format: {networkId}:{marketId}:{outcomeId}
@@ -21,7 +22,7 @@ export async function fetchOrderBook(
         const [networkId, marketId, outcomeId] = parts;
 
         // Fetch the market to get current prices
-        const response = await axios.get(`${BASE_URL}/markets/${marketId}`, {
+        const response = await http.get(`${BASE_URL}/markets/${marketId}`, {
             params: { network_id: Number(networkId) },
             headers,
         });

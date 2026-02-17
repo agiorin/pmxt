@@ -1,13 +1,13 @@
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { KALSHI_API_URL, mapMarketToUnified } from './utils';
 import { kalshiErrorMapper } from './errors';
 
-async function fetchEventByTicker(eventTicker: string): Promise<UnifiedEvent[]> {
+async function fetchEventByTicker(eventTicker: string, http: AxiosInstance): Promise<UnifiedEvent[]> {
     const normalizedTicker = eventTicker.toUpperCase();
     const url = `https://api.elections.kalshi.com/trade-api/v2/events/${normalizedTicker}`;
-    const response = await axios.get(url, {
+    const response = await http.get(url, {
         params: { with_nested_markets: true }
     });
 
@@ -38,16 +38,16 @@ async function fetchEventByTicker(eventTicker: string): Promise<UnifiedEvent[]> 
     return [unifiedEvent];
 }
 
-export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
     try {
         // Handle eventId lookup (direct API call)
         if (params.eventId) {
-            return await fetchEventByTicker(params.eventId);
+            return await fetchEventByTicker(params.eventId, http);
         }
 
         // Handle slug lookup (slug IS the event ticker on Kalshi)
         if (params.slug) {
-            return await fetchEventByTicker(params.slug);
+            return await fetchEventByTicker(params.slug, http);
         }
 
         const status = params?.status || 'active';
@@ -70,7 +70,7 @@ export async function fetchEvents(params: EventFetchParams): Promise<UnifiedEven
                 };
                 if (cursor) queryParams.cursor = cursor;
 
-                const response = await axios.get(KALSHI_API_URL, { params: queryParams });
+                const response = await http.get(KALSHI_API_URL, { params: queryParams });
                 const events = response.data.events || [];
 
                 if (events.length === 0) break;

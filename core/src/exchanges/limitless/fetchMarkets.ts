@@ -1,12 +1,13 @@
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { LIMITLESS_API_URL, mapMarketToUnified, paginateLimitlessMarkets } from './utils';
 import { limitlessErrorMapper } from './errors';
 
 export async function fetchMarkets(
     params?: MarketFetchParams,
-    apiKey?: string
+    apiKey?: string,
+    http: AxiosInstance = axios
 ): Promise<UnifiedMarket[]> {
     // Limitless API currently only supports fetching active markets for lists
     // Early return to avoid SDK initialization in tests
@@ -51,7 +52,7 @@ export async function fetchMarkets(
 
         // Handle query-based search
         if (params?.query) {
-            return await searchMarkets(marketFetcher, params.query, params);
+            return await searchMarkets(params.query, params, http);
         }
 
         // Default: fetch active markets
@@ -74,14 +75,14 @@ async function fetchMarketsBySlug(
 }
 
 async function searchMarkets(
-    marketFetcher: any,
     query: string,
-    params?: MarketFetchParams
+    params: MarketFetchParams | undefined,
+    http: AxiosInstance
 ): Promise<UnifiedMarket[]> {
     // SDK doesn't have a search method yet, use axios directly
     // NOTE: The Limitless /markets/search endpoint currently only returns active/funded markets.
     // It does not include expired or resolved markets in search results.
-    const response = await axios.get(`${LIMITLESS_API_URL}/markets/search`, {
+    const response = await http.get(`${LIMITLESS_API_URL}/markets/search`, {
         params: {
             query: query,
             limit: params?.limit || 10000,

@@ -82,27 +82,27 @@ export class ProbableExchange extends PredictionMarketExchange {
     // --------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+        return fetchMarkets(params, this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params);
+        return fetchEvents(params, this.http);
     }
 
     async getEventById(id: string): Promise<UnifiedEvent | null> {
-        return fetchEventById(id);
+        return fetchEventById(id, this.http);
     }
 
     async getEventBySlug(slug: string): Promise<UnifiedEvent | null> {
-        return fetchEventBySlug(slug);
+        return fetchEventBySlug(slug, this.http);
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id);
+        return fetchOrderBook(id, this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params);
+        return fetchOHLCV(id, params, this.http);
     }
 
     // --------------------------------------------------------------------------
@@ -349,7 +349,7 @@ export class ProbableExchange extends PredictionMarketExchange {
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         const auth = this.ensureAuth();
         const client = auth.getClobClient();
-        return fetchTrades(id, params, client);
+        return fetchTrades(id, params, client, this.http);
     }
 
     // --------------------------------------------------------------------------

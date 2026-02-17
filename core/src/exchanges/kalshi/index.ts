@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Balance, Order, Position, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
@@ -89,19 +88,19 @@ export class KalshiExchange extends PredictionMarketExchange {
     // ----------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+        return fetchMarkets(params, this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params);
+        return fetchEvents(params, this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params);
+        return fetchOHLCV(id, params, this.http);
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id);
+        return fetchOrderBook(id, this.http);
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -112,7 +111,7 @@ export class KalshiExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params);
+        return fetchTrades(id, params, this.http);
     }
 
     // ----------------------------------------------------------------------------
@@ -131,7 +130,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
             const headers = auth.getHeaders('GET', path);
 
-            const response = await axios.get(`${baseUrl}${path}`, { headers });
+            const response = await this.http.get(`${baseUrl}${path}`, { headers });
 
             // Kalshi response structure:
             // - balance: Available balance in cents (for trading)
@@ -189,7 +188,7 @@ export class KalshiExchange extends PredictionMarketExchange {
                 }
             }
 
-            const response = await axios.post(`${baseUrl}${path}`, kalshiOrder, { headers });
+            const response = await this.http.post(`${baseUrl}${path}`, kalshiOrder, { headers });
             const order = response.data.order;
 
             return {
@@ -218,7 +217,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
             const headers = auth.getHeaders('DELETE', path);
 
-            const response = await axios.delete(`${baseUrl}${path}`, { headers });
+            const response = await this.http.delete(`${baseUrl}${path}`, { headers });
             const order = response.data.order;
 
             return {
@@ -246,7 +245,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
             const headers = auth.getHeaders('GET', path);
 
-            const response = await axios.get(`${baseUrl}${path}`, { headers });
+            const response = await this.http.get(`${baseUrl}${path}`, { headers });
             const order = response.data.order;
 
             return {
@@ -282,7 +281,7 @@ export class KalshiExchange extends PredictionMarketExchange {
             // Sign only the base path, not the query parameters
             const headers = auth.getHeaders('GET', basePath);
 
-            const response = await axios.get(`${baseUrl}${basePath}${queryParams}`, { headers });
+            const response = await this.http.get(`${baseUrl}${basePath}${queryParams}`, { headers });
             const orders = response.data.orders || [];
 
             return orders.map((order: any) => ({
@@ -311,7 +310,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
             const headers = auth.getHeaders('GET', path);
 
-            const response = await axios.get(`${baseUrl}${path}`, { headers });
+            const response = await this.http.get(`${baseUrl}${path}`, { headers });
             const positions = response.data.market_positions || [];
 
             return positions.map((pos: any) => {

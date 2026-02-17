@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { HistoryFilterParams, OHLCVParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { CLOB_API_URL, mapIntervalToFidelity } from './utils';
@@ -9,7 +9,7 @@ import { polymarketErrorMapper } from './errors';
  * Fetch historical price data (OHLCV candles) for a specific token.
  * @param id - The CLOB token ID (e.g., outcome token ID)
  */
-export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
+export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams, http: AxiosInstance = axios): Promise<PriceCandle[]> {
     validateIdFormat(id, 'OHLCV');
     validateOutcomeId(id, 'OHLCV');
 
@@ -60,7 +60,7 @@ export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilter
             endTs: endTs
         };
 
-        const response = await axios.get(`${CLOB_API_URL}/prices-history`, {
+        const response = await http.get(`${CLOB_API_URL}/prices-history`, {
             params: queryParams
         });
 

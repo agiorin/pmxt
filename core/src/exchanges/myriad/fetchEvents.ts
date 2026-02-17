@@ -1,17 +1,17 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent } from '../../types';
 import { BASE_URL, mapQuestionToEvent } from './utils';
 import { myriadErrorMapper } from './errors';
 
-export async function fetchEvents(params: EventFetchParams, headers?: Record<string, string>): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, headers?: Record<string, string>, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
     try {
         if (params.eventId) {
-            return await fetchQuestionById(params.eventId, headers);
+            return await fetchQuestionById(params.eventId, headers, http);
         }
 
         if (params.slug) {
-            return await fetchQuestionById(params.slug, headers);
+            return await fetchQuestionById(params.slug, headers, http);
         }
 
         const limit = params.limit || 100;
@@ -24,7 +24,7 @@ export async function fetchEvents(params: EventFetchParams, headers?: Record<str
             queryParams.keyword = params.query;
         }
 
-        const response = await axios.get(`${BASE_URL}/questions`, {
+        const response = await http.get(`${BASE_URL}/questions`, {
             params: queryParams,
             headers,
         });
@@ -43,8 +43,8 @@ export async function fetchEvents(params: EventFetchParams, headers?: Record<str
     }
 }
 
-async function fetchQuestionById(id: string, headers?: Record<string, string>): Promise<UnifiedEvent[]> {
-    const response = await axios.get(`${BASE_URL}/questions/${id}`, { headers });
+async function fetchQuestionById(id: string, headers: Record<string, string> | undefined, http: AxiosInstance): Promise<UnifiedEvent[]> {
+    const response = await http.get(`${BASE_URL}/questions/${id}`, { headers });
     const question = response.data.data || response.data;
     const event = mapQuestionToEvent(question);
     return event ? [event] : [];

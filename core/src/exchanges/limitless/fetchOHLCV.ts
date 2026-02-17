@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { HistoryFilterParams, OHLCVParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
 import { LIMITLESS_API_URL, mapIntervalToFidelity } from './utils';
@@ -9,7 +9,7 @@ import { limitlessErrorMapper } from './errors';
  * Fetch historical price data (candles) for a specific market.
  * @param id - The market slug
  */
-export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
+export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams, http: AxiosInstance = axios): Promise<PriceCandle[]> {
     validateIdFormat(id, 'OHLCV');
 
     // Validate resolution is provided
@@ -23,7 +23,7 @@ export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilter
         // New API endpoint: /markets/{slug}/historical-price
         const url = `${LIMITLESS_API_URL}/markets/${id}/historical-price`;
 
-        const response = await axios.get(url, {
+        const response = await http.get(url, {
             params: { fidelity }
         });
 

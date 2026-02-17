@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { OHLCVParams, HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle, CandleInterval } from '../../types';
 import { CLOB_BASE_URL } from './utils';
@@ -33,6 +33,7 @@ function aggregateCandles(candles: PriceCandle[], intervalMs: number): PriceCand
 export async function fetchOHLCV(
     id: string,
     params: OHLCVParams | HistoryFilterParams,
+    http: AxiosInstance = axios
 ): Promise<PriceCandle[]> {
     if (!params.resolution) {
         throw new Error('fetchOHLCV requires a resolution parameter.');
@@ -49,7 +50,7 @@ export async function fetchOHLCV(
         if (params.start) queryParams.startTs = Math.floor(params.start.getTime() / 1000);
         if (params.end) queryParams.endTs = Math.floor(params.end.getTime() / 1000);
 
-        const response = await axios.get(`${CLOB_BASE_URL}/prices-history`, {
+        const response = await http.get(`${CLOB_BASE_URL}/prices-history`, {
             params: queryParams,
         });
 
