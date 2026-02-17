@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2026-02-17
+
+### Added
+
+- **CCXT-Style Capability Map (`exchange.has`)**: Introduced a unified capability mapping system across all exchanges. This allows developers to programmatically check which features (e.g., `fetchOHLCV`, `watchOrderBook`, `createOrder`) are supported or emulated by a specific exchange.
+  - Added the `.has` property to `BaseExchange` and all exchange implementations (Polymarket, Kalshi, Limitless, Probable, Myriad, Baozi).
+  - New `/api/:exchange/has` endpoint in the sidecar server for remote capability discovery.
+  - Python SDK updated to expose these capabilities on exchange instances.
+
+### Changed
+
+- **Repository & SDK Optimization**: Significantly reduced repository size and improved developer workflow by untracking generated server bundles in the Python SDK. These are now excluded from version control and managed during the build/dist process.
+- **Improved Workspace Cleanliness**: Updated `.gitignore` and `.gitattributes` to ensure temporary files, generated SDK code, and build artifacts stay out of the repository.
+
+### Fixed
+
+- **Baozi**: Refined internal documentation regarding pari-mutuel odds calculation status.
+- **Documentation**: Updated project statistics and download badges to reflect latest growth.
+
 ## [2.5.0] - 2026-02-16
 
 ### Added
