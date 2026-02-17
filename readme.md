@@ -76,6 +76,7 @@ Different prediction market platforms have different APIs, data formats, and con
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://baozi.bet" style="color: inherit; text-decoration: none;"><img src="https://baozi.bet/favicon.ico" alt="Baozi" width="24" height="24"> <b>Baozi</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
+  <!-- # The baozi website seems to just show 50:50 odds for everything. Something must be fundamentally broken on their end. -->
   <a href="https://myriad.markets" style="color: inherit; text-decoration: none;"><img src="https://myriad.markets/favicon.ico" alt="Myriad" width="24" height="24"> <b>Myriad</b></a>
 </p>
 
