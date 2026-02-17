@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.7.0] - 2026-02-17
+
+### Changed
+
+- **Centralized HTTP Architecture**: Refactored all major exchange clients (Polymarket, Kalshi, Limitless, Probable, Myriad) to route API requests through a shared `this.http` instance in `BaseExchange`.
+- **Enhanced Verbose Logging**: The `exchange.verbose = true` flag now provides consistent, detailed logging for *all* HTTP requests and responses, including parameters, status codes, and error bodies across all exchanges.
+- **Improved Internal Reliability**: 
+  - Standardized error mapping and request interceptors across the library.
+  - Fixed syntax errors and prop-drilling issues in Myriad and Probable exchange implementations.
+  - Updated Kalshi unit tests to support robust `axios.create` mocking patterns.
+
 ## [2.6.0] - 2026-02-17
 
 ### Added
