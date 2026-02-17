@@ -1,5 +1,2 @@
 # Auto detect text files and perform LF normalization
 * text=auto
-
-# Exclude generated bundles from GitHub language statistics
-sdks/python/pmxt/_server/server/bundled.js linguist-generated=true
