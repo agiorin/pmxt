@@ -13,6 +13,22 @@ import { AuthenticationError } from '../../errors';
 import { BASE_URL } from './utils';
 
 export class MyriadExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: true as const,
+        fetchOrderBook: 'emulated' as const,
+        fetchTrades: true as const,
+        createOrder: 'emulated' as const,
+        cancelOrder: false as const,
+        fetchOrder: false as const,
+        fetchOpenOrders: 'emulated' as const,
+        fetchPositions: true as const,
+        fetchBalance: 'emulated' as const,
+        watchOrderBook: 'emulated' as const,
+        watchTrades: 'emulated' as const,
+    };
+
     private auth?: MyriadAuth;
     private ws?: MyriadWebSocket;
 

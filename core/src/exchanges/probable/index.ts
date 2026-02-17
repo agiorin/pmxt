@@ -33,6 +33,22 @@ import { OrderSide } from '@prob/clob';
 const BSC_USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 
 export class ProbableExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: true as const,
+        fetchOrderBook: true as const,
+        fetchTrades: true as const,
+        createOrder: true as const,
+        cancelOrder: true as const,
+        fetchOrder: true as const,
+        fetchOpenOrders: true as const,
+        fetchPositions: true as const,
+        fetchBalance: true as const,
+        watchOrderBook: true as const,
+        watchTrades: false as const,
+    };
+
     private auth?: ProbableAuth;
     private ws?: ProbableWebSocket;
     private wsConfig?: ProbableWebSocketConfig;

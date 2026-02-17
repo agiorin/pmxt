@@ -108,6 +108,28 @@ export type EventFilterCriteria = {
 
 export type EventFilterFunction = (event: UnifiedEvent) => boolean;
 
+// ----------------------------------------------------------------------------
+// Capability Map (ccxt-style exchange.has)
+// ----------------------------------------------------------------------------
+
+export type ExchangeCapability = true | false | 'emulated';
+
+export interface ExchangeHas {
+    fetchMarkets: ExchangeCapability;
+    fetchEvents: ExchangeCapability;
+    fetchOHLCV: ExchangeCapability;
+    fetchOrderBook: ExchangeCapability;
+    fetchTrades: ExchangeCapability;
+    createOrder: ExchangeCapability;
+    cancelOrder: ExchangeCapability;
+    fetchOrder: ExchangeCapability;
+    fetchOpenOrders: ExchangeCapability;
+    fetchPositions: ExchangeCapability;
+    fetchBalance: ExchangeCapability;
+    watchOrderBook: ExchangeCapability;
+    watchTrades: ExchangeCapability;
+}
+
 export interface ExchangeCredentials {
     // Standard API authentication (Kalshi, etc.)
     apiKey?: string;
@@ -128,6 +150,22 @@ export interface ExchangeCredentials {
 
 export abstract class PredictionMarketExchange {
     protected credentials?: ExchangeCredentials;
+
+    readonly has: ExchangeHas = {
+        fetchMarkets: false,
+        fetchEvents: false,
+        fetchOHLCV: false,
+        fetchOrderBook: false,
+        fetchTrades: false,
+        createOrder: false,
+        cancelOrder: false,
+        fetchOrder: false,
+        fetchOpenOrders: false,
+        fetchPositions: false,
+        fetchBalance: false,
+        watchOrderBook: false,
+        watchTrades: false,
+    };
 
     constructor(credentials?: ExchangeCredentials) {
         this.credentials = credentials;

@@ -40,6 +40,20 @@ export async function startServer(port: number, accessToken: string) {
         next();
     });
 
+    // Capability map endpoint: GET /api/:exchange/has
+    app.get('/api/:exchange/has', (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const exchangeName = (req.params.exchange as string).toLowerCase();
+            if (!defaultExchanges[exchangeName]) {
+                defaultExchanges[exchangeName] = createExchange(exchangeName);
+            }
+            const exchange = defaultExchanges[exchangeName];
+            res.json({ success: true, data: exchange.has });
+        } catch (error: any) {
+            next(error);
+        }
+    });
+
     // API endpoint: POST /api/:exchange/:method
     // Body: { args: any[], credentials?: ExchangeCredentials }
     app.post('/api/:exchange/:method', async (req: Request, res: Response, next: NextFunction) => {

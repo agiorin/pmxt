@@ -312,7 +312,38 @@ class Exchange(ABC):
         if self.signature_type is not None:
             creds["signatureType"] = self.signature_type
         return creds if creds else None
-    
+
+    @property
+    def has(self) -> Dict[str, Any]:
+        """
+        Capability map indicating which methods this exchange supports.
+
+        Values:
+            True      - natively supported
+            False     - not available
+            'emulated' - available via workaround (polling, approximation, etc.)
+
+        Example:
+            >>> if exchange.has['fetchOHLCV']:
+            ...     candles = exchange.fetch_ohlcv(outcome_id, resolution='1h')
+        """
+        if not hasattr(self, '_has_cache'):
+            try:
+                url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/has"
+                headers = {"Accept": "application/json"}
+                headers.update(self._api_client.default_headers)
+                response = self._api_client.call_api(
+                    method="GET",
+                    url=url,
+                    header_params=headers,
+                )
+                response.read()
+                data_json = json.loads(response.data)
+                self._has_cache = self._handle_response(data_json)
+            except Exception:
+                self._has_cache = {}
+        return self._has_cache
+
     # Market Data Methods
     
     def fetch_markets(self, query: Optional[str] = None, **kwargs) -> List[UnifiedMarket]:
