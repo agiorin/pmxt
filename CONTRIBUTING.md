@@ -8,7 +8,7 @@ Welcome! We love contributors. This project is a monorepo setup to support multi
 
 - **[core](./core)**: The heart of the project. Contains the server implementation and the native Node.js library (`pmxt-core`).
 - **[sdks/python](./sdks/python)**: The Python SDK. (Pip package `pmxt`).
-- **[sdks/typescript](./sdks/typescript)**: The future home of the HTTP-based TypeScript/Node.js SDK (`pmxtjs`).
+- **[sdks/typescript](./sdks/typescript)**: The TypeScript/Node.js SDK (`pmxtjs`).
 
 ## Prerequisites
 
@@ -59,6 +59,8 @@ See the [Python SDK Development Guide](./sdks/SDK_DEVELOPMENT.md) for detailed i
 ## Development Workflow
 
 This project uses a **Sidecar Server Architecture**: the core logic is in TypeScript (`core/`), which SDKs spawn as a background process.
+
+Exchange integrations use an **Implicit API pattern**: each exchange has an `api.ts` file (generated from the exchange's OpenAPI spec) that auto-generates callable methods. Unified exchange methods call these via `callApi('OperationId', params)`. See [Architecture Overview](./ARCHITECTURE.md) for a full explanation before touching exchange code.
 
 ### Quick Start: Single Command Dev Mode
 From the root directory, run:
