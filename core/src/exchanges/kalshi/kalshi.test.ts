@@ -101,7 +101,7 @@ describe('KalshiExchange', () => {
             (mockAxiosInstance.request as jest.Mock).mockResolvedValue(mockResponse);
 
             const markets = await exchange.fetchMarkets();
-            expect(markets.data).toBeDefined();
+            expect(markets).toBeDefined();
         });
     });
 

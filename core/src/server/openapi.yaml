@@ -59,7 +59,44 @@ paths:
                   description: Enable verbose logging for this request
       responses:
         '200':
-          description: Paginated list of unified markets
+          description: List of unified markets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UnifiedMarket'
+
+  /api/{exchange}/fetchMarketsPaginated:
+    post:
+      summary: Fetch Markets (Paginated)
+      operationId: fetchMarketsPaginated
+      parameters:
+        - $ref: '#/components/parameters/ExchangeParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                args:
+                  type: array
+                  maxItems: 1
+                  items:
+                    $ref: '#/components/schemas/MarketFilterParams'
+                credentials:
+                  $ref: '#/components/schemas/ExchangeCredentials'
+                verbose:
+                  type: boolean
+                  description: Enable verbose logging for this request
+      responses:
+        '200':
+          description: Cursor-paginated list of unified markets
           content:
             application/json:
               schema:

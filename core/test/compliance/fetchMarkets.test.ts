@@ -6,8 +6,7 @@ describe('Compliance: fetchMarkets', () => {
 
         try {
             console.info(`[Compliance] Testing ${name}.fetchMarkets`);
-            const result = await exchange.fetchMarkets({ limit: 10 });
-            const markets = result.data;
+            const markets = await exchange.fetchMarkets({ limit: 10 });
 
             expect(markets).toBeDefined();
             expect(Array.isArray(markets)).toBe(true);

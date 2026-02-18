@@ -266,15 +266,7 @@ async function fetchMarketsDefault(params: MarketFetchParams | undefined, callAp
             allMarkets.sort((a, b) => b.liquidity - a.liquidity);
         }
 
-        const hasLimit = params?.limit !== undefined;
-        const hasOffset = params?.offset !== undefined;
-        if (!hasLimit && !hasOffset) {
-            return allMarkets;
-        }
-
-        const start = offset;
-        const end = hasLimit ? start + limit : undefined;
-        return allMarkets.slice(start, end);
+        return allMarkets.slice(offset, offset + limit);
 
     } catch (error: any) {
         throw kalshiErrorMapper.mapError(error);

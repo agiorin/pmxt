@@ -265,8 +265,7 @@ export abstract class PredictionMarketExchange {
         }
 
         // Fetch all markets (implementation dependent, usually fetches active markets)
-        const paginatedMarkets = await this.fetchMarkets();
-        const markets = paginatedMarkets.data;
+        const markets = await this.fetchMarkets();
 
         // Reset caches
         this.markets = {};
@@ -313,7 +312,19 @@ export abstract class PredictionMarketExchange {
      * @example-python Get market by slug
      * markets = exchange.fetch_markets(slug='will-trump-win')
      */
-    async fetchMarkets(params?: MarketFetchParams): Promise<PaginatedResult<UnifiedMarket>> {
+    async fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+        if (params?.cursor) {
+            const paginated = await this.fetchMarketsPaginated(params);
+            return paginated.data;
+        }
+        return this.fetchMarketsImpl(params);
+    }
+
+    /**
+     * Fetch markets with stable cursor-based pagination.
+     * Use this when you need consistency across pages even if market ordering drifts.
+     */
+    async fetchMarketsPaginated(params?: MarketFetchParams): Promise<PaginatedResult<UnifiedMarket>> {
         this.cleanExpiredSnapshots();
 
         if (params?.cursor) {
@@ -406,12 +417,12 @@ export abstract class PredictionMarketExchange {
             }
         }
 
-        const paginatedMarkets = await this.fetchMarkets(params);
-        if (paginatedMarkets.data.length === 0) {
+        const markets = await this.fetchMarkets(params);
+        if (markets.length === 0) {
             const identifier = params?.marketId || params?.outcomeId || params?.slug || params?.eventId || params?.query || 'unknown';
             throw new MarketNotFound(identifier, this.name);
         }
-        return paginatedMarkets.data[0];
+        return markets[0];
     }
 
     /**

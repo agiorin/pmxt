@@ -143,14 +143,9 @@ async function fetchMarketsDefault(
             unifiedMarkets.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
         }
 
-        const hasLimit = params?.limit !== undefined;
-        const hasOffset = params?.offset !== undefined;
-        if (!hasLimit && !hasOffset) {
-            return unifiedMarkets;
-        }
-
+        // Apply offset and limit to the FILTERED results
         const marketsAfterOffset = offset > 0 ? unifiedMarkets.slice(offset) : unifiedMarkets;
-        return hasLimit ? marketsAfterOffset.slice(0, limit) : marketsAfterOffset;
+        return marketsAfterOffset.slice(0, limit);
     } catch (error: any) {
         throw limitlessErrorMapper.mapError(error);
     }
