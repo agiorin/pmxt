@@ -1082,6 +1082,19 @@ export abstract class PredictionMarketExchange {
     // ----------------------------------------------------------------------------
 
     /**
+     * Call an implicit API method by its operationId (or auto-generated name).
+     * Provides a typed entry point so unified methods can delegate to the implicit API
+     * without casting to `any` everywhere.
+     */
+    protected async callApi(operationId: string, params?: Record<string, any>): Promise<any> {
+        const method = (this as any)[operationId];
+        if (typeof method !== 'function') {
+            throw new Error(`Implicit API method "${operationId}" not found on ${this.name}`);
+        }
+        return method.call(this, params);
+    }
+
+    /**
      * Parse an API descriptor and generate callable methods on this instance.
      * Existing methods (unified API) are never overwritten.
      */

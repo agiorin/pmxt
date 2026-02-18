@@ -38,6 +38,9 @@ export function parseOpenApiSpec(spec: any, baseUrl?: string): ApiDescriptor {
 
     const endpoints: Record<string, ApiEndpoint> = {};
 
+    // Inherit top-level security when operations don't define their own
+    const topLevelSecurity = !!(spec.security && spec.security.length > 0);
+
     const paths = spec.paths || {};
     for (const [path, methods] of Object.entries<any>(paths)) {
         for (const [httpMethod, operation] of Object.entries<any>(methods)) {
@@ -47,7 +50,9 @@ export function parseOpenApiSpec(spec: any, baseUrl?: string): ApiDescriptor {
             }
 
             const name = operation.operationId || generateMethodName(httpMethod, path);
-            const isPrivate = !!(operation.security && operation.security.length > 0);
+            const isPrivate = operation.security !== undefined
+                ? !!(operation.security && operation.security.length > 0)
+                : topLevelSecurity;
 
             endpoints[name] = {
                 method: httpMethod.toUpperCase(),
