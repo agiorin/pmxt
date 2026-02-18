@@ -83,7 +83,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             credentials = options as ExchangeCredentials | undefined;
         }
 
-        super(credentials, { snapshotTTL });
+        super({ credentials, snapshotTTL });
         this.wsConfig = wsConfig;
 
         // Initialize auth if API key or private key are provided

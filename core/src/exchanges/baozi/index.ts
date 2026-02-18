@@ -94,7 +94,7 @@ export class BaoziExchange extends PredictionMarketExchange {
             credentials = options as ExchangeCredentials | undefined;
         }
 
-        super(credentials, { snapshotTTL });
+        super({ credentials, snapshotTTL });
 
         rpcUrl = rpcUrl
             || process.env.BAOZI_RPC_URL

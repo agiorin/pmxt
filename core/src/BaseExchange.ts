@@ -170,6 +170,7 @@ export interface ExchangeCredentials {
 }
 
 export interface PredictionMarketExchangeOptions {
+    credentials?: ExchangeCredentials;
     snapshotTTL?: number;
 }
 
@@ -211,9 +212,29 @@ export abstract class PredictionMarketExchange {
         watchTrades: false,
     };
 
-    constructor(credentials?: ExchangeCredentials, options?: PredictionMarketExchangeOptions) {
-        this.credentials = credentials;
-        this.snapshotTTL = options?.snapshotTTL ?? 5 * 60 * 1000;
+    constructor(
+        optionsOrCredentials?: ExchangeCredentials | PredictionMarketExchangeOptions,
+        legacyOptions?: PredictionMarketExchangeOptions
+    ) {
+        // Backward compatibility:
+        // - Legacy: new Exchange(credentials)
+        // - Legacy: super(credentials, { snapshotTTL })
+        // - New:    super({ credentials, snapshotTTL })
+        if (legacyOptions) {
+            this.credentials = optionsOrCredentials as ExchangeCredentials | undefined;
+            this.snapshotTTL = legacyOptions.snapshotTTL ?? 5 * 60 * 1000;
+        } else if (
+            optionsOrCredentials &&
+            typeof optionsOrCredentials === 'object' &&
+            ('credentials' in optionsOrCredentials || 'snapshotTTL' in optionsOrCredentials)
+        ) {
+            const options = optionsOrCredentials as PredictionMarketExchangeOptions;
+            this.credentials = options.credentials;
+            this.snapshotTTL = options.snapshotTTL ?? 5 * 60 * 1000;
+        } else {
+            this.credentials = optionsOrCredentials as ExchangeCredentials | undefined;
+            this.snapshotTTL = 5 * 60 * 1000;
+        }
         this.http = axios.create();
 
         // Request Interceptor

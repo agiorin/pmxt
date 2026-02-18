@@ -64,7 +64,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
             credentials = options as ExchangeCredentials | undefined;
         }
 
-        super(credentials, { snapshotTTL });
+        super({ credentials, snapshotTTL });
         this.wsConfig = wsConfig;
 
         // Initialize auth if credentials are provided

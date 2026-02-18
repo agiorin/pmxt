@@ -56,7 +56,7 @@ export class KalshiExchange extends PredictionMarketExchange {
             credentials = options as ExchangeCredentials | undefined;
         }
 
-        super(credentials, { snapshotTTL });
+        super({ credentials, snapshotTTL });
         this.wsConfig = wsConfig;
 
         if (credentials?.apiKey && credentials?.privateKey) {
