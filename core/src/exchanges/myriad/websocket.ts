@@ -10,6 +10,7 @@ const DEFAULT_POLL_INTERVAL = 5000; // 5 seconds
 
 export class MyriadWebSocket {
     private headers: Record<string, string>;
+    private callApi: (operationId: string, params?: Record<string, any>) => Promise<any>;
     private pollInterval: number;
     private orderBookTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
     private tradeTimers: Map<string, ReturnType<typeof setInterval>> = new Map();
@@ -18,8 +19,9 @@ export class MyriadWebSocket {
     private lastTradeTimestamp: Map<string, number> = new Map();
     private closed = false;
 
-    constructor(headers: Record<string, string>, pollInterval?: number) {
+    constructor(headers: Record<string, string>, callApi: (operationId: string, params?: Record<string, any>) => Promise<any>, pollInterval?: number) {
         this.headers = headers;
+        this.callApi = callApi;
         this.pollInterval = pollInterval || DEFAULT_POLL_INTERVAL;
     }
 
@@ -72,7 +74,7 @@ export class MyriadWebSocket {
     private startOrderBookPolling(id: string): void {
         const poll = async () => {
             try {
-                const book = await fetchOrderBook(id, this.headers);
+                const book = await fetchOrderBook(id, this.callApi);
                 const resolvers = this.orderBookResolvers.get(id) || [];
                 this.orderBookResolvers.set(id, []);
                 for (const resolve of resolvers) {

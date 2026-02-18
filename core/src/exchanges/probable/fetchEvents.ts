@@ -4,7 +4,7 @@ import axios, { AxiosInstance } from 'axios';
 import { BASE_URL, SEARCH_PATH, EVENTS_PATH, mapEventToUnified, enrichMarketsWithPrices } from './utils';
 import { probableErrorMapper } from './errors';
 
-export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios, callMidpoint?: (tokenId: string) => Promise<any>): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios, callMidpoint?: (tokenId: string) => Promise<any>, callSearch?: (params: any) => Promise<any>): Promise<UnifiedEvent[]> {
     try {
         // Handle eventId lookup
         if (params.eventId) {
@@ -20,7 +20,7 @@ export async function fetchEvents(params: EventFetchParams, http: AxiosInstance 
 
         // Query-based search: use the search endpoint (only endpoint with text search)
         if (params.query) {
-            return await searchEvents(params, http, callMidpoint);
+            return await searchEvents(params, http, callMidpoint, callSearch);
         }
 
         // Default: use the dedicated events API for listing
@@ -102,21 +102,23 @@ async function fetchEventsList(params: EventFetchParams, http: AxiosInstance, ca
     return result;
 }
 
-async function searchEvents(params: EventFetchParams, http: AxiosInstance, callMidpoint?: (tokenId: string) => Promise<any>): Promise<UnifiedEvent[]> {
+async function searchEvents(params: EventFetchParams, http: AxiosInstance, callMidpoint?: (tokenId: string) => Promise<any>, callSearch?: (params: any) => Promise<any>): Promise<UnifiedEvent[]> {
     const limit = params.limit || 20;
     const page = params.offset ? Math.floor(params.offset / limit) + 1 : 1;
 
-    const response = await http.get(`${BASE_URL}${SEARCH_PATH}`, {
-        params: {
-            q: params.query,
-            page,
-            limit,
-            events_status: mapStatus(params.status),
-            keep_closed_markets: params.status === 'all' || params.status === 'inactive' || params.status === 'closed' ? 1 : 0,
-        },
-    });
+    const queryParams = {
+        q: params.query,
+        page,
+        limit,
+        events_status: mapStatus(params.status),
+        keep_closed_markets: params.status === 'all' || params.status === 'inactive' || params.status === 'closed' ? 1 : 0,
+    };
 
-    const events = response.data?.events || [];
+    const searchData = callSearch
+        ? await callSearch(queryParams)
+        : (await http.get(`${BASE_URL}${SEARCH_PATH}`, { params: queryParams })).data;
+
+    const events = searchData?.events || [];
 
     const result = events
         .map((event: any) => mapEventToUnified(event))

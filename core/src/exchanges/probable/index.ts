@@ -106,11 +106,21 @@ export class ProbableExchange extends PredictionMarketExchange {
     // --------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
+        return fetchMarkets(
+            params,
+            this.http,
+            (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }),
+            (queryParams) => this.callApi('getPublicApiV1PublicSearch', queryParams)
+        );
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
+        return fetchEvents(
+            params,
+            this.http,
+            (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }),
+            (queryParams) => this.callApi('getPublicApiV1PublicSearch', queryParams)
+        );
     }
 
     async getEventById(id: string): Promise<UnifiedEvent | null> {

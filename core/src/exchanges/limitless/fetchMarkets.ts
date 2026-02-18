@@ -1,13 +1,12 @@
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
-import axios, { AxiosInstance } from 'axios';
 import { LIMITLESS_API_URL, mapMarketToUnified, paginateLimitlessMarkets } from './utils';
 import { limitlessErrorMapper } from './errors';
 
 export async function fetchMarkets(
     params?: MarketFetchParams,
     apiKey?: string,
-    http: AxiosInstance = axios
+    callApi?: (operationId: string, params?: Record<string, any>) => Promise<any>
 ): Promise<UnifiedMarket[]> {
     // Limitless API currently only supports fetching active markets for lists
     // Early return to avoid SDK initialization in tests
@@ -52,7 +51,7 @@ export async function fetchMarkets(
 
         // Handle query-based search
         if (params?.query) {
-            return await searchMarkets(params.query, params, http);
+            return await searchMarkets(params.query, params, callApi!);
         }
 
         // Default: fetch active markets
@@ -77,21 +76,18 @@ async function fetchMarketsBySlug(
 async function searchMarkets(
     query: string,
     params: MarketFetchParams | undefined,
-    http: AxiosInstance
+    callApi: (operationId: string, params?: Record<string, any>) => Promise<any>
 ): Promise<UnifiedMarket[]> {
-    // SDK doesn't have a search method yet, use axios directly
     // NOTE: The Limitless /markets/search endpoint currently only returns active/funded markets.
     // It does not include expired or resolved markets in search results.
-    const response = await http.get(`${LIMITLESS_API_URL}/markets/search`, {
-        params: {
-            query: query,
-            limit: params?.limit || 250000,
-            page: params?.page || 1,
-            similarityThreshold: params?.similarityThreshold || 0.5
-        }
+    const data = await callApi('MarketSearchController_search', {
+        query: query,
+        limit: params?.limit || 250000,
+        page: params?.page || 1,
+        similarityThreshold: params?.similarityThreshold || 0.5,
     });
 
-    const rawResults = response?.data?.markets || [];
+    const rawResults = data?.markets || [];
     const allMarkets: UnifiedMarket[] = [];
 
     for (const res of rawResults) {

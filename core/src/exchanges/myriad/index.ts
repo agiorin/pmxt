@@ -84,11 +84,11 @@ export class MyriadExchange extends PredictionMarketExchange {
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params, this.getHeaders(), this.http);
+        return fetchOHLCV(id, params, this.callApi.bind(this));
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id, this.getHeaders(), this.http);
+        return fetchOrderBook(id, this.callApi.bind(this));
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -260,7 +260,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     async watchOrderBook(id: string, _limit?: number): Promise<OrderBook> {
         this.ensureAuth();
         if (!this.ws) {
-            this.ws = new MyriadWebSocket(this.getHeaders());
+            this.ws = new MyriadWebSocket(this.getHeaders(), this.callApi.bind(this));
         }
         return this.ws.watchOrderBook(id);
     }
@@ -268,7 +268,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     async watchTrades(id: string, _since?: number, _limit?: number): Promise<Trade[]> {
         this.ensureAuth();
         if (!this.ws) {
-            this.ws = new MyriadWebSocket(this.getHeaders());
+            this.ws = new MyriadWebSocket(this.getHeaders(), this.callApi.bind(this));
         }
         return this.ws.watchTrades(id);
     }

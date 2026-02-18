@@ -1,13 +1,12 @@
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
-import axios, { AxiosInstance } from 'axios';
 import { LIMITLESS_API_URL, mapMarketToUnified } from './utils';
 import { limitlessErrorMapper } from './errors';
 
-async function fetchEventBySlug(slug: string, http: AxiosInstance): Promise<UnifiedEvent | null> {
+async function fetchEventBySlug(slug: string): Promise<UnifiedEvent | null> {
     const { HttpClient, MarketFetcher } = await import('@limitless-exchange/sdk');
     const httpClient = new HttpClient({ baseURL: LIMITLESS_API_URL });
-    // TODO: Ideally inject 'http' into HttpClient if supported, but SDK abstracts it.
+    // TODO: Ideally inject http into HttpClient if supported, but SDK abstracts it.
     // For now, single market fetch uses SDK's internal client.
     const marketFetcher = new MarketFetcher(httpClient);
 
@@ -37,27 +36,25 @@ async function fetchEventBySlug(slug: string, http: AxiosInstance): Promise<Unif
     } as UnifiedEvent;
 }
 
-export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
+export async function fetchEvents(params: EventFetchParams, callApi: (operationId: string, params?: Record<string, any>) => Promise<any>): Promise<UnifiedEvent[]> {
     try {
         // Handle eventId/slug lookup (same thing for Limitless)
         if (params.eventId || params.slug) {
             const slug = params.eventId || params.slug!;
-            const event = await fetchEventBySlug(slug, http);
+            const event = await fetchEventBySlug(slug);
             return event ? [event] : [];
         }
 
         // NOTE: The Limitless /markets/search endpoint currently only returns active/funded markets.
         // It does not include expired or resolved markets in search results.
         // Consequently, status 'inactive' will likely return 0 results and 'all' will only show active markets.
-        const response = await http.get(`${LIMITLESS_API_URL}/markets/search`, {
-            params: {
-                query: params.query,
-                limit: params?.limit || 10000,
-                similarityThreshold: 0.5
-            }
+        const data = await callApi('MarketSearchController_search', {
+            query: params.query,
+            limit: params?.limit || 10000,
+            similarityThreshold: 0.5,
         });
 
-        let markets = response.data?.markets || [];
+        let markets = data?.markets || [];
 
         // Filter by status based on expired/resolved state
         // Active: not expired and not resolved

@@ -188,11 +188,11 @@ export class PolymarketExchange extends PredictionMarketExchange {
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params, this.http);
+        return fetchOHLCV(id, params, this.callApi.bind(this));
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id, this.http);
+        return fetchOrderBook(id, this.callApi.bind(this));
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -203,7 +203,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params, this.http);
+        return fetchTrades(id, params, this.callApi.bind(this));
     }
 
     // ----------------------------------------------------------------------------

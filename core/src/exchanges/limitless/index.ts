@@ -125,11 +125,11 @@ export class LimitlessExchange extends PredictionMarketExchange {
     protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
         // Pass API key if available for authenticated requests
         const apiKey = this.auth?.getApiKey();
-        return fetchMarkets(params, apiKey, this.http);
+        return fetchMarkets(params, apiKey, this.callApi.bind(this));
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params, this.http);
+        return fetchEvents(params, this.callApi.bind(this));
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
