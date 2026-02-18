@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.9.0] - 2026-02-18
+
+### Fixed
+
+- **TypeScript SDK (Windows)**: Fixed a crash when spawning `pmxt-ensure-server` on Windows where the `.js` launcher must be invoked via `node` explicitly. The SDK now detects the platform and spawns `node <path>` when the resolved launcher ends in `.js`. (Closes #29)
+
+### Added
+
+- **Implicit API Generation**: Implemented automatic HTTP method generation from OpenAPI specifications in `BaseExchange`. Exchange classes can now register an OpenAPI spec and have typed HTTP methods created dynamically, significantly reducing boilerplate when adding new exchanges or API endpoints.
+  - Added `ApiDescriptor` interface and `parseOpenApiSpec` utility.
+  - Added `initAuth()` method for credential initialization and HMAC-SHA256 signing for Polymarket L2 API authentication.
+  - API credentials are cached for synchronous signing operations.
+  - Full implicit API support added to `PolymarketExchange` for all three services (CLOB, Gamma, Data APIs).
+
+### Changed
+
+- **Centralized Request Handling (`callApi`)**: Refactored all major exchange implementations (Kalshi, Polymarket, Limitless, Probable, Myriad) to route API calls through a unified `callApi` method on `BaseExchange`. This ensures consistent error mapping, logging, and interceptor behavior across all exchanges.
+- **Consolidated Exchange Methods**: Moved standalone per-feature files (`fetchPositions.ts`, `fetchOrderBook.ts`, `fetchTrades.ts`, `fetchOHLCV.ts`) into their respective exchange class files. Deleted the now-redundant standalone files.
+- **Centralized OpenAPI Specs**: Migrated API specifications from the root directory into structured `core/specs/` subdirectories (kalshi, limitless, myriad, polymarket, probable). The `fetch-openapi-specs` script now supports both remote URL fetching and local file reading.
+- **Myriad**: Inlined `fetchTrades` logic directly into WebSocket polling and migrated to `callApi`. Fixed outcomeId parsing for composite IDs.
+- **OpenAPI Utility**: Operations without explicit security definitions now correctly inherit top-level security settings.
+
+### Documentation
+
+- **SubParams in API Reference**: Sub-parameters for methods like `fetchMarkets` and `fetchEvents` (e.g., `query`, `slug`, `limit`, `offset`, `sort`, `searchIn`) are now rendered as nested bullet points directly under the method in both Python and TypeScript API reference docs.
+- **Implicit API Pattern**: Added detailed documentation of the Implicit API pattern to `ARCHITECTURE.md`.
+- **Exchange Integration Guide**: Refactored `core/ADDING_AN_EXCHANGE.md` to reflect the new `callApi`-based implementation approach.
+
 ## [2.8.0] - 2026-02-17
 
 ### Added
