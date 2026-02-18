@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.9.1] - 2026-02-18
+
+### Documentation
+
+- **Internal Links in API Reference**: Return types and complex parameters in the Python and TypeScript API reference documentation are now linkified. Clicking on a data model (e.g., `Order`, `UnifiedMarket`) now jumps directly to its detailed field definition at the bottom of the page.
+
 ## [2.9.0] - 2026-02-18
 
 ### Fixed

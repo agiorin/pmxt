@@ -65,7 +65,7 @@ pmxt.restart_server()
 **Signature:**
 
 ```python
-def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.returns.type}}:
+def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonTypeClean this.returns.type}}:
 ```
 
 **Parameters:**
@@ -83,7 +83,7 @@ def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.
 - None
 {{/if}}
 
-**Returns:** `{{pythonType this.returns.type}}` - {{this.returns.description}}
+**Returns:** {{pythonType this.returns.type}} - {{this.returns.description}}
 
 **Example:**
 
@@ -118,7 +118,7 @@ def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.
 @dataclass
 class {{this.name}}:
 {{#each this.fields}}
-{{pythonName this.name}}: {{pythonType this.type}} # {{this.description}}
+{{pythonName this.name}}: {{pythonTypeClean this.type}} # {{this.description}}
 {{/each}}
 ```
 
@@ -136,7 +136,7 @@ class {{this.name}}:
 @dataclass
 class {{this.name}}:
 {{#each this.fields}}
-{{pythonName this.name}}: {{pythonType this.type}} # {{this.description}}
+{{pythonName this.name}}: {{pythonTypeClean this.type}} # {{this.description}}
 {{/each}}
 ```
 

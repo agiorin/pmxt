@@ -70,7 +70,7 @@ async loadMarkets(reload: boolean): Promise<Record<string, UnifiedMarket>>
 
   - `reload` (boolean): Force a reload of markets from the API even if already loaded
 
-  **Returns:** `Promise<Record<string, UnifiedMarket>>` - Dictionary of markets indexed by marketId
+  **Returns:** Promise<Record<string, UnifiedMarket>> - Dictionary of markets indexed by marketId
 
     **Example:**
 
@@ -101,7 +101,7 @@ async fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]>
   - `params.sort` - Sort order ('volume' | 'liquidity' | 'newest')
   - `params.searchIn` - Where to search ('title' | 'description' | 'both')
 
-  **Returns:** `Promise<UnifiedMarket[]>` - Array of unified markets
+  **Returns:** Promise<[UnifiedMarket](#unifiedmarket)[]> - Array of unified markets
 
     **Example:**
 
@@ -131,13 +131,13 @@ async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]>
 
   **Parameters:**
 
-  - `params` (EventFetchParams) - **Optional**: Optional parameters for search and filtering
+  - `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Optional parameters for search and filtering
   - `params.query` - Search keyword to filter events (required)
   - `params.limit` - Maximum number of results
   - `params.offset` - Pagination offset
   - `params.searchIn` - Where to search ('title' | 'description' | 'both')
 
-  **Returns:** `Promise<UnifiedEvent[]>` - Array of unified events
+  **Returns:** Promise<[UnifiedEvent](#unifiedevent)[]> - Array of unified events
 
     **Example:**
 
@@ -167,7 +167,7 @@ async fetchMarket(params?: MarketFetchParams): Promise<UnifiedMarket>
 
   - `params` (MarketFetchParams) - **Optional**: Lookup parameters (marketId, outcomeId, slug, etc.)
 
-  **Returns:** `Promise<UnifiedMarket>` - A single unified market
+  **Returns:** Promise<[UnifiedMarket](#unifiedmarket)> - A single unified market
 
     **Example:**
 
@@ -194,9 +194,9 @@ async fetchEvent(params?: EventFetchParams): Promise<UnifiedEvent>
 
   **Parameters:**
 
-  - `params` (EventFetchParams) - **Optional**: Lookup parameters (eventId, slug, query)
+  - `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Lookup parameters (eventId, slug, query)
 
-  **Returns:** `Promise<UnifiedEvent>` - A single unified event
+  **Returns:** Promise<[UnifiedEvent](#unifiedevent)> - A single unified event
 
     **Example:**
 
@@ -223,7 +223,7 @@ async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise
   - `id` (string): The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
   - `params` (OHLCVParams | HistoryFilterParams): OHLCV parameters including resolution (required)
 
-  **Returns:** `Promise<PriceCandle[]>` - Array of price candles
+  **Returns:** Promise<[PriceCandle](#pricecandle)[]> - Array of price candles
 
     **Example:**
 
@@ -259,7 +259,7 @@ async fetchOrderBook(id: string): Promise<OrderBook>
 
   - `id` (string): The Outcome ID (outcomeId)
 
-  **Returns:** `Promise<OrderBook>` - Current order book with bids and asks
+  **Returns:** Promise<[OrderBook](#orderbook)> - Current order book with bids and asks
 
     **Example:**
 
@@ -289,7 +289,7 @@ async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promi
   - `id` (string): The Outcome ID (outcomeId)
   - `params` (TradesParams | HistoryFilterParams): Trade filter parameters
 
-  **Returns:** `Promise<Trade[]>` - Array of recent trades
+  **Returns:** Promise<[Trade](#trade)[]> - Array of recent trades
 
     **Example:**
 
@@ -318,9 +318,9 @@ async createOrder(params: CreateOrderParams): Promise<Order>
 
   **Parameters:**
 
-  - `params` (CreateOrderParams): Order parameters
+  - `params` ([CreateOrderParams](#createorderparams)): Order parameters
 
-  **Returns:** `Promise<Order>` - The created order
+  **Returns:** Promise<[Order](#order)> - The created order
 
     **Example:**
 
@@ -363,7 +363,7 @@ async cancelOrder(orderId: string): Promise<Order>
 
   - `orderId` (string): The order ID to cancel
 
-  **Returns:** `Promise<Order>` - The cancelled order
+  **Returns:** Promise<[Order](#order)> - The cancelled order
 
     **Example:**
 
@@ -390,7 +390,7 @@ async fetchOrder(orderId: string): Promise<Order>
 
   - `orderId` (string): The order ID to look up
 
-  **Returns:** `Promise<Order>` - The order details
+  **Returns:** Promise<[Order](#order)> - The order details
 
     **Example:**
 
@@ -417,7 +417,7 @@ async fetchOpenOrders(marketId?: string): Promise<Order[]>
 
   - `marketId` (string) - **Optional**: Optional market ID to filter by
 
-  **Returns:** `Promise<Order[]>` - Array of open orders
+  **Returns:** Promise<[Order](#order)[]> - Array of open orders
 
     **Example:**
 
@@ -449,7 +449,7 @@ async fetchPositions(): Promise<Position[]>
 
   - None
 
-  **Returns:** `Promise<Position[]>` - Array of user positions
+  **Returns:** Promise<[Position](#position)[]> - Array of user positions
 
     **Example:**
 
@@ -479,7 +479,7 @@ async fetchBalance(): Promise<Balance[]>
 
   - None
 
-  **Returns:** `Promise<Balance[]>` - Array of account balances
+  **Returns:** Promise<[Balance](#balance)[]> - Array of account balances
 
     **Example:**
 
@@ -504,11 +504,11 @@ async getExecutionPrice(orderBook: OrderBook, side: 'buy' | 'sell', amount: numb
 
   **Parameters:**
 
-  - `orderBook` (OrderBook): The current order book
+  - `orderBook` ([OrderBook](#orderbook)): The current order book
   - `side` ('buy' | 'sell'): 'buy' or 'sell'
   - `amount` (number): Number of contracts to simulate
 
-  **Returns:** `Promise<number>` - Average execution price, or 0 if insufficient liquidity
+  **Returns:** Promise<number> - Average execution price, or 0 if insufficient liquidity
 
     **Example:**
 
@@ -534,11 +534,11 @@ async getExecutionPriceDetailed(orderBook: OrderBook, side: 'buy' | 'sell', amou
 
   **Parameters:**
 
-  - `orderBook` (OrderBook): The current order book
+  - `orderBook` ([OrderBook](#orderbook)): The current order book
   - `side` ('buy' | 'sell'): 'buy' or 'sell'
   - `amount` (number): Number of contracts to simulate
 
-  **Returns:** `Promise<ExecutionPriceResult>` - Detailed execution result with price, filled amount, and fill status
+  **Returns:** Promise<[ExecutionPriceResult](#executionpriceresult)> - Detailed execution result with price, filled amount, and fill status
 
     **Example:**
 
@@ -566,10 +566,10 @@ async filterMarkets(markets: UnifiedMarket[], criteria: string | MarketFilterCri
 
   **Parameters:**
 
-  - `markets` (UnifiedMarket[]): Array of markets to filter
+  - `markets` ([UnifiedMarket](#unifiedmarket)[]): Array of markets to filter
   - `criteria` (string | MarketFilterCriteria | MarketFilterFunction): Filter criteria: string (text search), object (structured), or function (predicate)
 
-  **Returns:** `Promise<UnifiedMarket[]>` - Filtered array of markets
+  **Returns:** Promise<[UnifiedMarket](#unifiedmarket)[]> - Filtered array of markets
 
     **Example:**
 
@@ -605,10 +605,10 @@ async filterEvents(events: UnifiedEvent[], criteria: string | EventFilterCriteri
 
   **Parameters:**
 
-  - `events` (UnifiedEvent[]): Array of events to filter
+  - `events` ([UnifiedEvent](#unifiedevent)[]): Array of events to filter
   - `criteria` (string | EventFilterCriteria | EventFilterFunction): Filter criteria: string (text search), object (structured), or function (predicate)
 
-  **Returns:** `Promise<UnifiedEvent[]>` - Filtered array of events
+  **Returns:** Promise<[UnifiedEvent](#unifiedevent)[]> - Filtered array of events
 
     **Example:**
 
@@ -638,7 +638,7 @@ async watchOrderBook(id: string, limit?: number): Promise<OrderBook>
   - `id` (string): The Outcome ID to watch
   - `limit` (number) - **Optional**: Optional limit for orderbook depth
 
-  **Returns:** `Promise<OrderBook>` - Promise that resolves with the current orderbook state
+  **Returns:** Promise<[OrderBook](#orderbook)> - Promise that resolves with the current orderbook state
 
     **Example:**
 
@@ -669,7 +669,7 @@ async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]>
   - `since` (number) - **Optional**: Optional timestamp to filter trades from
   - `limit` (number) - **Optional**: Optional limit for number of trades
 
-  **Returns:** `Promise<Trade[]>` - Promise that resolves with recent trades
+  **Returns:** Promise<[Trade](#trade)[]> - Promise that resolves with recent trades
 
     **Example:**
 
@@ -700,7 +700,7 @@ async close(): Promise<void>
 
   - None
 
-  **Returns:** `Promise<void>` - Result
+  **Returns:** Promise<void> - Result
 
     **Example:**
 
@@ -726,7 +726,7 @@ async implicitApi(): Promise<ImplicitApiMethodInfo[]>
 
   - None
 
-  **Returns:** `Promise<ImplicitApiMethodInfo[]>` - Result
+  **Returns:** Promise<ImplicitApiMethodInfo[]> - Result
 
     **Example:**
 
@@ -754,7 +754,7 @@ async watchPrices(marketAddress: string, callback: (data: any)): Promise<void>
   - `marketAddress` (string): Market contract address
   - `callback` ((data: any)): Callback for price updates
 
-  **Returns:** `Promise<void>` - Result
+  **Returns:** Promise<void> - Result
 
     **Example:**
 
@@ -784,7 +784,7 @@ async watchUserPositions(callback: (data: any)): Promise<void>
 
   - `callback` ((data: any)): Callback for position updates
 
-  **Returns:** `Promise<void>` - Result
+  **Returns:** Promise<void> - Result
 
     **Example:**
 
@@ -814,7 +814,7 @@ async watchUserTransactions(callback: (data: any)): Promise<void>
 
   - `callback` ((data: any)): Callback for transaction updates
 
-  **Returns:** `Promise<void>` - Result
+  **Returns:** Promise<void> - Result
 
     **Example:**
 

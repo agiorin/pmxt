@@ -67,7 +67,7 @@ await pmxt.restartServer();
 **Signature:**
 
 ```typescript
-async {{this.name}}({{tsParams this.params}}): Promise<{{tsType this.returns.type}}>
+async {{this.name}}({{tsParams this.params}}): Promise<{{tsTypeClean this.returns.type}}>
   ```
 
   **Parameters:**
@@ -85,7 +85,7 @@ async {{this.name}}({{tsParams this.params}}): Promise<{{tsType this.returns.typ
   - None
   {{/if}}
 
-  **Returns:** `Promise<{{tsType this.returns.type}}>` - {{this.returns.description}}
+  **Returns:** Promise<{{tsType this.returns.type}}> - {{this.returns.description}}
 
     **Example:**
 
@@ -119,7 +119,7 @@ async {{this.name}}({{tsParams this.params}}): Promise<{{tsType this.returns.typ
     ```typescript
     interface {{this.name}} {
     {{#each this.fields}}
-    {{this.name}}: {{tsType this.type}}; // {{this.description}}
+    {{this.name}}: {{tsTypeClean this.type}}; // {{this.description}}
     {{/each}}
     }
     ```
@@ -137,7 +137,7 @@ async {{this.name}}({{tsParams this.params}}): Promise<{{tsType this.returns.typ
     ```typescript
     interface {{this.name}} {
     {{#each this.fields}}
-    {{this.name}}{{tsOptional this.required}}: {{tsType this.type}}; // {{this.description}}
+    {{this.name}}{{tsOptional this.required}}: {{tsTypeClean this.type}}; // {{this.description}}
     {{/each}}
     }
     ```
