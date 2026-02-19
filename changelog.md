@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.10.0] - 2026-02-19
+
+### Added
+
+- **Low-Level API Access (`callApi` / `call_api`)**: Exposed a new method on all exchange instances that allows direct invocation of any exchange-specific REST endpoint by its OpenAPI `operationId`. This gives advanced users full access to every underlying API endpoint (Polymarket CLOB/Gamma/Data, Kalshi, Limitless, Probable, Myriad) without leaving the unified SDK interface.
+  - TypeScript: `await exchange.callApi('operationName', { param: 'value' })`
+  - Python: `exchange.call_api('operation_name', {'param': 'value'})`
+- **Low-Level API Reference Documentation**: Both Python and TypeScript API reference docs now include a comprehensive "Low-Level API Reference" section listing every available endpoint per exchange, with method, path, parameters, and auth requirements.
+
+### Documentation
+
+- **API Reference Templates**: Updated Handlebars templates and the doc generation pipeline to render per-exchange endpoint tables and detailed parameter listings from OpenAPI specs.
+
 ## [2.9.2] - 2026-02-19
 
 ### Documentation
