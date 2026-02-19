@@ -34,6 +34,7 @@ dotenv.config({
  */
 
 export const exchangeClasses = Object.entries(pmxt)
+<<<<<<< HEAD
   .filter(
     ([name, value]) =>
       typeof value === "function" &&
@@ -41,6 +42,15 @@ export const exchangeClasses = Object.entries(pmxt)
       name !== "PredictionMarketExchange",
   )
   .map(([name, cls]) => ({ name, cls: cls as any }));
+=======
+    .filter(([name, value]) =>
+        typeof value === 'function' &&
+        name.endsWith('Exchange') &&
+        name !== 'PredictionMarketExchange' &&
+        name !== 'BaoziExchange'
+    )
+    .map(([name, cls]) => ({ name, cls: cls as any }));
+>>>>>>> main
 
 export function validateUnifiedEvent(
   event: UnifiedEvent,
@@ -356,9 +366,12 @@ export function getMockCredentials() {
  * Required variables:
  * - Polymarket: POLYMARKET_PRIVATE_KEY
  * - Kalshi: KALSHI_API_KEY, KALSHI_PRIVATE_KEY
- * - Limitless: LIMITLESS_PRIVATE_KEY
+ * - Limitless: LIMITLESS_PRIVATE_KEY, LIMITLESS_API_KEY
+ * - Myriad: MYRIAD_PROD or MYRIAD_STAGING
+ * - Baozi: BAOZI_PRIVATE_KEY
  */
 export function hasAuth(exchangeName: string): boolean {
+<<<<<<< HEAD
   const polyPk = process.env.POLYMARKET_PRIVATE_KEY?.trim();
   const kalshiKey = process.env.KALSHI_API_KEY?.trim();
   const kalshiPk = process.env.KALSHI_PRIVATE_KEY?.trim();
@@ -393,4 +406,56 @@ export function initExchange(name: string, cls: any) {
     return new cls({ privateKey: process.env.LIMITLESS_PRIVATE_KEY?.trim() });
   }
   return new cls();
+=======
+    const polyPk = process.env.POLYMARKET_PRIVATE_KEY?.trim();
+    const kalshiKey = process.env.KALSHI_API_KEY?.trim();
+    const kalshiPk = process.env.KALSHI_PRIVATE_KEY?.trim();
+    const limitlessPk = process.env.LIMITLESS_PRIVATE_KEY?.trim();
+    const myriadKey = (process.env.MYRIAD_PROD || process.env.MYRIAD_STAGING)?.trim();
+    const baoziPk = process.env.BAOZI_PRIVATE_KEY?.trim();
+
+    if (exchangeName === 'PolymarketExchange') {
+        return !!polyPk && polyPk.length > 10;
+    }
+    if (exchangeName === 'KalshiExchange') {
+        return !!(kalshiKey && kalshiPk) && kalshiKey.length > 5;
+    }
+    if (exchangeName === 'LimitlessExchange') {
+        return !!limitlessPk && limitlessPk.length > 10;
+    }
+    if (exchangeName === 'MyriadExchange') {
+        return !!myriadKey && myriadKey.length > 5;
+    }
+    if (exchangeName === 'BaoziExchange') {
+        return !!baoziPk && baoziPk.length > 10;
+    }
+    return false;
+}
+
+export function initExchange(name: string, cls: any) {
+    if (name === 'PolymarketExchange') {
+        return new cls({ privateKey: process.env.POLYMARKET_PRIVATE_KEY?.trim() });
+    }
+    if (name === 'KalshiExchange') {
+        return new cls({
+            apiKey: process.env.KALSHI_API_KEY?.trim(),
+            privateKey: process.env.KALSHI_PRIVATE_KEY?.trim()
+        });
+    }
+    if (name === 'LimitlessExchange') {
+        return new cls({
+            privateKey: process.env.LIMITLESS_PRIVATE_KEY?.trim(),
+            apiKey: process.env.LIMITLESS_API_KEY?.trim()
+        });
+    }
+    if (name === 'MyriadExchange') {
+        return new cls({
+            apiKey: (process.env.MYRIAD_PROD || process.env.MYRIAD_STAGING)?.trim()
+        });
+    }
+    if (name === 'BaoziExchange') {
+        return new cls({ privateKey: process.env.BAOZI_PRIVATE_KEY?.trim() });
+    }
+    return new cls();
+>>>>>>> main
 }

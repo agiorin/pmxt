@@ -1,7 +1,5 @@
-import axios from 'axios';
 import { OHLCVParams, HistoryFilterParams } from '../../BaseExchange';
 import { PriceCandle, CandleInterval } from '../../types';
-import { BASE_URL } from './utils';
 import { myriadErrorMapper } from './errors';
 
 // Myriad provides price charts via GET /markets/:id with these timeframes:
@@ -29,7 +27,7 @@ function selectTimeframe(interval: CandleInterval): string {
 export async function fetchOHLCV(
     id: string,
     params: OHLCVParams | HistoryFilterParams,
-    headers?: Record<string, string>
+    callApi: (operationId: string, params?: Record<string, any>) => Promise<any>
 ): Promise<PriceCandle[]> {
     if (!params.resolution) {
         throw new Error('fetchOHLCV requires a resolution parameter.');
@@ -47,12 +45,8 @@ export async function fetchOHLCV(
         const marketId = parts[1];
         const outcomeId = parts.length >= 3 ? parts[2] : undefined;
 
-        const response = await axios.get(`${BASE_URL}/markets/${marketId}`, {
-            params: { network_id: Number(networkId) },
-            headers,
-        });
-
-        const market = response.data.data || response.data;
+        const response = await callApi('getMarkets', { id: marketId, network_id: Number(networkId) });
+        const market = response.data || response;
         const outcomes = market.outcomes || [];
 
         // Find the target outcome

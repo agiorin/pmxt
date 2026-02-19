@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   PredictionMarketExchange,
   MarketFilterParams,
@@ -22,13 +21,14 @@ import {
 import { fetchMarkets } from "./fetchMarkets";
 import { fetchEvents } from "./fetchEvents";
 import { fetchOHLCV } from "./fetchOHLCV";
-import { fetchOrderBook } from "./fetchOrderBook";
-import { fetchTrades } from "./fetchTrades";
 import { KalshiAuth } from "./auth";
+import { validateIdFormat } from "../../utils/validation";
 import { KalshiWebSocket, KalshiWebSocketConfig } from "./websocket";
 import { kalshiErrorMapper } from "./errors";
 import { AuthenticationError } from "../../errors";
-import { getKalshiConfig, KalshiApiConfig, getApiPath } from "./api";
+import { parseOpenApiSpec } from "../../utils/openapi";
+import { kalshiApiSpec } from "./api";
+import { getKalshiConfig, KalshiApiConfig } from "./config";
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -40,6 +40,22 @@ export interface KalshiExchangeOptions {
 }
 
 export class KalshiExchange extends PredictionMarketExchange {
+  override readonly has = {
+    fetchMarkets: true as const,
+    fetchEvents: true as const,
+    fetchOHLCV: true as const,
+    fetchOrderBook: true as const,
+    fetchTrades: true as const,
+    createOrder: true as const,
+    cancelOrder: true as const,
+    fetchOrder: true as const,
+    fetchOpenOrders: true as const,
+    fetchPositions: true as const,
+    fetchBalance: true as const,
+    watchOrderBook: true as const,
+    watchTrades: true as const,
+  };
+
   private auth?: KalshiAuth;
   private wsConfig?: KalshiWebSocketConfig;
   private config: KalshiApiConfig;
@@ -67,14 +83,32 @@ export class KalshiExchange extends PredictionMarketExchange {
     if (credentials?.apiKey && credentials?.privateKey) {
       this.auth = new KalshiAuth(credentials);
     }
+
+    const descriptor = parseOpenApiSpec(kalshiApiSpec);
+    this.defineImplicitApi(descriptor);
   }
 
   get name(): string {
     return "Kalshi";
   }
 
-  private getBaseUrl(): string {
-    return this.config.apiUrl;
+  // ----------------------------------------------------------------------------
+  // Implicit API Auth & Error Mapping
+  // ----------------------------------------------------------------------------
+
+  protected override sign(
+    method: string,
+    path: string,
+    _params: Record<string, any>,
+  ): Record<string, string> {
+    const auth = this.ensureAuth();
+    // The implicit API passes just the spec path (e.g. /portfolio/balance),
+    // but Kalshi's signature requires the full path including /trade-api/v2.
+    return auth.getHeaders(method, "/trade-api/v2" + path);
+  }
+
+  protected override mapImplicitApiError(error: any): any {
+    throw kalshiErrorMapper.mapError(error);
   }
 
   // ----------------------------------------------------------------------------
@@ -99,38 +133,82 @@ export class KalshiExchange extends PredictionMarketExchange {
   protected async fetchMarketsImpl(
     params?: MarketFilterParams,
   ): Promise<UnifiedMarket[]> {
-    return fetchMarkets(this.getBaseUrl(), params);
+    return fetchMarkets(params, this.callApi.bind(this));
   }
 
   protected async fetchEventsImpl(
     params: EventFetchParams,
   ): Promise<UnifiedEvent[]> {
-    return fetchEvents(this.getBaseUrl(), params);
+    return fetchEvents(params, this.callApi.bind(this));
   }
 
   async fetchOHLCV(
     id: string,
     params: OHLCVParams | HistoryFilterParams,
   ): Promise<PriceCandle[]> {
-    return fetchOHLCV(this.getBaseUrl(), id, params);
+    return fetchOHLCV(id, params, this.callApi.bind(this));
   }
 
   async fetchOrderBook(id: string): Promise<OrderBook> {
-    return fetchOrderBook(this.getBaseUrl(), id);
+    validateIdFormat(id, "OrderBook");
+
+    const isNoOutcome = id.endsWith("-NO");
+    const ticker = id.replace(/-NO$/, "");
+    const data = (await this.callApi("GetMarketOrderbook", { ticker }))
+      .orderbook;
+
+    let bids: any[];
+    let asks: any[];
+
+    if (isNoOutcome) {
+      bids = (data.no || []).map((level: number[]) => ({
+        price: level[0] / 100,
+        size: level[1],
+      }));
+      asks = (data.yes || []).map((level: number[]) => ({
+        price: 1 - level[0] / 100,
+        size: level[1],
+      }));
+    } else {
+      bids = (data.yes || []).map((level: number[]) => ({
+        price: level[0] / 100,
+        size: level[1],
+      }));
+      asks = (data.no || []).map((level: number[]) => ({
+        price: 1 - level[0] / 100,
+        size: level[1],
+      }));
+    }
+
+    bids.sort((a: any, b: any) => b.price - a.price);
+    asks.sort((a: any, b: any) => a.price - b.price);
+
+    return { bids, asks, timestamp: Date.now() };
   }
 
   async fetchTrades(
     id: string,
     params: TradesParams | HistoryFilterParams,
   ): Promise<Trade[]> {
-    // Deprecation warning
     if ("resolution" in params && params.resolution !== undefined) {
       console.warn(
         '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
           "It will be removed in v3.0.0. Please remove it from your code.",
       );
     }
-    return fetchTrades(this.getBaseUrl(), id, params);
+    const ticker = id.replace(/-NO$/, "");
+    const data = await this.callApi("GetTrades", {
+      ticker,
+      limit: params.limit || 100,
+    });
+    const trades = data.trades || [];
+    return trades.map((t: any) => ({
+      id: t.trade_id,
+      timestamp: new Date(t.created_time).getTime(),
+      price: t.yes_price / 100,
+      amount: t.count,
+      side: t.taker_side === "yes" ? "buy" : "sell",
+    }));
   }
 
   // ----------------------------------------------------------------------------
@@ -138,41 +216,17 @@ export class KalshiExchange extends PredictionMarketExchange {
   // ----------------------------------------------------------------------------
 
   async fetchBalance(): Promise<Balance[]> {
-    try {
-      const auth = this.ensureAuth();
-      const path = getApiPath("portfolio", "balance");
-
-      // Use demo-api if it's a sandbox key (usually indicated by config, but defaulting to prod for now)
-      // Or we could detect it. For now, let's assume Production unless specified.
-      // TODO: Make base URL configurable in credentials
-      const baseUrl = this.getBaseUrl();
-
-      const headers = auth.getHeaders("GET", path);
-
-      const response = await axios.get(`${baseUrl}${path}`, { headers });
-
-      // Kalshi response structure:
-      // - balance: Available balance in cents (for trading)
-      // - portfolio_value: Total portfolio value in cents (includes positions)
-      // - updated_ts: Unix timestamp of last update
-      const balanceCents = response.data.balance;
-      const portfolioValueCents = response.data.portfolio_value;
-
-      const available = balanceCents / 100;
-      const total = portfolioValueCents / 100;
-      const locked = total - available;
-
-      return [
-        {
-          currency: "USD",
-          total: total, // Total portfolio value (cash + positions)
-          available: available, // Available for trading
-          locked: locked, // Value locked in positions
-        },
-      ];
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
-    }
+    const data = await this.callApi("GetBalance");
+    const available = data.balance / 100;
+    const total = data.portfolio_value / 100;
+    return [
+      {
+        currency: "USD",
+        total,
+        available,
+        locked: total - available,
+      },
+    ];
   }
 
   // ----------------------------------------------------------------------------
@@ -180,184 +234,124 @@ export class KalshiExchange extends PredictionMarketExchange {
   // ----------------------------------------------------------------------------
 
   async createOrder(params: CreateOrderParams): Promise<Order> {
-    try {
-      const auth = this.ensureAuth();
-      const path = getApiPath("portfolio", "orders");
-      const baseUrl = this.getBaseUrl();
+    const isYesSide = params.side === "buy";
+    const kalshiOrder: Record<string, any> = {
+      ticker: params.marketId,
+      client_order_id: `pmxt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      side: isYesSide ? "yes" : "no",
+      action: params.side === "buy" ? "buy" : "sell",
+      count: params.amount,
+      type: params.type === "limit" ? "limit" : "market",
+    };
 
-      const headers = auth.getHeaders("POST", path);
-
-      // Map unified params to Kalshi format
-      // Kalshi uses 'yes'/'no' for side and 'buy'/'sell' for action
-      const isYesSide = params.side === "buy";
-      const kalshiOrder: any = {
-        ticker: params.marketId, // Kalshi uses ticker for market identification
-        client_order_id: `pmxt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        side: isYesSide ? "yes" : "no",
-        action: params.side === "buy" ? "buy" : "sell",
-        count: params.amount, // Number of contracts
-        type: params.type === "limit" ? "limit" : "market",
-      };
-
-      // Add price field based on side (yes_price for yes side, no_price for no side)
-      if (params.price) {
-        const priceInCents = Math.round(params.price * 100);
-        if (isYesSide) {
-          kalshiOrder.yes_price = priceInCents;
-        } else {
-          kalshiOrder.no_price = priceInCents;
-        }
+    if (params.price) {
+      const priceInCents = Math.round(params.price * 100);
+      if (isYesSide) {
+        kalshiOrder.yes_price = priceInCents;
+      } else {
+        kalshiOrder.no_price = priceInCents;
       }
-
-      const response = await axios.post(`${baseUrl}${path}`, kalshiOrder, {
-        headers,
-      });
-      const order = response.data.order;
-
-      return {
-        id: order.order_id,
-        marketId: params.marketId,
-        outcomeId: params.outcomeId,
-        side: params.side,
-        type: params.type,
-        price: params.price,
-        amount: params.amount,
-        status: this.mapKalshiOrderStatus(order.status),
-        filled: order.queue_position === 0 ? params.amount : 0,
-        remaining: order.remaining_count || params.amount,
-        timestamp: new Date(order.created_time).getTime(),
-      };
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
     }
+
+    const data = await this.callApi("CreateOrder", kalshiOrder);
+    const order = data.order;
+
+    return {
+      id: order.order_id,
+      marketId: params.marketId,
+      outcomeId: params.outcomeId,
+      side: params.side,
+      type: params.type,
+      price: params.price,
+      amount: params.amount,
+      status: this.mapKalshiOrderStatus(order.status),
+      filled: order.queue_position === 0 ? params.amount : 0,
+      remaining: order.remaining_count || params.amount,
+      timestamp: new Date(order.created_time).getTime(),
+    };
   }
 
   async cancelOrder(orderId: string): Promise<Order> {
-    try {
-      const auth = this.ensureAuth();
-      const path = getApiPath("portfolio", "orders", orderId);
-      const baseUrl = this.getBaseUrl();
+    const data = await this.callApi("CancelOrder", { order_id: orderId });
+    const order = data.order;
 
-      const headers = auth.getHeaders("DELETE", path);
-
-      const response = await axios.delete(`${baseUrl}${path}`, { headers });
-      const order = response.data.order;
-
-      return {
-        id: order.order_id,
-        marketId: order.ticker,
-        outcomeId: order.ticker,
-        side: order.side === "yes" ? "buy" : "sell",
-        type: "limit",
-        amount: order.count,
-        status: "cancelled",
-        filled: order.count - (order.remaining_count || 0),
-        remaining: 0,
-        timestamp: new Date(order.created_time).getTime(),
-      };
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
-    }
+    return {
+      id: order.order_id,
+      marketId: order.ticker,
+      outcomeId: order.ticker,
+      side: order.side === "yes" ? "buy" : "sell",
+      type: "limit",
+      amount: order.count,
+      status: "cancelled",
+      filled: order.count - (order.remaining_count || 0),
+      remaining: 0,
+      timestamp: new Date(order.created_time).getTime(),
+    };
   }
 
   async fetchOrder(orderId: string): Promise<Order> {
-    try {
-      const auth = this.ensureAuth();
-      const path = getApiPath("portfolio", "orders", orderId);
-      const baseUrl = this.getBaseUrl();
+    const data = await this.callApi("GetOrder", { order_id: orderId });
+    const order = data.order;
 
-      const headers = auth.getHeaders("GET", path);
-
-      const response = await axios.get(`${baseUrl}${path}`, { headers });
-      const order = response.data.order;
-
-      return {
-        id: order.order_id,
-        marketId: order.ticker,
-        outcomeId: order.ticker,
-        side: order.side === "yes" ? "buy" : "sell",
-        type: order.type === "limit" ? "limit" : "market",
-        price: order.yes_price ? order.yes_price / 100 : undefined,
-        amount: order.count,
-        status: this.mapKalshiOrderStatus(order.status),
-        filled: order.count - (order.remaining_count || 0),
-        remaining: order.remaining_count || 0,
-        timestamp: new Date(order.created_time).getTime(),
-      };
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
-    }
+    return {
+      id: order.order_id,
+      marketId: order.ticker,
+      outcomeId: order.ticker,
+      side: order.side === "yes" ? "buy" : "sell",
+      type: order.type === "limit" ? "limit" : "market",
+      price: order.yes_price ? order.yes_price / 100 : undefined,
+      amount: order.count,
+      status: this.mapKalshiOrderStatus(order.status),
+      filled: order.count - (order.remaining_count || 0),
+      remaining: order.remaining_count || 0,
+      timestamp: new Date(order.created_time).getTime(),
+    };
   }
 
   async fetchOpenOrders(marketId?: string): Promise<Order[]> {
-    try {
-      const auth = this.ensureAuth();
-      // CRITICAL: Query parameters must NOT be included in the signature
-      const basePath = getApiPath("portfolio", "orders");
-      let queryParams = "?status=resting";
-
-      if (marketId) {
-        queryParams += `&ticker=${marketId}`;
-      }
-
-      const baseUrl = this.getBaseUrl();
-      // Sign only the base path, not the query parameters
-      const headers = auth.getHeaders("GET", basePath);
-
-      const response = await axios.get(`${baseUrl}${basePath}${queryParams}`, {
-        headers,
-      });
-      const orders = response.data.orders || [];
-
-      return orders.map((order: any) => ({
-        id: order.order_id,
-        marketId: order.ticker,
-        outcomeId: order.ticker,
-        side: order.side === "yes" ? "buy" : "sell",
-        type: order.type === "limit" ? "limit" : "market",
-        price: order.yes_price ? order.yes_price / 100 : undefined,
-        amount: order.count,
-        status: "open",
-        filled: order.count - (order.remaining_count || 0),
-        remaining: order.remaining_count || 0,
-        timestamp: new Date(order.created_time).getTime(),
-      }));
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
+    const queryParams: Record<string, any> = { status: "resting" };
+    if (marketId) {
+      queryParams.ticker = marketId;
     }
+
+    const data = await this.callApi("GetOrders", queryParams);
+    const orders = data.orders || [];
+
+    return orders.map((order: any) => ({
+      id: order.order_id,
+      marketId: order.ticker,
+      outcomeId: order.ticker,
+      side: order.side === "yes" ? "buy" : "sell",
+      type: order.type === "limit" ? "limit" : "market",
+      price: order.yes_price ? order.yes_price / 100 : undefined,
+      amount: order.count,
+      status: "open" as const,
+      filled: order.count - (order.remaining_count || 0),
+      remaining: order.remaining_count || 0,
+      timestamp: new Date(order.created_time).getTime(),
+    }));
   }
 
   async fetchPositions(): Promise<Position[]> {
-    try {
-      const auth = this.ensureAuth();
-      const path = getApiPath("portfolio", "positions");
-      const baseUrl = this.getBaseUrl();
+    const data = await this.callApi("GetPositions");
+    const positions = data.market_positions || [];
 
-      const headers = auth.getHeaders("GET", path);
+    return positions.map((pos: any) => {
+      const absPosition = Math.abs(pos.position);
+      const entryPrice =
+        absPosition > 0 ? pos.total_cost / absPosition / 100 : 0;
 
-      const response = await axios.get(`${baseUrl}${path}`, { headers });
-      const positions = response.data.market_positions || [];
-
-      return positions.map((pos: any) => {
-        const absPosition = Math.abs(pos.position);
-        // Prevent division by zero
-        const entryPrice =
-          absPosition > 0 ? pos.total_cost / absPosition / 100 : 0;
-
-        return {
-          marketId: pos.ticker,
-          outcomeId: pos.ticker,
-          outcomeLabel: pos.ticker, // Kalshi uses ticker as the outcome label
-          size: pos.position, // Positive for long, negative for short
-          entryPrice: entryPrice,
-          currentPrice: pos.market_price ? pos.market_price / 100 : entryPrice,
-          unrealizedPnL: pos.market_exposure ? pos.market_exposure / 100 : 0,
-          realizedPnL: pos.realized_pnl ? pos.realized_pnl / 100 : 0,
-        };
-      });
-    } catch (error: any) {
-      throw kalshiErrorMapper.mapError(error);
-    }
+      return {
+        marketId: pos.ticker,
+        outcomeId: pos.ticker,
+        outcomeLabel: pos.ticker,
+        size: pos.position,
+        entryPrice,
+        currentPrice: pos.market_price ? pos.market_price / 100 : entryPrice,
+        unrealizedPnL: pos.market_exposure ? pos.market_exposure / 100 : 0,
+        realizedPnL: pos.realized_pnl ? pos.realized_pnl / 100 : 0,
+      };
+    });
   }
 
   // Helper to map Kalshi order status to unified status

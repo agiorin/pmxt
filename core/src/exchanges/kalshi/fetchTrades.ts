@@ -2,7 +2,7 @@ import axios from "axios";
 import { HistoryFilterParams, TradesParams } from "../../BaseExchange";
 import { Trade } from "../../types";
 import { kalshiErrorMapper } from "./errors";
-import { getMarketsUrl } from "./api";
+import { getMarketsUrl } from "./config";
 
 export async function fetchTrades(
   baseUrl: string,

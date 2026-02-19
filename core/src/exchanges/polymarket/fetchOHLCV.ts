@@ -1,7 +1,6 @@
-import axios from 'axios';
 import { HistoryFilterParams, OHLCVParams } from '../../BaseExchange';
 import { PriceCandle } from '../../types';
-import { CLOB_API_URL, mapIntervalToFidelity } from './utils';
+import { mapIntervalToFidelity } from './utils';
 import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 import { polymarketErrorMapper } from './errors';
 
@@ -9,7 +8,7 @@ import { polymarketErrorMapper } from './errors';
  * Fetch historical price data (OHLCV candles) for a specific token.
  * @param id - The CLOB token ID (e.g., outcome token ID)
  */
-export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
+export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams, callApi: (operationId: string, params?: Record<string, any>) => Promise<any>): Promise<PriceCandle[]> {
     validateIdFormat(id, 'OHLCV');
     validateOutcomeId(id, 'OHLCV');
 
@@ -48,7 +47,7 @@ export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilter
             // Default limit is usually 20 in the example, but safety margin is good.
             // If limit is not set, we default to 100 candles.
             const count = params.limit || 100;
-            // fidelity is in minutes. 
+            // fidelity is in minutes.
             const durationSeconds = count * fidelity * 60;
             startTs = endTs - durationSeconds;
         }
@@ -60,11 +59,8 @@ export async function fetchOHLCV(id: string, params: OHLCVParams | HistoryFilter
             endTs: endTs
         };
 
-        const response = await axios.get(`${CLOB_API_URL}/prices-history`, {
-            params: queryParams
-        });
-
-        const history = response.data.history || [];
+        const data = await callApi('getPricesHistory', queryParams);
+        const history = data.history || [];
 
         // 2. Align Timestamps (Snap to Grid)
         // Polymarket returns random tick timestamps (e.g. 1:00:21).

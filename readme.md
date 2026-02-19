@@ -16,7 +16,7 @@ NOTE: pmxt is an open-source infrastructure tool. It has no native token, coin, 
 <img src="https://img.shields.io/github/watchers/pmxt-dev/pmxt?style=social" alt="GitHub watchers">
 </td>
 <td>
-<a href="https://github.com/qoery-com/pmxt"><img src="https://img.shields.io/badge/downloads-37.7k-blue" alt="Total Downloads"></a>
+<a href="https://github.com/qoery-com/pmxt"><img src="https://img.shields.io/badge/downloads-40.5k-blue" alt="Total Downloads"></a>
 </td>
 </tr>
 <tr>
@@ -76,6 +76,7 @@ Different prediction market platforms have different APIs, data formats, and con
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://baozi.bet" style="color: inherit; text-decoration: none;"><img src="https://baozi.bet/favicon.ico" alt="Baozi" width="24" height="24"> <b>Baozi</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
+  <!-- # The baozi website seems to just show 50:50 odds for everything. Something must be fundamentally broken on their end. -->
   <a href="https://myriad.markets" style="color: inherit; text-decoration: none;"><img src="https://myriad.markets/favicon.ico" alt="Myriad" width="24" height="24"> <b>Myriad</b></a>
 </p>
 

@@ -1,7 +1,5 @@
-import axios from 'axios';
 import { HistoryFilterParams, TradesParams } from '../../BaseExchange';
 import { Trade } from '../../types';
-import { DATA_API_URL } from './utils';
 import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 import { polymarketErrorMapper } from './errors';
 
@@ -11,7 +9,7 @@ import { polymarketErrorMapper } from './errors';
  *
  * NOTE: Uses Polymarket Data API (public) to fetch trades.
  */
-export async function fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+export async function fetchTrades(id: string, params: TradesParams | HistoryFilterParams, callApi: (operationId: string, params?: Record<string, any>) => Promise<any>): Promise<Trade[]> {
     validateIdFormat(id, 'Trades');
     validateOutcomeId(id, 'Trades');
 
@@ -28,12 +26,7 @@ export async function fetchTrades(id: string, params: TradesParams | HistoryFilt
             queryParams.before = Math.floor(params.end.getTime() / 1000);
         }
 
-        const response = await axios.get(`${DATA_API_URL}/trades`, {
-            params: queryParams
-        });
-
-        // Response is an array of trade objects
-        const trades = response.data || [];
+        const trades = await callApi('getTrades', queryParams) || [];
 
         const mappedTrades: Trade[] = trades.map((trade: any) => ({
             id: trade.id || `${trade.timestamp}-${trade.price}`,

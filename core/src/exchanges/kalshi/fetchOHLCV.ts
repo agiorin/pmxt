@@ -1,15 +1,13 @@
-import axios from "axios";
 import { HistoryFilterParams, OHLCVParams } from "../../BaseExchange";
 import { PriceCandle } from "../../types";
 import { mapIntervalToKalshi } from "./utils";
 import { validateIdFormat } from "../../utils/validation";
 import { kalshiErrorMapper } from "./errors";
-import { getSeriesUrl } from "./api";
 
 export async function fetchOHLCV(
-  baseUrl: string,
   id: string,
   params: OHLCVParams | HistoryFilterParams,
+  callApi: (operationId: string, params?: Record<string, any>) => Promise<any>,
 ): Promise<PriceCandle[]> {
   validateIdFormat(id, "OHLCV");
 
@@ -35,13 +33,6 @@ export async function fetchOHLCV(
       );
     }
     const seriesTicker = parts.slice(0, -1).join("-");
-    const url = getSeriesUrl(baseUrl, seriesTicker, [
-      "markets",
-      normalizedId,
-      "candlesticks",
-    ]);
-
-    const queryParams: any = { period_interval: interval };
 
     const now = Math.floor(Date.now() / 1000);
     let startTs = now - 24 * 60 * 60;
@@ -73,11 +64,14 @@ export async function fetchOHLCV(
       }
     }
 
-    queryParams.start_ts = startTs;
-    queryParams.end_ts = endTs;
-
-    const response = await axios.get(url, { params: queryParams });
-    const candles = response.data.candlesticks || [];
+    const data = await callApi("GetMarketCandlesticks", {
+      series_ticker: seriesTicker,
+      ticker: normalizedId,
+      period_interval: interval,
+      start_ts: startTs,
+      end_ts: endTs,
+    });
+    const candles = data.candlesticks || [];
 
     const mappedCandles: PriceCandle[] = candles.map((c: any) => {
       // Priority:

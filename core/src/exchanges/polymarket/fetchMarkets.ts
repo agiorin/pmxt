@@ -1,24 +1,24 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
 import { GAMMA_API_URL, GAMMA_SEARCH_URL, mapMarketToUnified, paginateParallel, paginateSearchParallel } from './utils';
 import { polymarketErrorMapper } from './errors';
 
-export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+export async function fetchMarkets(params?: MarketFetchParams, http: AxiosInstance = axios): Promise<UnifiedMarket[]> {
     try {
         // Handle marketId lookup (Gamma market condition ID)
         if (params?.marketId) {
-            return await fetchMarketById(params.marketId);
+            return await fetchMarketById(params.marketId, http);
         }
 
         // Handle slug-based lookup
         if (params?.slug) {
-            return await fetchMarketsBySlug(params.slug);
+            return await fetchMarketsBySlug(params.slug, http);
         }
 
         // Handle outcomeId lookup (CLOB token ID -- no direct API, fetch and filter)
         if (params?.outcomeId) {
-            const markets = await fetchMarketsDefault(params);
+            const markets = await fetchMarketsDefault(params, http);
             return markets.filter(m =>
                 m.outcomes.some(o => o.outcomeId === params.outcomeId)
             );
@@ -26,24 +26,24 @@ export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedM
 
         // Handle eventId lookup (Gamma event ID)
         if (params?.eventId) {
-            return await fetchMarketsByEventId(params.eventId);
+            return await fetchMarketsByEventId(params.eventId, http);
         }
 
         // Handle query-based search
         if (params?.query) {
-            return await searchMarkets(params.query, params);
+            return await searchMarkets(params.query, params, http);
         }
 
         // Default: fetch markets
-        return await fetchMarketsDefault(params);
+        return await fetchMarketsDefault(params, http);
     } catch (error: any) {
         throw polymarketErrorMapper.mapError(error);
     }
 }
 
-async function fetchMarketById(marketId: string): Promise<UnifiedMarket[]> {
+async function fetchMarketById(marketId: string, http: AxiosInstance): Promise<UnifiedMarket[]> {
     const GAMMA_MARKETS_URL = 'https://gamma-api.polymarket.com/markets';
-    const response = await axios.get(GAMMA_MARKETS_URL, {
+    const response = await http.get(GAMMA_MARKETS_URL, {
         params: { id: marketId }
     });
 
@@ -63,8 +63,8 @@ async function fetchMarketById(marketId: string): Promise<UnifiedMarket[]> {
     return unifiedMarkets;
 }
 
-async function fetchMarketsByEventId(eventId: string): Promise<UnifiedMarket[]> {
-    const response = await axios.get(GAMMA_API_URL, {
+async function fetchMarketsByEventId(eventId: string, http: AxiosInstance): Promise<UnifiedMarket[]> {
+    const response = await http.get(GAMMA_API_URL, {
         params: { id: eventId }
     });
 
@@ -86,8 +86,8 @@ async function fetchMarketsByEventId(eventId: string): Promise<UnifiedMarket[]> 
     return unifiedMarkets;
 }
 
-async function fetchMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
-    const response = await axios.get(GAMMA_API_URL, {
+async function fetchMarketsBySlug(slug: string, http: AxiosInstance): Promise<UnifiedMarket[]> {
+    const response = await http.get(GAMMA_API_URL, {
         params: { slug: slug }
     });
 
@@ -109,8 +109,8 @@ async function fetchMarketsBySlug(slug: string): Promise<UnifiedMarket[]> {
     return unifiedMarkets;
 }
 
-async function searchMarkets(query: string, params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-    const limit = params?.limit || 10000;
+async function searchMarkets(query: string, params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
+    const limit = params?.limit || 250000;
 
     // Use parallel pagination to fetch all matching events
     // Each event can contain multiple markets, so we need a larger pool
@@ -123,7 +123,7 @@ async function searchMarkets(query: string, params?: MarketFetchParams): Promise
     };
 
     // Fetch events with parallel pagination
-    const events = await paginateSearchParallel(GAMMA_SEARCH_URL, queryParams, limit * 5);
+    const events = await paginateSearchParallel(GAMMA_SEARCH_URL, queryParams, limit * 5, http);
 
     const unifiedMarkets: UnifiedMarket[] = [];
     const lowerQuery = query.toLowerCase();
@@ -155,8 +155,8 @@ async function searchMarkets(query: string, params?: MarketFetchParams): Promise
     return unifiedMarkets.slice(0, limit);
 }
 
-async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-    const limit = params?.limit || 10000;  // Higher default for better coverage
+async function fetchMarketsDefault(params: MarketFetchParams | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
+    const limit = params?.limit || 250000;  // Higher default for better coverage
     const offset = params?.offset || 0;
 
     // Map generic sort params to Polymarket Gamma API params
@@ -194,7 +194,7 @@ async function fetchMarketsDefault(params?: MarketFetchParams): Promise<UnifiedM
 
     try {
         // Fetch active events from Gamma using parallel pagination
-        const events = await paginateParallel(GAMMA_API_URL, queryParams);
+        const events = await paginateParallel(GAMMA_API_URL, queryParams, http);
         const unifiedMarkets: UnifiedMarket[] = [];
 
         for (const event of events) {

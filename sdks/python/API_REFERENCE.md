@@ -53,6 +53,31 @@ pmxt.restart_server()
 
 ## Methods
 
+### `load_markets`
+
+Load and cache markets from the exchange.
+
+
+**Signature:**
+
+```python
+def load_markets(reload: bool) -> Dictstr, [UnifiedMarket]:
+```
+
+**Parameters:**
+
+- `reload` (bool): Force a reload of markets from the API even if already loaded
+
+**Returns:** Dict[str, [UnifiedMarket](#unifiedmarket)] - Dictionary of markets indexed by marketId
+
+**Example:**
+
+```python
+# No example available
+```
+
+
+---
 ### `fetch_markets`
 
 Fetch markets with optional filtering, search, or slug lookup.
@@ -67,20 +92,28 @@ def fetch_markets(params: Optional[MarketFetchParams] = None) -> List[UnifiedMar
 **Parameters:**
 
 - `params` (MarketFetchParams) - **Optional**: Optional parameters for filtering and search
+  - `params.query` - Search keyword to filter markets
+  - `params.slug` - Market slug/ticker for direct lookup
+  - `params.limit` - Maximum number of results
+  - `params.offset` - Pagination offset
+  - `params.sort` - Sort order ('volume' | 'liquidity' | 'newest')
+  - `params.search_in` - Where to search ('title' | 'description' | 'both')
 
-**Returns:** `List[UnifiedMarket]` - Array of unified markets
+**Returns:** List[[UnifiedMarket](#unifiedmarket)] - Array of unified markets
 
 **Example:**
 
 ```python
 # Fetch markets
-markets = exchange.fetch_markets(query='Trump', limit=20)
+markets = exchange.fetch_markets(query='Trump', limit=10000)
 print(markets[0].title)
 
 # Get market by slug
 markets = exchange.fetch_markets(slug='will-trump-win')
 ```
 
+**Notes:**
+Some exchanges (like Limitless) may only support status 'active' for search results.
 
 ---
 ### `fetch_events`
@@ -96,9 +129,13 @@ def fetch_events(params: Optional[EventFetchParams] = None) -> List[UnifiedEvent
 
 **Parameters:**
 
-- `params` (EventFetchParams) - **Optional**: Optional parameters for search and filtering
+- `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Optional parameters for search and filtering
+  - `params.query` - Search keyword to filter events (required)
+  - `params.limit` - Maximum number of results
+  - `params.offset` - Pagination offset
+  - `params.search_in` - Where to search ('title' | 'description' | 'both')
 
-**Returns:** `List[UnifiedEvent]` - Array of unified events
+**Returns:** List[[UnifiedEvent](#unifiedevent)] - Array of unified events
 
 **Example:**
 
@@ -107,6 +144,60 @@ def fetch_events(params: Optional[EventFetchParams] = None) -> List[UnifiedEvent
 events = exchange.fetch_events(query='Fed Chair')
 fed_event = events[0]
 print(fed_event.title, len(fed_event.markets), 'markets')
+```
+
+**Notes:**
+Some exchanges (like Limitless) may only support status 'active' for search results.
+
+---
+### `fetch_market`
+
+Fetch a single market by lookup parameters.
+
+
+**Signature:**
+
+```python
+def fetch_market(params: Optional[MarketFetchParams] = None) -> UnifiedMarket:
+```
+
+**Parameters:**
+
+- `params` (MarketFetchParams) - **Optional**: Lookup parameters (marketId, outcomeId, slug, etc.)
+
+**Returns:** [UnifiedMarket](#unifiedmarket) - A single unified market
+
+**Example:**
+
+```python
+# Fetch by market ID
+market = exchange.fetch_market(market_id='663583')
+```
+
+
+---
+### `fetch_event`
+
+Fetch a single event by lookup parameters.
+
+
+**Signature:**
+
+```python
+def fetch_event(params: Optional[EventFetchParams] = None) -> UnifiedEvent:
+```
+
+**Parameters:**
+
+- `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Lookup parameters (eventId, slug, query)
+
+**Returns:** [UnifiedEvent](#unifiedevent) - A single unified event
+
+**Example:**
+
+```python
+# Fetch by event ID
+event = exchange.fetch_event(event_id='TRUMP25DEC')
 ```
 
 
@@ -127,7 +218,7 @@ def fetch_ohlcv(id: str, params: OHLCVParams | HistoryFilterParams) -> List[Pric
 - `id` (str): The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
 - `params` (OHLCVParams | HistoryFilterParams): OHLCV parameters including resolution (required)
 
-**Returns:** `List[PriceCandle]` - Array of price candles
+**Returns:** List[[PriceCandle](#pricecandle)] - Array of price candles
 
 **Example:**
 
@@ -160,7 +251,7 @@ def fetch_order_book(id: str) -> OrderBook:
 
 - `id` (str): The Outcome ID (outcomeId)
 
-**Returns:** `OrderBook` - Current order book with bids and asks
+**Returns:** [OrderBook](#orderbook) - Current order book with bids and asks
 
 **Example:**
 
@@ -190,7 +281,7 @@ def fetch_trades(id: str, params: TradesParams | HistoryFilterParams) -> List[Tr
 - `id` (str): The Outcome ID (outcomeId)
 - `params` (TradesParams | HistoryFilterParams): Trade filter parameters
 
-**Returns:** `List[Trade]` - Array of recent trades
+**Returns:** List[[Trade](#trade)] - Array of recent trades
 
 **Example:**
 
@@ -218,9 +309,9 @@ def create_order(params: CreateOrderParams) -> Order:
 
 **Parameters:**
 
-- `params` (CreateOrderParams): Order parameters
+- `params` ([CreateOrderParams](#createorderparams)): Order parameters
 
-**Returns:** `Order` - The created order
+**Returns:** [Order](#order) - The created order
 
 **Example:**
 
@@ -263,7 +354,7 @@ def cancel_order(order_id: str) -> Order:
 
 - `order_id` (str): The order ID to cancel
 
-**Returns:** `Order` - The cancelled order
+**Returns:** [Order](#order) - The cancelled order
 
 **Example:**
 
@@ -290,7 +381,7 @@ def fetch_order(order_id: str) -> Order:
 
 - `order_id` (str): The order ID to look up
 
-**Returns:** `Order` - The order details
+**Returns:** [Order](#order) - The order details
 
 **Example:**
 
@@ -317,7 +408,7 @@ def fetch_open_orders(market_id: Optional[str] = None) -> List[Order]:
 
 - `market_id` (str) - **Optional**: Optional market ID to filter by
 
-**Returns:** `List[Order]` - Array of open orders
+**Returns:** List[[Order](#order)] - Array of open orders
 
 **Example:**
 
@@ -348,7 +439,7 @@ def fetch_positions() -> List[Position]:
 
 - None
 
-**Returns:** `List[Position]` - Array of user positions
+**Returns:** List[[Position](#position)] - Array of user positions
 
 **Example:**
 
@@ -377,7 +468,7 @@ def fetch_balance() -> List[Balance]:
 
 - None
 
-**Returns:** `List[Balance]` - Array of account balances
+**Returns:** List[[Balance](#balance)] - Array of account balances
 
 **Example:**
 
@@ -402,11 +493,11 @@ def get_execution_price(order_book: OrderBook, side: 'buy' | 'sell', amount: flo
 
 **Parameters:**
 
-- `order_book` (OrderBook): The current order book
+- `order_book` ([OrderBook](#orderbook)): The current order book
 - `side` ('buy' | 'sell'): 'buy' or 'sell'
 - `amount` (float): Number of contracts to simulate
 
-**Returns:** `float` - Average execution price, or 0 if insufficient liquidity
+**Returns:** float - Average execution price, or 0 if insufficient liquidity
 
 **Example:**
 
@@ -432,11 +523,11 @@ def get_execution_price_detailed(order_book: OrderBook, side: 'buy' | 'sell', am
 
 **Parameters:**
 
-- `order_book` (OrderBook): The current order book
+- `order_book` ([OrderBook](#orderbook)): The current order book
 - `side` ('buy' | 'sell'): 'buy' or 'sell'
 - `amount` (float): Number of contracts to simulate
 
-**Returns:** `ExecutionPriceResult` - Detailed execution result with price, filled amount, and fill status
+**Returns:** [ExecutionPriceResult](#executionpriceresult) - Detailed execution result with price, filled amount, and fill status
 
 **Example:**
 
@@ -464,10 +555,10 @@ def filter_markets(markets: List[UnifiedMarket], criteria: string | MarketFilter
 
 **Parameters:**
 
-- `markets` (List[UnifiedMarket]): Array of markets to filter
+- `markets` (List[[UnifiedMarket](#unifiedmarket)]): Array of markets to filter
 - `criteria` (string | MarketFilterCriteria | MarketFilterFunction): Filter criteria: string (text search), object (structured), or function (predicate)
 
-**Returns:** `List[UnifiedMarket]` - Filtered array of markets
+**Returns:** List[[UnifiedMarket](#unifiedmarket)] - Filtered array of markets
 
 **Example:**
 
@@ -503,10 +594,10 @@ def filter_events(events: List[UnifiedEvent], criteria: string | EventFilterCrit
 
 **Parameters:**
 
-- `events` (List[UnifiedEvent]): Array of events to filter
+- `events` (List[[UnifiedEvent](#unifiedevent)]): Array of events to filter
 - `criteria` (string | EventFilterCriteria | EventFilterFunction): Filter criteria: string (text search), object (structured), or function (predicate)
 
-**Returns:** `List[UnifiedEvent]` - Filtered array of events
+**Returns:** List[[UnifiedEvent](#unifiedevent)] - Filtered array of events
 
 **Example:**
 
@@ -536,7 +627,7 @@ def watch_order_book(id: str, limit: Optional[float] = None) -> OrderBook:
 - `id` (str): The Outcome ID to watch
 - `limit` (float) - **Optional**: Optional limit for orderbook depth
 
-**Returns:** `OrderBook` - Promise that resolves with the current orderbook state
+**Returns:** [OrderBook](#orderbook) - Promise that resolves with the current orderbook state
 
 **Example:**
 
@@ -566,7 +657,7 @@ def watch_trades(id: str, since: Optional[float] = None, limit: Optional[float] 
 - `since` (float) - **Optional**: Optional timestamp to filter trades from
 - `limit` (float) - **Optional**: Optional limit for number of trades
 
-**Returns:** `List[Trade]` - Promise that resolves with recent trades
+**Returns:** List[[Trade](#trade)] - Promise that resolves with recent trades
 
 **Example:**
 
@@ -595,13 +686,38 @@ def close() -> void:
 
 - None
 
-**Returns:** `void` - Result
+**Returns:** void - Result
 
 **Example:**
 
 ```python
 # Close connections
 exchange.close()
+```
+
+
+---
+### `implicit_api`
+
+Introspection getter: returns info about all implicit API methods.
+
+
+**Signature:**
+
+```python
+def implicit_api() -> List[ImplicitApiMethodInfo]:
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** List[ImplicitApiMethodInfo] - Result
+
+**Example:**
+
+```python
+# No example available
 ```
 
 
@@ -624,7 +740,7 @@ def watch_prices(market_address: str, callback: (data: any)) -> void:
 - `market_address` (str): Market contract address
 - `callback` ((data: any)): Callback for price updates
 
-**Returns:** `void` - Result
+**Returns:** void - Result
 
 **Example:**
 
@@ -652,7 +768,7 @@ def watch_user_positions(callback: (data: any)) -> void:
 
 - `callback` ((data: any)): Callback for position updates
 
-**Returns:** `void` - Result
+**Returns:** void - Result
 
 **Example:**
 
@@ -680,7 +796,7 @@ def watch_user_transactions(callback: (data: any)) -> void:
 
 - `callback` ((data: any)): Callback for transaction updates
 
-**Returns:** `void` - Result
+**Returns:** void - Result
 
 **Example:**
 
@@ -782,6 +898,7 @@ down: MarketOutcome #
 @dataclass
 class MarketOutcome:
 outcome_id: str # Outcome ID for trading operations (CLOB Token ID for Polymarket, Market Ticker for Kalshi)
+market_id: str # The market this outcome belongs to (set automatically)
 label: str # 
 price: float # 
 price_change24h: float # 
@@ -975,6 +1092,9 @@ status: str # Filter by market status (default: active)
 search_in: str # 
 query: str # 
 slug: str # 
+market_id: str # Direct lookup by market ID
+outcome_id: str # Reverse lookup -- find market containing this outcome
+event_id: str # Find markets belonging to an event
 page: int # 
 similarity_threshold: float # 
 ```
@@ -992,6 +1112,8 @@ limit: int #
 offset: int # 
 status: str # Filter by event status (default: active)
 search_in: str # 
+event_id: str # Direct lookup by event ID
+slug: str # Lookup by event slug
 ```
 
 ---

@@ -59,6 +59,7 @@ function parseMethods(config) {
                 optional: p.optional || false,
                 description: p.description || p.name
             })),
+            subParams: data.subParams || null,
             returns: data.returns || { type: 'any', description: 'Result' },
             python: data.python || { examples: [] },
             typescript: data.typescript || { examples: [] },
@@ -135,20 +136,63 @@ const { dataModels, filterModels } = parseModels(openapi);
 
 // --- Handlebars Setup ---
 
+// Create a set of linkable types regardless of case for easier matching
+const linkableTypes = new Set([
+    ...dataModels.map(m => m.name.toLowerCase()),
+    ...filterModels.map(m => m.name.toLowerCase())
+]);
+
+function linkify(type) {
+    if (!type) return type;
+    if (linkableTypes.has(type.toLowerCase())) {
+        return `[${type}](#${type.toLowerCase()})`;
+    }
+    return type;
+}
+
 Handlebars.registerHelper('pythonName', (name) => toSnakeCase(name));
+
 Handlebars.registerHelper('pythonType', (type) => {
     if (!type) return 'Any';
+
+    // Handle Arrays: UnifiedMarket[] -> List[UnifiedMarket]
     if (type.endsWith('[]')) {
-        return `List[${type.slice(0, -2)}]`;
+        const inner = type.slice(0, -2);
+        const linkedInner = linkify(inner);
+        return `List[${linkedInner}]`;
     }
+
+    // Handle Generics: Record<string, UnifiedMarket>
+    if (type.startsWith('Record<')) {
+        // Simple regex to extract Key, Value from Record<Key, Value>
+        const match = type.match(/^Record<(.+),\s*(.+)>/);
+        if (match) {
+            const [_, key, value] = match;
+            const map = { string: 'str', number: 'float', integer: 'int', boolean: 'bool', any: 'Any' };
+            const pyKey = map[key] || linkify(key);
+            const pyValue = map[value] || linkify(value);
+            return `Dict[${pyKey}, ${pyValue}]`;
+        }
+    }
+
     const map = { string: 'str', number: 'float', integer: 'int', boolean: 'bool', any: 'Any' };
-    return map[type] || type;
+    if (map[type]) return map[type];
+
+    return linkify(type);
 });
+
+Handlebars.registerHelper('pythonTypeClean', (type) => {
+    let t = Handlebars.helpers.pythonType(type);
+    // Strip markdown links [Text](url) -> Text
+    return t.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+});
+
 Handlebars.registerHelper('pythonParams', (params) => {
     if (!params) return '';
     return params.map(p => {
         const pname = toSnakeCase(p.name);
-        let ptype = Handlebars.helpers.pythonType(p.type);
+        // Use clean type for parameters (inside code block)
+        let ptype = Handlebars.helpers.pythonTypeClean(p.type);
         if (p.optional) return `${pname}: Optional[${ptype}] = None`;
         return `${pname}: ${ptype}`;
     }).join(', ');
@@ -156,13 +200,27 @@ Handlebars.registerHelper('pythonParams', (params) => {
 
 Handlebars.registerHelper('tsType', (type) => {
     if (!type) return 'any';
+
+    if (type.endsWith('[]')) {
+        const inner = type.slice(0, -2);
+        const linkedInner = linkify(inner);
+        return `${linkedInner}[]`;
+    }
+
     const map = { integer: 'number' };
-    return map[type] || type;
+    if (map[type]) return map[type];
+
+    return linkify(type);
+});
+
+Handlebars.registerHelper('tsTypeClean', (type) => {
+    let t = Handlebars.helpers.tsType(type);
+    return t.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
 });
 Handlebars.registerHelper('tsParams', (params) => {
     if (!params) return '';
     return params.map(p => {
-        return `${p.name}${p.optional ? '?' : ''}: ${Handlebars.helpers.tsType(p.type)}`;
+        return `${p.name}${p.optional ? '?' : ''}: ${Handlebars.helpers.tsTypeClean(p.type)}`;
     }).join(', ');
 });
 Handlebars.registerHelper('tsOptional', (required) => required ? '' : '?');

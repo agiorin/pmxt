@@ -1,6 +1,4 @@
-import axios from 'axios';
 import { OrderBook } from '../../types';
-import { CLOB_API_URL } from './utils';
 import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
 import { polymarketErrorMapper } from './errors';
 
@@ -8,16 +6,12 @@ import { polymarketErrorMapper } from './errors';
  * Fetch the current order book for a specific token.
  * @param id - The CLOB token ID
  */
-export async function fetchOrderBook(id: string): Promise<OrderBook> {
+export async function fetchOrderBook(id: string, callApi: (operationId: string, params?: Record<string, any>) => Promise<any>): Promise<OrderBook> {
     validateIdFormat(id, 'OrderBook');
     validateOutcomeId(id, 'OrderBook');
 
     try {
-        const response = await axios.get(`${CLOB_API_URL}/book`, {
-            params: { token_id: id }
-        });
-
-        const data = response.data;
+        const data = await callApi('getBook', { token_id: id });
 
         // Response format: { bids: [{price: "0.52", size: "100"}], asks: [...] }
         const bids = (data.bids || []).map((level: any) => ({

@@ -1,24 +1,24 @@
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { BASE_URL, SEARCH_PATH, MARKETS_PATH, mapMarketToUnified, enrichMarketsWithPrices } from './utils';
 import { probableErrorMapper } from './errors';
 
-export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+export async function fetchMarkets(params?: MarketFetchParams, http: AxiosInstance = axios, callMidpoint?: (tokenId: string) => Promise<any>, callSearch?: (params: any) => Promise<any>): Promise<UnifiedMarket[]> {
     try {
         // Handle marketId lookup (numeric ID or slug)
         if (params?.marketId) {
-            return await fetchMarketByIdOrSlug(params.marketId);
+            return await fetchMarketByIdOrSlug(params.marketId, http, callMidpoint, callSearch);
         }
 
         // Slug-based lookup: try market ID or slug via dedicated endpoint
         if (params?.slug) {
-            return await fetchMarketByIdOrSlug(params.slug);
+            return await fetchMarketByIdOrSlug(params.slug, http, callMidpoint, callSearch);
         }
 
         // Handle outcomeId lookup (no direct API, fetch and filter client-side)
         if (params?.outcomeId) {
-            const markets = await fetchMarketsList(params);
+            const markets = await fetchMarketsList(params, http, callMidpoint);
             return markets.filter(m =>
                 m.outcomes.some(o => o.outcomeId === params.outcomeId)
             );
@@ -26,22 +26,22 @@ export async function fetchMarkets(params?: MarketFetchParams): Promise<UnifiedM
 
         // Handle eventId lookup (use markets list with eventId param)
         if (params?.eventId) {
-            return await fetchMarketsList(params);
+            return await fetchMarketsList(params, http, callMidpoint);
         }
 
         // Query-based search: use the search endpoint (only endpoint with text search)
         if (params?.query) {
-            return await searchAndExtractMarkets(params.query, params);
+            return await searchAndExtractMarkets(params.query, params, http, callMidpoint, callSearch);
         }
 
         // Default: use the dedicated markets API for listing
-        return await fetchMarketsList(params);
+        return await fetchMarketsList(params, http, callMidpoint);
     } catch (error: any) {
         throw probableErrorMapper.mapError(error);
     }
 }
 
-async function fetchMarketByIdOrSlug(slug: string): Promise<UnifiedMarket[]> {
+async function fetchMarketByIdOrSlug(slug: string, http: AxiosInstance, callMidpoint?: (tokenId: string) => Promise<any>, callSearch?: (params: any) => Promise<any>): Promise<UnifiedMarket[]> {
     let cleanSlug = slug;
     let marketIdFromQuery: string | null = null;
 
@@ -56,7 +56,7 @@ async function fetchMarketByIdOrSlug(slug: string): Promise<UnifiedMarket[]> {
 
             // If we have a market ID from the query, try that first
             if (marketIdFromQuery) {
-                const result = await fetchMarketByIdOrSlug(marketIdFromQuery);
+                const result = await fetchMarketByIdOrSlug(marketIdFromQuery, http, callMidpoint);
                 if (result.length > 0) return result;
             }
         } catch (e) {
@@ -68,24 +68,28 @@ async function fetchMarketByIdOrSlug(slug: string): Promise<UnifiedMarket[]> {
     const numericId = Number(cleanSlug);
     if (!isNaN(numericId) && String(numericId) === cleanSlug) {
         try {
-            const response = await axios.get(`${BASE_URL}${MARKETS_PATH}${numericId}`);
+            const response = await http.get(`${BASE_URL}${MARKETS_PATH}${numericId}`);
             const mapped = mapMarketToUnified(response.data, response.data?.event);
             const results = mapped ? [mapped] : [];
-            await enrichMarketsWithPrices(results);
+            if (callMidpoint) await enrichMarketsWithPrices(results, callMidpoint);
             return results;
         } catch (error: any) {
-            if (error.response?.status === 404) {
-                return [];
+            if (isMarketNotFoundError(error)) {
+                // Individual market endpoint returned 500/404; fall back to list and filter
+                const allMarkets = await fetchMarketsList({ limit: 100 }, http, callMidpoint);
+                const match = allMarkets.filter(m => m.marketId === cleanSlug);
+                if (match.length > 0) return match;
+            } else {
+                throw error;
             }
-            throw error;
         }
     }
 
     // Fall back to search for slug-based matching
-    return await searchAndExtractMarkets(cleanSlug, { slug: cleanSlug });
+    return await searchAndExtractMarkets(cleanSlug, { slug: cleanSlug }, http, callMidpoint, callSearch);
 }
 
-async function fetchMarketsList(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+async function fetchMarketsList(params: MarketFetchParams | undefined, http: AxiosInstance, callMidpoint?: (tokenId: string) => Promise<any>): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 20;
     const page = params?.offset ? Math.floor(params.offset / limit) + 1 : 1;
 
@@ -117,7 +121,7 @@ async function fetchMarketsList(params?: MarketFetchParams): Promise<UnifiedMark
         queryParams.event_id = (params as any).eventId;
     }
 
-    const response = await axios.get(`${BASE_URL}${MARKETS_PATH}`, {
+    const response = await http.get(`${BASE_URL}${MARKETS_PATH}`, {
         params: queryParams,
     });
 
@@ -129,13 +133,16 @@ async function fetchMarketsList(params?: MarketFetchParams): Promise<UnifiedMark
         if (mapped) allMarkets.push(mapped);
     }
 
-    await enrichMarketsWithPrices(allMarkets);
+    if (callMidpoint) await enrichMarketsWithPrices(allMarkets, callMidpoint);
     return allMarkets;
 }
 
 async function searchAndExtractMarkets(
     query: string,
-    params?: MarketFetchParams
+    params: MarketFetchParams | undefined,
+    http: AxiosInstance,
+    callMidpoint?: (tokenId: string) => Promise<any>,
+    callSearch?: (params: any) => Promise<any>
 ): Promise<UnifiedMarket[]> {
     const limit = params?.limit || 20;
     const page = params?.offset ? Math.floor(params.offset / limit) + 1 : 1;
@@ -196,11 +203,11 @@ async function searchAndExtractMarkets(
         }
     }
 
-    const response = await axios.get(`${BASE_URL}${SEARCH_PATH}`, {
-        params: queryParams,
-    });
+    const searchData = callSearch
+        ? await callSearch(queryParams)
+        : (await http.get(`${BASE_URL}${SEARCH_PATH}`, { params: queryParams })).data;
 
-    const events = response.data?.events || [];
+    const events = searchData?.events || [];
     const allMarkets: UnifiedMarket[] = [];
 
     for (const event of events) {
@@ -229,7 +236,7 @@ async function searchAndExtractMarkets(
             delete (m as any)._eventSlug;
         }
         if (exact.length > 0) {
-            await enrichMarketsWithPrices(exact);
+            if (callMidpoint) await enrichMarketsWithPrices(exact, callMidpoint);
             return exact;
         }
     }
@@ -238,6 +245,17 @@ async function searchAndExtractMarkets(
         delete (m as any)._eventSlug;
     }
 
-    await enrichMarketsWithPrices(allMarkets);
+    if (callMidpoint) await enrichMarketsWithPrices(allMarkets, callMidpoint);
     return allMarkets;
+}
+
+function isMarketNotFoundError(error: any): boolean {
+    const status = error.response?.status;
+    if (status === 404 || status === 400) return true;
+    if (status === 500) {
+        const data = error.response?.data;
+        const msg = typeof data === 'string' ? data : (data?.detail || data?.message || '');
+        return /not found|failed to retrieve/i.test(String(msg));
+    }
+    return false;
 }

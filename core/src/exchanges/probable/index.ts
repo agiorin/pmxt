@@ -12,6 +12,7 @@ import {
     UnifiedEvent,
     OrderBook,
     PriceCandle,
+    CandleInterval,
     Trade,
     Order,
     Position,
@@ -20,19 +21,52 @@ import {
 } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents, fetchEventById, fetchEventBySlug } from './fetchEvents';
-import { fetchOrderBook } from './fetchOrderBook';
-import { fetchOHLCV } from './fetchOHLCV';
-import { fetchPositions } from './fetchPositions';
 import { fetchTrades } from './fetchTrades';
 import { ProbableAuth } from './auth';
 import { ProbableWebSocket, ProbableWebSocketConfig } from './websocket';
 import { probableErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { OrderSide } from '@prob/clob';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { probableApiSpec } from './api';
+import { BASE_URL } from './utils';
 
 const BSC_USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 
+function aggregateCandles(candles: PriceCandle[], intervalMs: number): PriceCandle[] {
+    if (candles.length === 0) return [];
+    const buckets = new Map<number, PriceCandle>();
+    for (const c of candles) {
+        const key = Math.floor(c.timestamp / intervalMs) * intervalMs;
+        const existing = buckets.get(key);
+        if (!existing) {
+            buckets.set(key, { ...c, timestamp: key });
+        } else {
+            existing.high = Math.max(existing.high, c.high);
+            existing.low = Math.min(existing.low, c.low);
+            existing.close = c.close;
+        }
+    }
+    return Array.from(buckets.values()).sort((a, b) => a.timestamp - b.timestamp);
+}
+
 export class ProbableExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: true as const,
+        fetchOrderBook: true as const,
+        fetchTrades: true as const,
+        createOrder: true as const,
+        cancelOrder: true as const,
+        fetchOrder: true as const,
+        fetchOpenOrders: true as const,
+        fetchPositions: true as const,
+        fetchBalance: true as const,
+        watchOrderBook: true as const,
+        watchTrades: false as const,
+    };
+
     private auth?: ProbableAuth;
     private ws?: ProbableWebSocket;
     private wsConfig?: ProbableWebSocketConfig;
@@ -44,10 +78,17 @@ export class ProbableExchange extends PredictionMarketExchange {
         if (credentials?.privateKey && credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
             this.auth = new ProbableAuth(credentials);
         }
+
+        const descriptor = parseOpenApiSpec(probableApiSpec, BASE_URL);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {
         return 'Probable';
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw probableErrorMapper.mapError(error);
     }
 
     private ensureAuth(): ProbableAuth {
@@ -66,27 +107,89 @@ export class ProbableExchange extends PredictionMarketExchange {
     // --------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+        return fetchMarkets(
+            params,
+            this.http,
+            (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }),
+            (queryParams) => this.callApi('getPublicApiV1PublicSearch', queryParams)
+        );
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params);
+        return fetchEvents(
+            params,
+            this.http,
+            (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }),
+            (queryParams) => this.callApi('getPublicApiV1PublicSearch', queryParams)
+        );
     }
 
     async getEventById(id: string): Promise<UnifiedEvent | null> {
-        return fetchEventById(id);
+        return fetchEventById(id, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }
 
     async getEventBySlug(slug: string): Promise<UnifiedEvent | null> {
-        return fetchEventBySlug(slug);
+        return fetchEventBySlug(slug, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id);
+        const data = await this.callApi('getPublicApiV1Book', { token_id: id });
+        const bids = (data.bids || [])
+            .map((level: any) => ({ price: parseFloat(level.price), size: parseFloat(level.size) }))
+            .sort((a: any, b: any) => b.price - a.price);
+        const asks = (data.asks || [])
+            .map((level: any) => ({ price: parseFloat(level.price), size: parseFloat(level.size) }))
+            .sort((a: any, b: any) => a.price - b.price);
+        return {
+            bids,
+            asks,
+            timestamp: data.timestamp ? new Date(data.timestamp).getTime() : Date.now(),
+        };
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params);
+        if (!params.resolution) {
+            throw new Error('fetchOHLCV requires a resolution parameter.');
+        }
+
+        const INTERVAL_MAP: Record<CandleInterval, string> = {
+            '1m': '1m',
+            '5m': '1m',
+            '15m': '1m',
+            '1h': '1h',
+            '6h': '6h',
+            '1d': '1d',
+        };
+
+        const queryParams: Record<string, any> = {
+            market: id,
+            interval: INTERVAL_MAP[params.resolution] || '1h',
+        };
+        if (params.start) queryParams.startTs = Math.floor(params.start.getTime() / 1000);
+        if (params.end) queryParams.endTs = Math.floor(params.end.getTime() / 1000);
+
+        const data = await this.callApi('getPublicApiV1PricesHistory', queryParams);
+        const points: any[] = data?.history || data || [];
+
+        let candles: PriceCandle[] = points
+            .map((p: any) => {
+                const price = Number(p.p);
+                const ts = Number(p.t) * 1000;
+                return { timestamp: ts, open: price, high: price, low: price, close: price, volume: 0 };
+            })
+            .sort((a: PriceCandle, b: PriceCandle) => a.timestamp - b.timestamp);
+
+        if (params.resolution === '5m') {
+            candles = aggregateCandles(candles, 5 * 60 * 1000);
+        } else if (params.resolution === '15m') {
+            candles = aggregateCandles(candles, 15 * 60 * 1000);
+        }
+
+        if (params.limit) {
+            candles = candles.slice(-params.limit);
+        }
+
+        return candles;
     }
 
     // --------------------------------------------------------------------------
@@ -274,7 +377,18 @@ export class ProbableExchange extends PredictionMarketExchange {
         try {
             const auth = this.ensureAuth();
             const address = auth.getAddress();
-            return fetchPositions(address);
+            const result = await this.callApi('getPublicApiV1PositionCurrent', { user: address, limit: 500 });
+            const data = Array.isArray(result) ? result : (result?.data || []);
+            return data.map((p: any) => ({
+                marketId: String(p.conditionId || p.condition_id || ''),
+                outcomeId: String(p.asset || p.token_id || ''),
+                outcomeLabel: p.outcome || p.title || 'Unknown',
+                size: parseFloat(p.size || '0'),
+                entryPrice: parseFloat(p.avgPrice || p.avg_price || '0'),
+                currentPrice: parseFloat(p.curPrice || p.cur_price || '0'),
+                unrealizedPnL: parseFloat(p.cashPnl || p.cash_pnl || '0'),
+                realizedPnL: parseFloat(p.realizedPnl || p.realized_pnl || '0'),
+            }));
         } catch (error: any) {
             throw probableErrorMapper.mapError(error);
         }
@@ -333,7 +447,7 @@ export class ProbableExchange extends PredictionMarketExchange {
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         const auth = this.ensureAuth();
         const client = auth.getClobClient();
-        return fetchTrades(id, params, client);
+        return fetchTrades(id, params, client, this.http);
     }
 
     // --------------------------------------------------------------------------

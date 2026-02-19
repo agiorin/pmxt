@@ -1,16 +1,21 @@
+import { createHmac } from 'crypto';
 import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
+import { parseOpenApiSpec } from '../../utils/openapi';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
+import { mapMarketToUnified } from './utils';
 import { fetchOHLCV } from './fetchOHLCV';
 import { fetchOrderBook } from './fetchOrderBook';
 import { fetchTrades } from './fetchTrades';
-import { fetchPositions } from './fetchPositions';
 import { PolymarketAuth } from './auth';
 import { Side, OrderType, AssetType } from '@polymarket/clob-client';
 import { PolymarketWebSocket, PolymarketWebSocketConfig } from './websocket';
 import { polymarketErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { polymarketClobSpec } from './api-clob';
+import { polymarketGammaSpec } from './api-gamma';
+import { polymarketDataSpec } from './api-data';
 
 // Re-export for external use
 export type { PolymarketWebSocketConfig };
@@ -21,8 +26,26 @@ export interface PolymarketExchangeOptions {
 }
 
 export class PolymarketExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: true as const,
+        fetchOrderBook: true as const,
+        fetchTrades: true as const,
+        createOrder: true as const,
+        cancelOrder: true as const,
+        fetchOrder: true as const,
+        fetchOpenOrders: true as const,
+        fetchPositions: true as const,
+        fetchBalance: true as const,
+        watchOrderBook: true as const,
+        watchTrades: true as const,
+    };
+
     private auth?: PolymarketAuth;
     private wsConfig?: PolymarketWebSocketConfig;
+    private cachedApiCreds?: { key: string; secret: string; passphrase: string };
+    private cachedAddress?: string;
 
     constructor(options?: ExchangeCredentials | PolymarketExchangeOptions) {
         // Support both old signature (credentials only) and new signature (options object)
@@ -45,6 +68,25 @@ export class PolymarketExchange extends PredictionMarketExchange {
         if (credentials?.privateKey) {
             this.auth = new PolymarketAuth(credentials);
         }
+
+        // If L2 API creds are provided directly, cache them for sync sign()
+        if (credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
+            this.cachedApiCreds = {
+                key: credentials.apiKey,
+                secret: credentials.apiSecret,
+                passphrase: credentials.passphrase,
+            };
+        }
+
+        // Register implicit APIs for all 3 Polymarket services
+        const clobDescriptor = parseOpenApiSpec(polymarketClobSpec);
+        this.defineImplicitApi(clobDescriptor);
+
+        const gammaDescriptor = parseOpenApiSpec(polymarketGammaSpec);
+        this.defineImplicitApi(gammaDescriptor);
+
+        const dataDescriptor = parseOpenApiSpec(polymarketDataSpec);
+        this.defineImplicitApi(dataDescriptor);
     }
 
     get name(): string {
@@ -52,23 +94,105 @@ export class PolymarketExchange extends PredictionMarketExchange {
     }
 
     // ----------------------------------------------------------------------------
+    // Implicit API Auth & Error Mapping
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Initialize L2 API credentials for implicit API signing.
+     * Must be called before using private implicit API endpoints if only
+     * a privateKey was provided (not apiKey/apiSecret/passphrase).
+     */
+    async initAuth(): Promise<void> {
+        const auth = this.ensureAuth();
+        const creds = await auth.getApiCredentials();
+        this.cachedApiCreds = {
+            key: creds.key,
+            secret: creds.secret,
+            passphrase: creds.passphrase,
+        };
+        this.cachedAddress = auth.getFunderAddress();
+    }
+
+    protected override sign(method: string, path: string, _params: Record<string, any>): Record<string, string> {
+        if (!this.cachedApiCreds) {
+            throw new AuthenticationError(
+                'API credentials not initialized. Either provide apiKey/apiSecret/passphrase ' +
+                'in credentials, or call initAuth() before using private implicit API endpoints.',
+                'Polymarket'
+            );
+        }
+
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const message = timestamp + method.toUpperCase() + path;
+
+        // Decode the base64url secret
+        const secretB64 = this.cachedApiCreds.secret
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        const secretBuffer = Buffer.from(secretB64, 'base64');
+
+        // HMAC-SHA256 -> base64url
+        const hmac = createHmac('sha256', secretBuffer);
+        hmac.update(message);
+        const signature = hmac.digest('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_');
+
+        return {
+            'POLY_ADDRESS': this.cachedAddress || (this.auth ? this.auth.getFunderAddress() : ''),
+            'POLY_SIGNATURE': signature,
+            'POLY_TIMESTAMP': timestamp,
+            'POLY_API_KEY': this.cachedApiCreds.key,
+            'POLY_PASSPHRASE': this.cachedApiCreds.passphrase,
+        };
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw polymarketErrorMapper.mapError(error);
+    }
+
+    // ----------------------------------------------------------------------------
     // Implementation methods for CCXT-style API
     // ----------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+        return fetchMarkets(params, this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params);
+        if (params.eventId || params.slug) {
+            const queryParams = params.eventId ? { id: params.eventId } : { slug: params.slug };
+            const events = await this.callApi('listEvents', queryParams);
+            return (events || []).map((event: any) => {
+                const markets: UnifiedMarket[] = [];
+                if (event.markets && Array.isArray(event.markets)) {
+                    for (const market of event.markets) {
+                        const unified = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+                        if (unified) markets.push(unified);
+                    }
+                }
+                return {
+                    id: event.id || event.slug,
+                    title: event.title,
+                    description: event.description || '',
+                    slug: event.slug,
+                    markets,
+                    url: `https://polymarket.com/event/${event.slug}`,
+                    image: event.image || `https://polymarket.com/api/og?slug=${event.slug}`,
+                    category: event.category || event.tags?.[0]?.label,
+                    tags: event.tags?.map((t: any) => t.label) || [],
+                } as UnifiedEvent;
+            });
+        }
+        return fetchEvents(params, this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params);
+        return fetchOHLCV(id, params, this.callApi.bind(this));
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id);
+        return fetchOrderBook(id, this.callApi.bind(this));
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -79,7 +203,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params);
+        return fetchTrades(id, params, this.callApi.bind(this));
     }
 
     // ----------------------------------------------------------------------------
@@ -261,7 +385,18 @@ export class PolymarketExchange extends PredictionMarketExchange {
         try {
             const auth = this.ensureAuth();
             const address = await auth.getEffectiveFunderAddress();
-            return fetchPositions(address);
+            const result = await this.callApi('getPositions', { user: address, limit: 100 });
+            const data = Array.isArray(result) ? result : [];
+            return data.map((p: any) => ({
+                marketId: p.conditionId,
+                outcomeId: p.asset,
+                outcomeLabel: p.outcome || 'Unknown',
+                size: parseFloat(p.size),
+                entryPrice: parseFloat(p.avgPrice),
+                currentPrice: parseFloat(p.curPrice || '0'),
+                unrealizedPnL: parseFloat(p.cashPnl || '0'),
+                realizedPnL: parseFloat(p.realizedPnl || '0'),
+            }));
         } catch (error: any) {
             throw polymarketErrorMapper.mapError(error);
         }

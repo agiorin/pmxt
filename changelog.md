@@ -2,6 +2,120 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.9.1] - 2026-02-18
+
+### Documentation
+
+- **Internal Links in API Reference**: Return types and complex parameters in the Python and TypeScript API reference documentation are now linkified. Clicking on a data model (e.g., `Order`, `UnifiedMarket`) now jumps directly to its detailed field definition at the bottom of the page.
+
+## [2.9.0] - 2026-02-18
+
+### Fixed
+
+- **TypeScript SDK (Windows)**: Fixed a crash when spawning `pmxt-ensure-server` on Windows where the `.js` launcher must be invoked via `node` explicitly. The SDK now detects the platform and spawns `node <path>` when the resolved launcher ends in `.js`. (Closes #29)
+
+### Added
+
+- **Implicit API Generation**: Implemented automatic HTTP method generation from OpenAPI specifications in `BaseExchange`. Exchange classes can now register an OpenAPI spec and have typed HTTP methods created dynamically, significantly reducing boilerplate when adding new exchanges or API endpoints.
+  - Added `ApiDescriptor` interface and `parseOpenApiSpec` utility.
+  - Added `initAuth()` method for credential initialization and HMAC-SHA256 signing for Polymarket L2 API authentication.
+  - API credentials are cached for synchronous signing operations.
+  - Full implicit API support added to `PolymarketExchange` for all three services (CLOB, Gamma, Data APIs).
+
+### Changed
+
+- **Centralized Request Handling (`callApi`)**: Refactored all major exchange implementations (Kalshi, Polymarket, Limitless, Probable, Myriad) to route API calls through a unified `callApi` method on `BaseExchange`. This ensures consistent error mapping, logging, and interceptor behavior across all exchanges.
+- **Consolidated Exchange Methods**: Moved standalone per-feature files (`fetchPositions.ts`, `fetchOrderBook.ts`, `fetchTrades.ts`, `fetchOHLCV.ts`) into their respective exchange class files. Deleted the now-redundant standalone files.
+- **Centralized OpenAPI Specs**: Migrated API specifications from the root directory into structured `core/specs/` subdirectories (kalshi, limitless, myriad, polymarket, probable). The `fetch-openapi-specs` script now supports both remote URL fetching and local file reading.
+- **Myriad**: Inlined `fetchTrades` logic directly into WebSocket polling and migrated to `callApi`. Fixed outcomeId parsing for composite IDs.
+- **OpenAPI Utility**: Operations without explicit security definitions now correctly inherit top-level security settings.
+
+### Documentation
+
+- **SubParams in API Reference**: Sub-parameters for methods like `fetchMarkets` and `fetchEvents` (e.g., `query`, `slug`, `limit`, `offset`, `sort`, `searchIn`) are now rendered as nested bullet points directly under the method in both Python and TypeScript API reference docs.
+- **Implicit API Pattern**: Added detailed documentation of the Implicit API pattern to `ARCHITECTURE.md`.
+- **Exchange Integration Guide**: Refactored `core/ADDING_AN_EXCHANGE.md` to reflect the new `callApi`-based implementation approach.
+
+## [2.8.0] - 2026-02-17
+
+### Added
+
+- **CCXT-Style Market Caching (`loadMarkets`)**: Implemented stateful market caching in `BaseExchange` to improve performance and enable synchronous-like metadata lookups.
+  - New `loadMarkets(reload: boolean)` method fetches and caches all market definitions (by ID and slug).
+  - Updated `fetchMarket` to check the local cache first, enabling 0ms lookups for frequently accessed markets.
+  - Added `slug` property to `UnifiedMarket` for consistent multi-identifier caching.
+- **Testing Infrastructure**: Added comprehensive unit tests and a cross-exchange manual verification script for the market caching system.
+
+### Changed
+
+- **Increased Default Market Limits**: Raised the default `fetchMarkets` limit from 10,000 to **250,000** results across Polymarket, Kalshi, and Limitless.
+
+## [2.7.0] - 2026-02-17
+
+### Changed
+
+- **Centralized HTTP Architecture**: Refactored all major exchange clients (Polymarket, Kalshi, Limitless, Probable, Myriad) to route API requests through a shared `this.http` instance in `BaseExchange`.
+- **Enhanced Verbose Logging**: The `exchange.verbose = true` flag now provides consistent, detailed logging for *all* HTTP requests and responses, including parameters, status codes, and error bodies across all exchanges.
+- **Improved Internal Reliability**: 
+  - Standardized error mapping and request interceptors across the library.
+  - Fixed syntax errors and prop-drilling issues in Myriad and Probable exchange implementations.
+  - Updated Kalshi unit tests to support robust `axios.create` mocking patterns.
+
+## [2.6.0] - 2026-02-17
+
+### Added
+
+- **CCXT-Style Capability Map (`exchange.has`)**: Introduced a unified capability mapping system across all exchanges. This allows developers to programmatically check which features (e.g., `fetchOHLCV`, `watchOrderBook`, `createOrder`) are supported or emulated by a specific exchange.
+  - Added the `.has` property to `BaseExchange` and all exchange implementations (Polymarket, Kalshi, Limitless, Probable, Myriad, Baozi).
+  - New `/api/:exchange/has` endpoint in the sidecar server for remote capability discovery.
+  - Python SDK updated to expose these capabilities on exchange instances.
+
+### Changed
+
+- **Repository & SDK Optimization**: Significantly reduced repository size and improved developer workflow by untracking generated server bundles in the Python SDK. These are now excluded from version control and managed during the build/dist process.
+- **Improved Workspace Cleanliness**: Updated `.gitignore` and `.gitattributes` to ensure temporary files, generated SDK code, and build artifacts stay out of the repository.
+
+### Fixed
+
+- **Baozi**: Refined internal documentation regarding pari-mutuel odds calculation status.
+- **Documentation**: Updated project statistics and download badges to reflect latest growth.
+
+## [2.5.0] - 2026-02-16
+
+### Added
+
+- **Baozi Exchange Integration**: New exchange adapter for [baozi.bet](https://baozi.bet), a decentralized pari-mutuel prediction market on Solana. NOTE: Not fully working.
+  - **Market Data**: `fetchMarkets`, `fetchEvents`, `fetchOrderBook` (synthetic from pool ratios).
+  - **Trading**: `createOrder` via on-chain Solana instructions (`place_bet_sol` / `bet_on_race_outcome_sol`).
+  - **Account Management**: `fetchBalance` (SOL), `fetchPositions` (PDA-based position lookup).
+  - **Real-time Data**: `watchOrderBook` via Solana `onAccountChange` subscriptions.
+  - Note: No `fetchOHLCV`, `fetchTrades`, or `cancelOrder` (pari-mutuel bets are irrevocable).
+
+- **Myriad Markets Integration**: Full support for Myriad Markets, an AMM-based prediction market platform.
+  - **Market Data**: `fetchMarkets`, `fetchEvents`, `fetchOHLCV`, `fetchOrderBook` (synthetic from AMM), `fetchTrades`.
+  - **Trading**: `createOrder` (returns quote + calldata for on-chain execution), `fetchPositions`, `fetchBalance`.
+  - **Real-time Data**: Poll-based `watchOrderBook` and `watchTrades`.
+  - **Multi-chain Support**: Abstract (2741), Linea (59144), BNB (56) with composite IDs (`{networkId}:{marketId}:{outcomeId}`).
+  - Key difference from CLOB exchanges: AMM-based, no limit orders or open order cancellation.
+
+- **`fetchMarket` / `fetchEvent` Singular Lookup Methods**: Convenience methods for fetching a single market or event by ID, slug, or ticker. Throws `MarketNotFound` / `EventNotFound` if not found.
+  - Extended `MarketFilterParams` with `marketId`, `outcomeId`, `eventId` for direct lookups.
+  - Extended `EventFetchParams` with `eventId`, `slug` for direct lookups.
+  - Exchange-specific implementations for Kalshi, Probable, and Limitless.
+
+- **Improved Market Search**: Deduplication logic and exact-match fetching in parallel for Kalshi, Limitless, and Polymarket. Queries resembling tickers or slugs now prioritize exact matches.
+
+### Fixed
+
+- **Baozi**: Improved robustness of order parsing and position data.
+- **Probable**: Added fallback lookup logic for slug search in `fetchMarkets`.
+
+### Changed
+
+- **Windows Compatibility**: Cross-platform process checking in LockFile and Python SDK.
+- **Compliance Tests**: Enhanced with authentication support for Myriad and Baozi; refactored to use `initExchange` helper.
+- **Generated SDK Code**: Now gitignored instead of committed.
+
 ## [2.4.0] - 2026-02-15
 
 ### Added

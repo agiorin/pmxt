@@ -33,6 +33,7 @@ export interface UnifiedMarket {
     marketId: string;
     title: string;
     description: string;
+    slug?: string;
     outcomes: MarketOutcome[];
 
     resolutionDate: Date;

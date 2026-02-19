@@ -8,23 +8,24 @@ An exchange implementation lives in `core/src/exchanges/<name>/` and consists of
 
 | File | Purpose |
 |------|---------|
+| `api.ts` | Auto-generated from the exchange's OpenAPI spec -- the source of all implicit API methods |
 | `utils.ts` | API URLs, status mapping, `mapMarketToUnified()` helper |
 | `errors.ts` | Exchange-specific error patterns extending `ErrorMapper` |
+| `auth.ts` | Credential validation, header/signer generation |
 | `fetchMarkets.ts` | Fetch and normalize markets to `UnifiedMarket[]` |
 | `fetchEvents.ts` | Fetch and normalize events to `UnifiedEvent[]` |
 | `fetchOHLCV.ts` | Historical candle data mapped to `PriceCandle[]` |
-| `fetchOrderBook.ts` | Current order book mapped to `OrderBook` |
-| `fetchTrades.ts` | Trade history mapped to `Trade[]` |
-| `auth.ts` | Credential validation, header/signer generation |
+| `fetchOrderBook.ts` | *(optional)* Order book -- create if the logic is complex enough to warrant it |
+| `fetchTrades.ts` | *(optional)* Trade history -- create if the logic is complex enough to warrant it |
 | `websocket.ts` | Real-time streaming (`watchOrderBook`, `watchTrades`, `close`) |
-| `index.ts` | Main class extending `PredictionMarketExchange`, wiring everything together |
+| `index.ts` | Main class: constructor calls `defineImplicitApi`, methods use `callApi` |
 
-All methods are **required**. See the compliance matrix in `core/COMPLIANCE.md` for the full list.
+See the compliance matrix in `core/COMPLIANCE.md` for which methods are required vs. optional.
 
 ## Reference Implementations
 
-- **Kalshi** (`core/src/exchanges/kalshi/`) -- simplest, REST-based authentication (RSA-PSS signing), good starting point
-- **Polymarket** (`core/src/exchanges/polymarket/`) -- most complete, CLOB with L1/L2 auth, separate `fetchPositions.ts`
+- **Kalshi** (`core/src/exchanges/kalshi/`) -- cleanest example of the current pattern: single `api.ts`, methods inline in `index.ts` or delegated via `callApi.bind(this)`, good starting point
+- **Polymarket** (`core/src/exchanges/polymarket/`) -- most complete, three separate api-*.ts specs, CLOB with L1/L2 auth
 
 Read through Kalshi first to understand the pattern, then reference Polymarket for more advanced cases.
 
@@ -34,9 +35,45 @@ Read through Kalshi first to understand the pattern, then reference Polymarket f
 
 ```
 core/src/exchanges/<name>/
+core/specs/<name>/
 ```
 
-### 2. `utils.ts` -- API constants and mapping helpers
+### 2. `api.ts` -- Implicit API from the exchange's OpenAPI spec
+
+The exchange's public OpenAPI spec is the source of truth for making API calls. Place the raw YAML spec in `core/specs/<name>/`, then convert it to a TypeScript export in `api.ts`:
+
+```typescript
+// core/src/exchanges/example/api.ts
+// Generated from core/specs/example/Example.yaml
+
+export const exampleApiSpec = {
+    "openapi": "3.0.0",
+    "info": { "title": "Example API", "version": "1.0.0" },
+    "servers": [{ "url": "https://api.example.com/v1" }],
+    "paths": {
+        "/markets": {
+            "get": {
+                "operationId": "GetMarkets",
+                "security": [],
+                // ...
+            }
+        },
+        "/portfolio/balance": {
+            "get": {
+                "operationId": "GetBalance",
+                "security": [{ "ApiKeyAuth": [] }],
+                // ...
+            }
+        }
+    }
+};
+```
+
+The `operationId` for each endpoint becomes the name used with `callApi()`. If the exchange doesn't provide an OpenAPI spec, write one manually that covers the endpoints you need.
+
+If an exchange needs more than one API (e.g. a trading API and a data API), create multiple spec files (`api-trading.ts`, `api-data.ts`) and call `defineImplicitApi()` once per spec in the constructor.
+
+### 3. `utils.ts` -- API constants and mapping helpers
 
 Define:
 - Base API URL constants (REST, WebSocket)
@@ -44,8 +81,7 @@ Define:
 - `mapMarketToUnified()` -- converts a raw API market object into a `UnifiedMarket`
 
 ```typescript
-// Example structure
-export const BASE_URL = 'https://api.example.com';
+export const BASE_URL = 'https://api.example.com/v1';
 export const WS_URL = 'wss://ws.example.com';
 
 export function mapMarketToUnified(raw: any): UnifiedMarket {
@@ -64,7 +100,7 @@ export function mapMarketToUnified(raw: any): UnifiedMarket {
 
 See `kalshi/utils.ts` or `polymarket/utils.ts` for complete examples.
 
-### 3. `errors.ts` -- Exchange-specific error mapping
+### 4. `errors.ts` -- Exchange-specific error mapping
 
 Extend `ErrorMapper` from `core/src/utils/error-mapper.ts` with patterns specific to this exchange's API error responses.
 
@@ -76,69 +112,7 @@ export const exampleErrorMapper = new ErrorMapper('Example');
 
 If the exchange has unique error formats, override `mapBadRequestError` or `mapNotFoundError` in a subclass. See `polymarket/errors.ts` for an example with custom patterns.
 
-### 4. `fetchMarkets.ts` -- Market data
-
-Fetch all active markets from the exchange API and return `UnifiedMarket[]`.
-
-- Handle pagination if the API paginates
-- Use `mapMarketToUnified()` from your `utils.ts`
-- Support the `MarketFetchParams` / `MarketFilterParams` interface for filtering
-
-### 5. `fetchEvents.ts` -- Event data
-
-Fetch events (groups of related markets) and return `UnifiedEvent[]`.
-
-- Each event contains a `markets: UnifiedMarket[]` array
-- Support `EventFetchParams` for filtering
-
-### 6. `fetchOHLCV.ts` -- Historical candle data
-
-Fetch price history for a given market ID and return `PriceCandle[]`.
-
-```typescript
-interface PriceCandle {
-    timestamp: number;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume?: number;
-}
-```
-
-- Support the `CandleInterval` type: `'1m' | '5m' | '15m' | '1h' | '6h' | '1d'`
-- Map the exchange's native interval format to the unified one
-
-### 7. `fetchOrderBook.ts` -- Order book
-
-Fetch the current order book for a market and return `OrderBook`.
-
-```typescript
-interface OrderBook {
-    bids: OrderLevel[];  // sorted descending by price
-    asks: OrderLevel[];  // sorted ascending by price
-    timestamp?: number;
-}
-```
-
-- Prices should be in the 0.0-1.0 probability range
-- Convert from cents or other formats as needed
-
-### 8. `fetchTrades.ts` -- Trade history
-
-Fetch recent trades for a market and return `Trade[]`.
-
-```typescript
-interface Trade {
-    id: string;
-    timestamp: number;
-    price: number;
-    amount: number;
-    side: 'buy' | 'sell' | 'unknown';
-}
-```
-
-### 9. `auth.ts` -- Authentication
+### 5. `auth.ts` -- Authentication
 
 Handle credential validation and request signing. The structure depends on the exchange's auth mechanism:
 
@@ -162,27 +136,37 @@ export class ExampleAuth {
 
     getHeaders(method: string, path: string): Record<string, string> {
         // Generate auth headers for the request
+        return { 'Authorization': `Bearer ${this.credentials.apiKey}` };
     }
 }
 ```
 
-### 10. Trading methods in `index.ts`
+### 6. Fetch modules -- `fetchMarkets.ts`, `fetchEvents.ts`, etc.
 
-Your main exchange class must implement all trading methods:
+Each fetch module is a plain function that accepts `callApi` as a parameter and returns unified types. This keeps the exchange logic testable without needing a full class instance.
 
-| Method | Signature | Returns |
-|--------|-----------|---------|
-| `createOrder` | `(params: CreateOrderParams)` | `Promise<Order>` |
-| `cancelOrder` | `(orderId: string)` | `Promise<Order>` |
-| `fetchOrder` | `(orderId: string)` | `Promise<Order>` |
-| `fetchOpenOrders` | `(marketId?: string)` | `Promise<Order[]>` |
-| `fetchPositions` | `()` | `Promise<Position[]>` |
-| `fetchBalance` | `()` | `Promise<Balance[]>` |
+```typescript
+// fetchMarkets.ts
+type CallApi = (operationId: string, params?: Record<string, any>) => Promise<any>;
 
-- Authenticated methods should call `ensureAuth()` before making API calls
-- Map all responses to unified types defined in `core/src/types.ts`
+export async function fetchMarkets(
+    params: MarketFilterParams | undefined,
+    callApi: CallApi
+): Promise<UnifiedMarket[]> {
+    const data = await callApi('GetMarkets', {
+        limit: params?.limit ?? 100,
+        status: params?.status === 'all' ? undefined : 'active',
+    });
 
-### 11. `websocket.ts` -- Real-time data
+    return (data.markets || []).map(mapMarketToUnified);
+}
+```
+
+For modules that need direct HTTP access (e.g. a custom pagination scheme), accept `http: AxiosInstance` instead of or in addition to `callApi`. See `polymarket/fetchMarkets.ts` for an example.
+
+The same pattern applies to `fetchEvents.ts` and `fetchOHLCV.ts`. For simpler methods like `fetchOrderBook` and `fetchTrades`, inline them directly in `index.ts` using `callApi` rather than creating separate files -- see `kalshi/index.ts` for examples. Only extract them into their own files if the transformation logic is substantial.
+
+### 7. `websocket.ts` -- Real-time data
 
 Implement WebSocket streaming following the CCXT Pro async pattern:
 
@@ -210,45 +194,85 @@ Key implementation details:
 
 See `kalshi/websocket.ts` for a complete reference implementation.
 
-### 12. `index.ts` -- Main exchange class
+### 8. `index.ts` -- Main exchange class
 
-Wire everything together by extending `PredictionMarketExchange`:
+Wire everything together by extending `PredictionMarketExchange`. The constructor must call `defineImplicitApi()` with the parsed spec, which generates callable methods for every `operationId`. All API calls then go through `callApi()`.
 
 ```typescript
-import { PredictionMarketExchange } from '../../BaseExchange';
+import { PredictionMarketExchange, MarketFilterParams, ExchangeCredentials } from '../../BaseExchange';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { exampleApiSpec } from './api';
+import { ExampleAuth } from './auth';
+import { exampleErrorMapper } from './errors';
+import { fetchMarkets } from './fetchMarkets';
 
 export class ExampleExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        // ... mark what you implement
+    };
+
     private auth?: ExampleAuth;
-    private ws?: ExampleWebSocket;
 
     constructor(credentials?: ExchangeCredentials) {
         super(credentials);
+
         if (credentials?.apiKey) {
             this.auth = new ExampleAuth(credentials);
         }
+
+        // Register the implicit API -- generates a method for every operationId in the spec
+        const descriptor = parseOpenApiSpec(exampleApiSpec);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {
         return 'Example';
     }
 
-    // Market data -- delegate to fetch* modules
-    protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params);
+    // Override to map exchange API errors to unified error types
+    protected override mapImplicitApiError(error: any): any {
+        throw exampleErrorMapper.mapError(error);
     }
-    // ... other fetch methods
 
-    // Trading -- use this.ensureAuth() then call API
-    async createOrder(params: CreateOrderParams): Promise<Order> { /* ... */ }
-    // ... other trading methods
+    // Override sign() to provide auth headers for private endpoints
+    protected override sign(method: string, path: string, _params: Record<string, any>): Record<string, string> {
+        return this.ensureAuth().getHeaders(method, path);
+    }
 
-    // WebSocket -- lazy-init this.ws
-    async watchOrderBook(id: string): Promise<OrderBook> {
+    // Market data -- delegate to fetch modules, passing callApi
+    protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
+        return fetchMarkets(params, this.callApi.bind(this));
+    }
+
+    // Simple methods can use callApi directly in index.ts
+    async fetchOrderBook(id: string): Promise<OrderBook> {
+        const data = await this.callApi('GetOrderBook', { market_id: id });
+        return {
+            bids: data.bids.map((b: any) => ({ price: b.price, size: b.size })),
+            asks: data.asks.map((a: any) => ({ price: a.price, size: a.size })),
+            timestamp: Date.now(),
+        };
+    }
+
+    // Authenticated trading methods
+    async createOrder(params: CreateOrderParams): Promise<Order> {
         this.ensureAuth();
-        if (!this.ws) this.ws = new ExampleWebSocket(this.auth!);
+        const data = await this.callApi('CreateOrder', {
+            market_id: params.marketId,
+            side: params.side,
+            amount: params.amount,
+            price: params.price,
+        });
+        return mapOrder(data.order);
+    }
+
+    // WebSocket -- lazy-init
+    async watchOrderBook(id: string): Promise<OrderBook> {
+        if (!this.ws) this.ws = new ExampleWebSocket();
         return this.ws.watchOrderBook(id);
     }
-    // ... watchTrades, close
 }
 ```
 
@@ -261,13 +285,10 @@ After implementing the exchange, register it in these 4 files:
 ### 1. `core/src/index.ts` -- Export the class
 
 ```typescript
-// Add wildcard re-export
 export * from './exchanges/<name>';
 
-// Add to imports
 import { ExampleExchange } from './exchanges/<name>';
 
-// Add to default export object
 const pmxt = {
     Polymarket: PolymarketExchange,
     Limitless: LimitlessExchange,
@@ -275,14 +296,12 @@ const pmxt = {
     Example: ExampleExchange,        // <-- add
 };
 
-// Add named export
 export const Example = ExampleExchange;
 ```
 
 ### 2. `core/src/server/app.ts` -- Register with the server
 
 ```typescript
-// Add to defaultExchanges record
 const defaultExchanges: Record<string, any> = {
     polymarket: null,
     limitless: null,
@@ -295,7 +314,6 @@ case 'example':
     return new ExampleExchange({
         apiKey: credentials?.apiKey || process.env.EXAMPLE_API_KEY,
         privateKey: credentials?.privateKey || process.env.EXAMPLE_PRIVATE_KEY,
-        // ... other credential fields as needed
     });
 ```
 

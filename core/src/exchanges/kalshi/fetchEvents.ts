@@ -1,21 +1,24 @@
 import { EventFetchParams } from "../../BaseExchange";
 import { UnifiedEvent, UnifiedMarket } from "../../types";
-import axios from "axios";
 import { mapMarketToUnified } from "./utils";
 import { kalshiErrorMapper } from "./errors";
-import { getEventsUrl } from "./api";
+
+type CallApi = (
+  operationId: string,
+  params?: Record<string, any>,
+) => Promise<any>;
 
 async function fetchEventByTicker(
-  baseUrl: string,
   eventTicker: string,
+  callApi: CallApi,
 ): Promise<UnifiedEvent[]> {
   const normalizedTicker = eventTicker.toUpperCase();
-  const url = getEventsUrl(baseUrl, [normalizedTicker]);
-  const response = await axios.get(url, {
-    params: { with_nested_markets: true },
+  const data = await callApi("GetEvent", {
+    event_ticker: normalizedTicker,
+    with_nested_markets: true,
   });
 
-  const event = response.data.event;
+  const event = data.event;
   if (!event) return [];
 
   const markets: UnifiedMarket[] = [];
@@ -43,18 +46,18 @@ async function fetchEventByTicker(
 }
 
 export async function fetchEvents(
-  baseUrl: string,
   params: EventFetchParams,
+  callApi: CallApi,
 ): Promise<UnifiedEvent[]> {
   try {
     // Handle eventId lookup (direct API call)
     if (params.eventId) {
-      return await fetchEventByTicker(baseUrl, params.eventId);
+      return await fetchEventByTicker(params.eventId, callApi);
     }
 
     // Handle slug lookup (slug IS the event ticker on Kalshi)
     if (params.slug) {
-      return await fetchEventByTicker(baseUrl, params.slug);
+      return await fetchEventByTicker(params.slug, callApi);
     }
 
     const status = params?.status || "active";
@@ -77,15 +80,13 @@ export async function fetchEvents(
         };
         if (cursor) queryParams.cursor = cursor;
 
-        const response = await axios.get(getEventsUrl(baseUrl, []), {
-          params: queryParams,
-        });
-        const events = response.data.events || [];
+        const data = await callApi("GetEvents", queryParams);
+        const events = data.events || [];
 
         if (events.length === 0) break;
 
         allEvents = allEvents.concat(events);
-        cursor = response.data.cursor;
+        cursor = data.cursor;
         page++;
 
         // If we have no search query and have fetched enough events, we can stop early

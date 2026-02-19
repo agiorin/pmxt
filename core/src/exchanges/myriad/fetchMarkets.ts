@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket } from '../../types';
 import { BASE_URL, mapMarketToUnified, mapStatusToMyriad } from './utils';
@@ -6,14 +6,14 @@ import { myriadErrorMapper } from './errors';
 
 const MAX_PAGE_SIZE = 100;
 
-export async function fetchMarkets(params?: MarketFetchParams, headers?: Record<string, string>): Promise<UnifiedMarket[]> {
+export async function fetchMarkets(params?: MarketFetchParams, headers?: Record<string, string>, http: AxiosInstance = axios): Promise<UnifiedMarket[]> {
     try {
         if (params?.marketId) {
-            return await fetchMarketById(params.marketId, headers);
+            return await fetchMarketById(params.marketId, headers, http);
         }
 
         if (params?.slug) {
-            return await fetchMarketBySlug(params.slug, headers);
+            return await fetchMarketBySlug(params.slug, headers, http);
         }
 
         const limit = params?.limit || 100;
@@ -44,7 +44,7 @@ export async function fetchMarkets(params?: MarketFetchParams, headers?: Record<
 
         // If we need more than one page, paginate
         if (limit <= MAX_PAGE_SIZE) {
-            const response = await axios.get(`${BASE_URL}/markets`, {
+            const response = await http.get(`${BASE_URL}/markets`, {
                 params: queryParams,
                 headers,
             });
@@ -61,7 +61,7 @@ export async function fetchMarkets(params?: MarketFetchParams, headers?: Record<
             queryParams.page = page;
             queryParams.limit = MAX_PAGE_SIZE;
 
-            const response = await axios.get(`${BASE_URL}/markets`, {
+            const response = await http.get(`${BASE_URL}/markets`, {
                 params: queryParams,
                 headers,
             });
@@ -86,16 +86,16 @@ export async function fetchMarkets(params?: MarketFetchParams, headers?: Record<
     }
 }
 
-async function fetchMarketById(marketId: string, headers?: Record<string, string>): Promise<UnifiedMarket[]> {
+async function fetchMarketById(marketId: string, headers: Record<string, string> | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
     // marketId format: {networkId}:{id}
     const parts = marketId.split(':');
     if (parts.length !== 2) {
         // Try as slug
-        return fetchMarketBySlug(marketId, headers);
+        return fetchMarketBySlug(marketId, headers, http);
     }
 
     const [networkId, id] = parts;
-    const response = await axios.get(`${BASE_URL}/markets/${id}`, {
+    const response = await http.get(`${BASE_URL}/markets/${id}`, {
         params: { network_id: Number(networkId) },
         headers,
     });
@@ -105,8 +105,8 @@ async function fetchMarketById(marketId: string, headers?: Record<string, string
     return um ? [um] : [];
 }
 
-async function fetchMarketBySlug(slug: string, headers?: Record<string, string>): Promise<UnifiedMarket[]> {
-    const response = await axios.get(`${BASE_URL}/markets/${slug}`, { headers });
+async function fetchMarketBySlug(slug: string, headers: Record<string, string> | undefined, http: AxiosInstance): Promise<UnifiedMarket[]> {
+    const response = await http.get(`${BASE_URL}/markets/${slug}`, { headers });
     const market = response.data.data || response.data;
     const um = mapMarketToUnified(market);
     return um ? [um] : [];

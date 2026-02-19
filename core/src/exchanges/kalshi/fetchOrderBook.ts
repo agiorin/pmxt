@@ -2,7 +2,7 @@ import axios from "axios";
 import { OrderBook } from "../../types";
 import { validateIdFormat } from "../../utils/validation";
 import { kalshiErrorMapper } from "./errors";
-import { getMarketsUrl } from "./api";
+import { getMarketsUrl } from "./config";
 
 export async function fetchOrderBook(
   baseUrl: string,

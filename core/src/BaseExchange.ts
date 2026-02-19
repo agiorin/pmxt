@@ -1,6 +1,30 @@
 import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from './types';
 import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } from './utils/math';
 import { MarketNotFound, EventNotFound } from './errors';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+
+// ----------------------------------------------------------------------------
+// Implicit API Types (OpenAPI-driven method generation)
+// ----------------------------------------------------------------------------
+
+export interface ApiEndpoint {
+    method: string;
+    path: string;
+    isPrivate?: boolean;
+    operationId?: string;
+}
+
+export interface ApiDescriptor {
+    baseUrl: string;
+    endpoints: Record<string, ApiEndpoint>;
+}
+
+export interface ImplicitApiMethodInfo {
+    name: string;
+    method: string;
+    path: string;
+    isPrivate: boolean;
+}
 
 export interface MarketFilterParams {
     limit?: number;
@@ -108,6 +132,28 @@ export type EventFilterCriteria = {
 
 export type EventFilterFunction = (event: UnifiedEvent) => boolean;
 
+// ----------------------------------------------------------------------------
+// Capability Map (ccxt-style exchange.has)
+// ----------------------------------------------------------------------------
+
+export type ExchangeCapability = true | false | 'emulated';
+
+export interface ExchangeHas {
+    fetchMarkets: ExchangeCapability;
+    fetchEvents: ExchangeCapability;
+    fetchOHLCV: ExchangeCapability;
+    fetchOrderBook: ExchangeCapability;
+    fetchTrades: ExchangeCapability;
+    createOrder: ExchangeCapability;
+    cancelOrder: ExchangeCapability;
+    fetchOrder: ExchangeCapability;
+    fetchOpenOrders: ExchangeCapability;
+    fetchPositions: ExchangeCapability;
+    fetchBalance: ExchangeCapability;
+    watchOrderBook: ExchangeCapability;
+    watchTrades: ExchangeCapability;
+}
+
 export interface ExchangeCredentials {
     // Standard API authentication (Kalshi, etc.)
     apiKey?: string;
@@ -127,13 +173,107 @@ export interface ExchangeCredentials {
 // ----------------------------------------------------------------------------
 
 export abstract class PredictionMarketExchange {
+    [key: string]: any; // Allow dynamic method assignment for implicit API
+
     protected credentials?: ExchangeCredentials;
+    public verbose: boolean = false;
+    public http: AxiosInstance;
+
+    // Market Cache
+    public markets: Record<string, UnifiedMarket> = {};
+    public marketsBySlug: Record<string, UnifiedMarket> = {};
+    public loadedMarkets: boolean = false;
+
+    // Implicit API (merged across multiple defineImplicitApi calls)
+    protected apiDescriptor?: ApiDescriptor;
+    private apiDescriptors: ApiDescriptor[] = [];
+
+    readonly has: ExchangeHas = {
+        fetchMarkets: false,
+        fetchEvents: false,
+        fetchOHLCV: false,
+        fetchOrderBook: false,
+        fetchTrades: false,
+        createOrder: false,
+        cancelOrder: false,
+        fetchOrder: false,
+        fetchOpenOrders: false,
+        fetchPositions: false,
+        fetchBalance: false,
+        watchOrderBook: false,
+        watchTrades: false,
+    };
 
     constructor(credentials?: ExchangeCredentials) {
         this.credentials = credentials;
+        this.http = axios.create();
+
+        // Request Interceptor
+        this.http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+            if (this.verbose) {
+                console.log(`\n[pmxt] → ${config.method?.toUpperCase()} ${config.url}`);
+                if (config.params) console.log('[pmxt] params:', config.params);
+                if (config.data) console.log('[pmxt] body:', JSON.stringify(config.data, null, 2));
+            }
+            return config;
+        });
+
+        // Response Interceptor
+        this.http.interceptors.response.use(
+            (response: AxiosResponse) => {
+                if (this.verbose) {
+                    console.log(`\n[pmxt] ← ${response.status} ${response.statusText} ${response.config.url}`);
+                    // console.log('[pmxt] response:', JSON.stringify(response.data, null, 2)); 
+                    // Commented out full body log to avoid spam, but headers might be useful
+                }
+                return response;
+            },
+            (error: any) => {
+                if (this.verbose) {
+                    console.log(`\n[pmxt] ✖ REQUEST FAILED: ${error.config?.url}`);
+                    console.log('[pmxt] error:', error.message);
+                    if (error.response) {
+                        console.log('[pmxt] status:', error.response.status);
+                        console.log('[pmxt] data:', JSON.stringify(error.response.data, null, 2));
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
     }
 
     abstract get name(): string;
+
+    /**
+     * Load and cache markets from the exchange.
+     * This method populates `this.markets` and `this.marketsBySlug`.
+     * 
+     * @param reload - Force a reload of markets from the API even if already loaded
+     * @returns Dictionary of markets indexed by marketId
+     */
+    async loadMarkets(reload: boolean = false): Promise<Record<string, UnifiedMarket>> {
+        if (this.loadedMarkets && !reload) {
+            return this.markets;
+        }
+
+        // Fetch all markets (implementation dependent, usually fetches active markets)
+        const markets = await this.fetchMarkets();
+
+        // Reset caches
+        this.markets = {};
+        this.marketsBySlug = {};
+
+        for (const market of markets) {
+            this.markets[market.marketId] = market;
+            // Some exchanges provide slugs, if so cache them
+            if (market.slug) {
+                this.marketsBySlug[market.slug] = market;
+            }
+        }
+
+        this.loadedMarkets = true;
+        return this.markets;
+    }
 
     /**
      * Fetch markets with optional filtering, search, or slug lookup.
@@ -216,6 +356,16 @@ export abstract class PredictionMarketExchange {
      * market = exchange.fetch_market(market_id='663583')
      */
     async fetchMarket(params?: MarketFetchParams): Promise<UnifiedMarket> {
+        // Try to fetch from cache first if we have loaded markets and have an ID/slug
+        if (this.loadedMarkets) {
+            if (params?.marketId && this.markets[params.marketId]) {
+                return this.markets[params.marketId];
+            }
+            if (params?.slug && this.marketsBySlug[params.slug]) {
+                return this.marketsBySlug[params.slug];
+            }
+        }
+
         const markets = await this.fetchMarkets(params);
         if (markets.length === 0) {
             const identifier = params?.marketId || params?.outcomeId || params?.slug || params?.eventId || params?.query || 'unknown';
@@ -925,5 +1075,135 @@ export abstract class PredictionMarketExchange {
     async close(): Promise<void> {
         // Default implementation: no-op
         // Exchanges with WebSocket support should override this
+    }
+
+    // ----------------------------------------------------------------------------
+    // Implicit API (OpenAPI-driven method generation)
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Call an implicit API method by its operationId (or auto-generated name).
+     * Provides a typed entry point so unified methods can delegate to the implicit API
+     * without casting to `any` everywhere.
+     */
+    protected async callApi(operationId: string, params?: Record<string, any>): Promise<any> {
+        const method = (this as any)[operationId];
+        if (typeof method !== 'function') {
+            throw new Error(`Implicit API method "${operationId}" not found on ${this.name}`);
+        }
+        return method.call(this, params);
+    }
+
+    /**
+     * Parse an API descriptor and generate callable methods on this instance.
+     * Existing methods (unified API) are never overwritten.
+     */
+    protected defineImplicitApi(descriptor: ApiDescriptor): void {
+        this.apiDescriptors.push(descriptor);
+
+        // Merge into a single apiDescriptor for the implicitApi getter
+        if (!this.apiDescriptor) {
+            this.apiDescriptor = { baseUrl: descriptor.baseUrl, endpoints: { ...descriptor.endpoints } };
+        } else {
+            Object.assign(this.apiDescriptor.endpoints, descriptor.endpoints);
+        }
+
+        for (const [name, endpoint] of Object.entries(descriptor.endpoints)) {
+            // Never overwrite existing methods (unified API wins)
+            if (name in this) {
+                continue;
+            }
+            (this as any)[name] = this.createImplicitMethod(name, endpoint, descriptor.baseUrl);
+        }
+    }
+
+    /**
+     * Creates an async function for an implicit API endpoint.
+     */
+    private createImplicitMethod(
+        name: string,
+        endpoint: ApiEndpoint,
+        baseUrl: string
+    ): (params?: Record<string, any>) => Promise<any> {
+        return async (params?: Record<string, any>): Promise<any> => {
+            const allParams = { ...(params || {}) };
+
+            // Substitute path parameters like {ticker} from params
+            let resolvedPath = endpoint.path.replace(/\{([^}]+)\}/g, (_match, key) => {
+                const value = allParams[key];
+                if (value === undefined) {
+                    throw new Error(
+                        `Missing required path parameter "${key}" for ${name}(). ` +
+                        `Path: ${endpoint.path}`
+                    );
+                }
+                delete allParams[key];
+                return encodeURIComponent(String(value));
+            });
+
+            // Get auth headers for private endpoints
+            let headers: Record<string, string> = {};
+            if (endpoint.isPrivate) {
+                headers = this.sign(endpoint.method, resolvedPath, allParams);
+            }
+
+            const url = `${baseUrl}${resolvedPath}`;
+            const method = endpoint.method.toUpperCase();
+
+            try {
+                let response;
+                if (method === 'GET' || method === 'DELETE') {
+                    // Remaining params go to query string
+                    response = await this.http.request({
+                        method: method as any,
+                        url,
+                        params: Object.keys(allParams).length > 0 ? allParams : undefined,
+                        headers,
+                    });
+                } else {
+                    // POST/PUT/PATCH: remaining params go to JSON body
+                    response = await this.http.request({
+                        method: method as any,
+                        url,
+                        data: Object.keys(allParams).length > 0 ? allParams : undefined,
+                        headers: { 'Content-Type': 'application/json', ...headers },
+                    });
+                }
+
+                return response.data;
+            } catch (error: any) {
+                throw this.mapImplicitApiError(error);
+            }
+        };
+    }
+
+    /**
+     * Returns auth headers for a private API call.
+     * Exchanges should override this to provide authentication.
+     */
+    protected sign(_method: string, _path: string, _params: Record<string, any>): Record<string, string> {
+        return {};
+    }
+
+    /**
+     * Maps errors from implicit API calls through the exchange's error mapper.
+     * Exchanges should override this to use their specific error mapper.
+     */
+    protected mapImplicitApiError(error: any): any {
+        throw error;
+    }
+
+    /**
+     * Introspection getter: returns info about all implicit API methods.
+     */
+    get implicitApi(): ImplicitApiMethodInfo[] {
+        if (!this.apiDescriptor) return [];
+
+        return Object.entries(this.apiDescriptor.endpoints).map(([name, endpoint]) => ({
+            name,
+            method: endpoint.method,
+            path: endpoint.path,
+            isPrivate: !!endpoint.isPrivate,
+        }));
     }
 }

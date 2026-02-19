@@ -60,6 +60,22 @@ export interface BaoziExchangeOptions {
 }
 
 export class BaoziExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: 'emulated' as const,
+        fetchOrderBook: 'emulated' as const,
+        fetchTrades: 'emulated' as const,
+        createOrder: true as const,
+        cancelOrder: false as const,
+        fetchOrder: true as const,
+        fetchOpenOrders: 'emulated' as const,
+        fetchPositions: true as const,
+        fetchBalance: true as const,
+        watchOrderBook: true as const,
+        watchTrades: false as const,
+    };
+
     private auth?: BaoziAuth;
     private connection: Connection;
     private ws?: BaoziWebSocket;

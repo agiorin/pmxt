@@ -65,7 +65,7 @@ pmxt.restart_server()
 **Signature:**
 
 ```python
-def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.returns.type}}:
+def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonTypeClean this.returns.type}}:
 ```
 
 **Parameters:**
@@ -74,11 +74,16 @@ def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.
 {{#each this.params}}
 - `{{pythonName this.name}}` ({{pythonType this.type}}){{#if this.optional}} - **Optional**{{/if}}: {{this.description}}
 {{/each}}
+{{#if this.subParams}}
+{{#each this.subParams}}
+  - `{{pythonName this.name}}` - {{this.description}}
+{{/each}}
+{{/if}}
 {{else}}
 - None
 {{/if}}
 
-**Returns:** `{{pythonType this.returns.type}}` - {{this.returns.description}}
+**Returns:** {{pythonType this.returns.type}} - {{this.returns.description}}
 
 **Example:**
 
@@ -113,7 +118,7 @@ def {{pythonName this.name}}({{pythonParams this.params}}) -> {{pythonType this.
 @dataclass
 class {{this.name}}:
 {{#each this.fields}}
-{{pythonName this.name}}: {{pythonType this.type}} # {{this.description}}
+{{pythonName this.name}}: {{pythonTypeClean this.type}} # {{this.description}}
 {{/each}}
 ```
 
@@ -131,7 +136,7 @@ class {{this.name}}:
 @dataclass
 class {{this.name}}:
 {{#each this.fields}}
-{{pythonName this.name}}: {{pythonType this.type}} # {{this.description}}
+{{pythonName this.name}}: {{pythonTypeClean this.type}} # {{this.description}}
 {{/each}}
 ```
 

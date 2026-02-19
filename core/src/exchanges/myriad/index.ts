@@ -1,18 +1,34 @@
-import axios from 'axios';
 import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Balance, Order, Position, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
 import { fetchOrderBook } from './fetchOrderBook';
-import { fetchTrades } from './fetchTrades';
 import { MyriadAuth } from './auth';
 import { MyriadWebSocket } from './websocket';
 import { myriadErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { BASE_URL } from './utils';
+import { parseOpenApiSpec } from '../../utils/openapi';
+import { myriadApiSpec } from './api';
 
 export class MyriadExchange extends PredictionMarketExchange {
+    override readonly has = {
+        fetchMarkets: true as const,
+        fetchEvents: true as const,
+        fetchOHLCV: true as const,
+        fetchOrderBook: 'emulated' as const,
+        fetchTrades: true as const,
+        createOrder: 'emulated' as const,
+        cancelOrder: false as const,
+        fetchOrder: false as const,
+        fetchOpenOrders: 'emulated' as const,
+        fetchPositions: true as const,
+        fetchBalance: 'emulated' as const,
+        watchOrderBook: 'emulated' as const,
+        watchTrades: 'emulated' as const,
+    };
+
     private auth?: MyriadAuth;
     private ws?: MyriadWebSocket;
 
@@ -21,6 +37,9 @@ export class MyriadExchange extends PredictionMarketExchange {
         if (credentials?.apiKey) {
             this.auth = new MyriadAuth(credentials);
         }
+
+        const descriptor = parseOpenApiSpec(myriadApiSpec, BASE_URL);
+        this.defineImplicitApi(descriptor);
     }
 
     get name(): string {
@@ -32,6 +51,14 @@ export class MyriadExchange extends PredictionMarketExchange {
             return this.auth.getHeaders();
         }
         return { 'Content-Type': 'application/json' };
+    }
+
+    protected override sign(_method: string, _path: string, _params: Record<string, any>): Record<string, string> {
+        return this.getHeaders();
+    }
+
+    protected override mapImplicitApiError(error: any): any {
+        throw myriadErrorMapper.mapError(error);
     }
 
     private ensureAuth(): MyriadAuth {
@@ -49,19 +76,19 @@ export class MyriadExchange extends PredictionMarketExchange {
     // ------------------------------------------------------------------------
 
     protected async fetchMarketsImpl(params?: MarketFilterParams): Promise<UnifiedMarket[]> {
-        return fetchMarkets(params, this.getHeaders());
+        return fetchMarkets(params, this.getHeaders(), this.http);
     }
 
     protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params, this.getHeaders());
+        return fetchEvents(params, this.getHeaders(), this.http);
     }
 
     async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params, this.getHeaders());
+        return fetchOHLCV(id, params, this.callApi.bind(this));
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id, this.getHeaders());
+        return fetchOrderBook(id, this.callApi.bind(this));
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
@@ -71,7 +98,48 @@ export class MyriadExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params, this.getHeaders());
+
+        const parts = id.split(':');
+        if (parts.length < 2) {
+            throw new Error(`Invalid Myriad ID format: "${id}". Expected "{networkId}:{marketId}" or "{networkId}:{marketId}:{outcomeId}".`);
+        }
+
+        const [networkId, marketId] = parts;
+        const outcomeId = parts.length >= 3 ? parts[2] : undefined;
+
+        const ensureDate = (d: any): Date => {
+            if (typeof d === 'string') {
+                if (!d.endsWith('Z') && !d.match(/[+-]\d{2}:\d{2}$/)) return new Date(d + 'Z');
+                return new Date(d);
+            }
+            return d;
+        };
+
+        const queryParams: Record<string, any> = {
+            id: marketId,
+            network_id: Number(networkId),
+            page: 1,
+            limit: params.limit || 100,
+        };
+
+        if (params.start) queryParams.since = Math.floor(ensureDate(params.start).getTime() / 1000);
+        if (params.end) queryParams.until = Math.floor(ensureDate(params.end).getTime() / 1000);
+
+        const data = await this.callApi('getMarketsEvents', queryParams);
+        const events = data.data || data.events || [];
+
+        const tradeEvents = events.filter((e: any) => e.action === 'buy' || e.action === 'sell');
+        const filtered = outcomeId
+            ? tradeEvents.filter((e: any) => String(e.outcomeId) === outcomeId)
+            : tradeEvents;
+
+        return filtered.map((t: any, index: number) => ({
+            id: `${t.blockNumber || t.timestamp}-${index}`,
+            timestamp: (t.timestamp || 0) * 1000,
+            price: t.shares > 0 ? Number(t.value) / Number(t.shares) : 0,
+            amount: Number(t.shares || 0),
+            side: t.action === 'buy' ? 'buy' as const : 'sell' as const,
+        }));
     }
 
     // ------------------------------------------------------------------------
@@ -79,59 +147,50 @@ export class MyriadExchange extends PredictionMarketExchange {
     // ------------------------------------------------------------------------
 
     async createOrder(params: CreateOrderParams): Promise<Order> {
-        try {
-            const auth = this.ensureAuth();
-            const headers = auth.getHeaders();
-
-            // Parse composite marketId: {networkId}:{marketId}
-            const parts = params.marketId.split(':');
-            if (parts.length < 2) {
-                throw new Error(`Invalid marketId format: "${params.marketId}". Expected "{networkId}:{marketId}".`);
-            }
-            const [networkId, marketId] = parts;
-
-            // Parse outcomeId: {networkId}:{marketId}:{outcomeId}
-            const outcomeParts = params.outcomeId.split(':');
-            const outcomeId = outcomeParts.length >= 3 ? Number(outcomeParts[2]) : Number(outcomeParts[0]);
-
-            const quoteBody: any = {
-                market_id: Number(marketId),
-                outcome_id: outcomeId,
-                network_id: Number(networkId),
-                action: params.side,
-            };
-
-            if (params.side === 'buy') {
-                quoteBody.value = params.amount;
-            } else {
-                quoteBody.shares = params.amount;
-            }
-
-            if (params.price) {
-                // Use price as slippage tolerance for AMM
-                quoteBody.slippage = 0.01;
-            }
-
-            const response = await axios.post(`${BASE_URL}/markets/quote`, quoteBody, { headers });
-            const quote = response.data;
-
-            return {
-                id: `myriad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                marketId: params.marketId,
-                outcomeId: params.outcomeId,
-                side: params.side,
-                type: 'market', // AMM only supports market orders
-                price: quote.price_average,
-                amount: params.side === 'buy' ? quote.value : quote.shares,
-                status: 'pending',
-                filled: 0,
-                remaining: params.side === 'buy' ? quote.value : quote.shares,
-                timestamp: Date.now(),
-                fee: quote.fees ? (quote.fees.fee + quote.fees.treasury + quote.fees.distributor) : undefined,
-            };
-        } catch (error: any) {
-            throw myriadErrorMapper.mapError(error);
+        // Parse composite marketId: {networkId}:{marketId}
+        const parts = params.marketId.split(':');
+        if (parts.length < 2) {
+            throw new Error(`Invalid marketId format: "${params.marketId}". Expected "{networkId}:{marketId}".`);
         }
+        const [networkId, marketId] = parts;
+
+        // Parse outcomeId: {networkId}:{marketId}:{outcomeId}
+        const outcomeParts = params.outcomeId.split(':');
+        const outcomeId = outcomeParts.length >= 3 ? Number(outcomeParts[2]) : Number(outcomeParts[0]);
+
+        const quoteBody: Record<string, any> = {
+            market_id: Number(marketId),
+            outcome_id: outcomeId,
+            network_id: Number(networkId),
+            action: params.side,
+        };
+
+        if (params.side === 'buy') {
+            quoteBody.value = params.amount;
+        } else {
+            quoteBody.shares = params.amount;
+        }
+
+        if (params.price) {
+            quoteBody.slippage = 0.01;
+        }
+
+        const quote = await this.callApi('postMarketsQuote', quoteBody);
+
+        return {
+            id: `myriad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            marketId: params.marketId,
+            outcomeId: params.outcomeId,
+            side: params.side,
+            type: 'market',
+            price: quote.price_average,
+            amount: params.side === 'buy' ? quote.value : quote.shares,
+            status: 'pending',
+            filled: 0,
+            remaining: params.side === 'buy' ? quote.value : quote.shares,
+            timestamp: Date.now(),
+            fee: quote.fees ? (quote.fees.fee + quote.fees.treasury + quote.fees.distributor) : undefined,
+        };
     }
 
     async cancelOrder(_orderId: string): Promise<Order> {
@@ -147,75 +206,51 @@ export class MyriadExchange extends PredictionMarketExchange {
     }
 
     async fetchPositions(): Promise<Position[]> {
-        try {
-            const auth = this.ensureAuth();
-            const headers = auth.getHeaders();
-            const walletAddress = auth.walletAddress;
-
-            if (!walletAddress) {
-                throw new AuthenticationError(
-                    'fetchPositions requires a wallet address. Pass privateKey as the wallet address in credentials.',
-                    'Myriad'
-                );
-            }
-
-            const response = await axios.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
-                params: { limit: 100 },
-                headers,
-            });
-
-            const items = response.data.data || response.data.items || [];
-
-            return items.map((pos: any) => ({
-                marketId: `${pos.networkId}:${pos.marketId}`,
-                outcomeId: `${pos.networkId}:${pos.marketId}:${pos.outcomeId}`,
-                outcomeLabel: pos.outcomeTitle || `Outcome ${pos.outcomeId}`,
-                size: Number(pos.shares || 0),
-                entryPrice: Number(pos.price || 0),
-                currentPrice: Number(pos.value || 0) / Math.max(Number(pos.shares || 1), 1),
-                unrealizedPnL: Number(pos.profit || 0),
-            }));
-        } catch (error: any) {
-            throw myriadErrorMapper.mapError(error);
+        const walletAddress = this.ensureAuth().walletAddress;
+        if (!walletAddress) {
+            throw new AuthenticationError(
+                'fetchPositions requires a wallet address. Pass privateKey as the wallet address in credentials.',
+                'Myriad'
+            );
         }
+
+        const data = await this.callApi('getUsersPortfolio', { address: walletAddress, limit: 100 });
+        const items = data.data || data.items || [];
+
+        return items.map((pos: any) => ({
+            marketId: `${pos.networkId}:${pos.marketId}`,
+            outcomeId: `${pos.networkId}:${pos.marketId}:${pos.outcomeId}`,
+            outcomeLabel: pos.outcomeTitle || `Outcome ${pos.outcomeId}`,
+            size: Number(pos.shares || 0),
+            entryPrice: Number(pos.price || 0),
+            currentPrice: Number(pos.value || 0) / Math.max(Number(pos.shares || 1), 1),
+            unrealizedPnL: Number(pos.profit || 0),
+        }));
     }
 
     async fetchBalance(): Promise<Balance[]> {
-        // Myriad is on-chain; balances are per-chain token balances.
-        // The API doesn't expose a balance endpoint directly.
-        // We approximate from portfolio positions.
-        try {
-            const auth = this.ensureAuth();
-            const headers = auth.getHeaders();
-            const walletAddress = auth.walletAddress;
-
-            if (!walletAddress) {
-                throw new AuthenticationError(
-                    'fetchBalance requires a wallet address. Pass privateKey as the wallet address in credentials.',
-                    'Myriad'
-                );
-            }
-
-            const response = await axios.get(`${BASE_URL}/users/${walletAddress}/portfolio`, {
-                params: { limit: 100 },
-                headers,
-            });
-
-            const items = response.data.data || response.data.items || [];
-            let totalValue = 0;
-            for (const pos of items) {
-                totalValue += Number(pos.value || 0);
-            }
-
-            return [{
-                currency: 'USDC',
-                total: totalValue,
-                available: 0, // Cannot determine on-chain balance via API
-                locked: totalValue,
-            }];
-        } catch (error: any) {
-            throw myriadErrorMapper.mapError(error);
+        const walletAddress = this.ensureAuth().walletAddress;
+        if (!walletAddress) {
+            throw new AuthenticationError(
+                'fetchBalance requires a wallet address. Pass privateKey as the wallet address in credentials.',
+                'Myriad'
+            );
         }
+
+        const data = await this.callApi('getUsersPortfolio', { address: walletAddress, limit: 100 });
+        const items = data.data || data.items || [];
+
+        let totalValue = 0;
+        for (const pos of items) {
+            totalValue += Number(pos.value || 0);
+        }
+
+        return [{
+            currency: 'USDC',
+            total: totalValue,
+            available: 0,
+            locked: totalValue,
+        }];
     }
 
     // ------------------------------------------------------------------------
@@ -225,7 +260,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     async watchOrderBook(id: string, _limit?: number): Promise<OrderBook> {
         this.ensureAuth();
         if (!this.ws) {
-            this.ws = new MyriadWebSocket(this.getHeaders());
+            this.ws = new MyriadWebSocket(this.callApi.bind(this));
         }
         return this.ws.watchOrderBook(id);
     }
@@ -233,7 +268,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     async watchTrades(id: string, _since?: number, _limit?: number): Promise<Trade[]> {
         this.ensureAuth();
         if (!this.ws) {
-            this.ws = new MyriadWebSocket(this.getHeaders());
+            this.ws = new MyriadWebSocket(this.callApi.bind(this));
         }
         return this.ws.watchTrades(id);
     }

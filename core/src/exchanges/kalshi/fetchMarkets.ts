@@ -1,12 +1,15 @@
-import axios from "axios";
 import { MarketFetchParams } from "../../BaseExchange";
 import { UnifiedMarket } from "../../types";
 import { mapMarketToUnified } from "./utils";
 import { kalshiErrorMapper } from "./errors";
-import { getEventsUrl, getSeriesUrl } from "./api";
+
+type CallApi = (
+  operationId: string,
+  params?: Record<string, any>,
+) => Promise<any>;
 
 async function fetchActiveEvents(
-  baseUrl: string,
+  callApi: CallApi,
   targetMarketCount?: number,
   status: string = "open",
 ): Promise<any[]> {
@@ -31,10 +34,8 @@ async function fetchActiveEvents(
       };
       if (cursor) queryParams.cursor = cursor;
 
-      const response = await axios.get(getEventsUrl(baseUrl, []), {
-        params: queryParams,
-      });
-      const events = response.data.events || [];
+      const data = await callApi("GetEvents", queryParams);
+      const events = data.events || [];
 
       if (events.length === 0) break;
 
@@ -53,7 +54,7 @@ async function fetchActiveEvents(
         }
       }
 
-      cursor = response.data.cursor;
+      cursor = data.cursor;
       page++;
 
       // Additional safety: if no target specified, limit to reasonable number of pages
@@ -68,10 +69,12 @@ async function fetchActiveEvents(
   return allEvents;
 }
 
-async function fetchSeriesMap(baseUrl: string): Promise<Map<string, string[]>> {
+async function fetchSeriesMap(
+  callApi: CallApi,
+): Promise<Map<string, string[]>> {
   try {
-    const response = await axios.get(getSeriesUrl(baseUrl));
-    const seriesList = response.data.series || [];
+    const data = await callApi("GetSeriesList");
+    const seriesList = data.series || [];
     const map = new Map<string, string[]>();
     for (const series of seriesList) {
       if (series.tags && series.tags.length > 0) {
@@ -99,64 +102,64 @@ export function resetCache(): void {
 }
 
 export async function fetchMarkets(
-  baseUrl: string,
-  params?: MarketFetchParams,
+  params: MarketFetchParams | undefined,
+  callApi: CallApi,
 ): Promise<UnifiedMarket[]> {
   try {
     // Handle marketId lookup (Kalshi marketId is the ticker)
     if (params?.marketId) {
-      return await fetchMarketsBySlug(baseUrl, params.marketId);
+      return await fetchMarketsBySlug(params.marketId, callApi);
     }
 
     // Handle slug-based lookup (event ticker)
     if (params?.slug) {
-      return await fetchMarketsBySlug(baseUrl, params.slug);
+      return await fetchMarketsBySlug(params.slug, callApi);
     }
 
     // Handle outcomeId lookup (strip -NO suffix, use as ticker)
     if (params?.outcomeId) {
       const ticker = params.outcomeId.replace(/-NO$/, "");
-      return await fetchMarketsBySlug(baseUrl, ticker);
+      return await fetchMarketsBySlug(ticker, callApi);
     }
 
     // Handle eventId lookup (event ticker works the same way)
     if (params?.eventId) {
-      return await fetchMarketsBySlug(baseUrl, params.eventId);
+      return await fetchMarketsBySlug(params.eventId, callApi);
     }
 
     // Handle query-based search
     if (params?.query) {
-      return await searchMarkets(baseUrl, params.query, params);
+      return await searchMarkets(params.query, params, callApi);
     }
 
     // Default: fetch markets
-    return await fetchMarketsDefault(baseUrl, params);
+    return await fetchMarketsDefault(params, callApi);
   } catch (error: any) {
     throw kalshiErrorMapper.mapError(error);
   }
 }
 
 async function fetchMarketsBySlug(
-  baseUrl: string,
   eventTicker: string,
+  callApi: CallApi,
 ): Promise<UnifiedMarket[]> {
   // Kalshi API expects uppercase tickers, but URLs use lowercase
   const normalizedTicker = eventTicker.toUpperCase();
-  const url = getEventsUrl(baseUrl, [normalizedTicker]);
-  const response = await axios.get(url, {
-    params: { with_nested_markets: true },
+  const data = await callApi("GetEvent", {
+    event_ticker: normalizedTicker,
+    with_nested_markets: true,
   });
 
-  const event = response.data.event;
+  const event = data.event;
   if (!event) return [];
 
   // Enrichment: Fetch series tags if they exist
   if (event.series_ticker) {
     try {
-      const seriesResponse = await axios.get(
-        getSeriesUrl(baseUrl, event.series_ticker),
-      );
-      const series = seriesResponse.data.series;
+      const seriesData = await callApi("GetSeries", {
+        series_ticker: event.series_ticker,
+      });
+      const series = seriesData.series;
       if (series && series.tags && series.tags.length > 0) {
         if (!event.tags || event.tags.length === 0) {
           event.tags = series.tags;
@@ -181,16 +184,16 @@ async function fetchMarketsBySlug(
 }
 
 async function searchMarkets(
-  baseUrl: string,
   query: string,
-  params?: MarketFetchParams,
+  params: MarketFetchParams | undefined,
+  callApi: CallApi,
 ): Promise<UnifiedMarket[]> {
   // We must fetch ALL markets to search them locally since we don't have server-side search
-  const searchLimit = 10000;
-  const markets = await fetchMarketsDefault(baseUrl, {
-    ...params,
-    limit: searchLimit,
-  });
+  const searchLimit = 250000;
+  const markets = await fetchMarketsDefault(
+    { ...params, limit: searchLimit },
+    callApi,
+  );
   const lowerQuery = query.toLowerCase();
   const searchIn = params?.searchIn || "title"; // Default to title-only search
 
@@ -205,15 +208,15 @@ async function searchMarkets(
     return titleMatch || descMatch; // 'both'
   });
 
-  const limit = params?.limit || 10000;
+  const limit = params?.limit || 250000;
   return filtered.slice(0, limit);
 }
 
 async function fetchMarketsDefault(
-  baseUrl: string,
-  params?: MarketFetchParams,
+  params: MarketFetchParams | undefined,
+  callApi: CallApi,
 ): Promise<UnifiedMarket[]> {
-  const limit = params?.limit || 10000;
+  const limit = params?.limit || 250000;
   const offset = params?.offset || 0;
   const now = Date.now();
   const status = params?.status || "active"; // Default to 'active'
@@ -250,12 +253,9 @@ async function fetchMarketsDefault(
       const fetchLimit = isSorted ? 1000 : limit;
 
       const [allEvents, fetchedSeriesMap] = await Promise.all([
-        fetchActiveEvents(baseUrl, fetchLimit, apiStatus),
-        fetchSeriesMap(baseUrl),
+        fetchActiveEvents(callApi, fetchLimit, apiStatus),
+        fetchSeriesMap(callApi),
       ]);
-
-      events = allEvents;
-      seriesMap = fetchedSeriesMap;
 
       events = allEvents;
       seriesMap = fetchedSeriesMap;

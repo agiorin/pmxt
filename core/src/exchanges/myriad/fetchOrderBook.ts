@@ -1,6 +1,4 @@
-import axios from 'axios';
 import { OrderBook } from '../../types';
-import { BASE_URL } from './utils';
 import { myriadErrorMapper } from './errors';
 
 // Myriad is AMM-based -- there is no native order book.
@@ -9,7 +7,7 @@ import { myriadErrorMapper } from './errors';
 
 export async function fetchOrderBook(
     id: string,
-    headers?: Record<string, string>
+    callApi: (operationId: string, params?: Record<string, any>) => Promise<any>
 ): Promise<OrderBook> {
     try {
         // id format: {networkId}:{marketId}:{outcomeId}
@@ -21,12 +19,8 @@ export async function fetchOrderBook(
         const [networkId, marketId, outcomeId] = parts;
 
         // Fetch the market to get current prices
-        const response = await axios.get(`${BASE_URL}/markets/${marketId}`, {
-            params: { network_id: Number(networkId) },
-            headers,
-        });
-
-        const market = response.data.data || response.data;
+        const response = await callApi('getMarkets', { id: marketId, network_id: Number(networkId) });
+        const market = response.data || response;
         const outcomes = market.outcomes || [];
         const outcome = outcomes.find((o: any) => String(o.id) === outcomeId) || outcomes[0];
 
