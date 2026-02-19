@@ -344,8 +344,49 @@ class Exchange(ABC):
                 self._has_cache = {}
         return self._has_cache
 
+    # Low-Level API Access
+
+    def call_api(self, operation_id: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        Call an exchange-specific REST endpoint by its operationId.
+        This provides direct access to all implicit API methods defined in
+        the exchange's OpenAPI spec (e.g., Polymarket CLOB, Kalshi trading API).
+
+        Args:
+            operation_id: The operationId (or auto-generated name) of the endpoint
+            params: Optional parameters to pass to the endpoint
+
+        Returns:
+            The raw response data from the exchange
+
+        Example:
+            >>> result = exchange.call_api('getMarket', {'condition_id': '0x...'})
+        """
+        try:
+            url = f"{self._api_client.configuration.host}/api/{self.exchange_name}/callApi"
+
+            body = {"args": [operation_id, params]}
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._api_client.default_headers)
+
+            response = self._api_client.call_api(
+                method="POST",
+                url=url,
+                body=body,
+                header_params=headers
+            )
+            response.read()
+            data_json = json.loads(response.data)
+            return self._handle_response(data_json)
+        except ApiException as e:
+            raise Exception(f"Failed to call API '{operation_id}': {self._extract_api_error(e)}") from None
+
     # Market Data Methods
-    
+
     def fetch_markets(self, query: Optional[str] = None, **kwargs) -> List[UnifiedMarket]:
         """
         Get active markets from the exchange.

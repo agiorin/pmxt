@@ -124,10 +124,46 @@ export class ProbableExchange extends PredictionMarketExchange {
         );
     }
 
+    /**
+     * Fetch a single event by its numeric ID (Probable only).
+     *
+     * @param id - The numeric event ID
+     * @returns The UnifiedEvent, or null if not found
+     *
+     * @example-ts Get event by ID
+     * const event = await exchange.getEventById('42');
+     * if (event) {
+     *   console.log(event.title);
+     *   console.log(event.markets.length, 'markets');
+     * }
+     *
+     * @example-python Get event by ID
+     * event = exchange.get_event_by_id('42')
+     * if event:
+     *     print(event.title)
+     *     print(len(event.markets), 'markets')
+     */
     async getEventById(id: string): Promise<UnifiedEvent | null> {
         return fetchEventById(id, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }
 
+    /**
+     * Fetch a single event by its URL slug (Probable only).
+     *
+     * @param slug - The event's URL slug (e.g. `"trump-2024-election"`)
+     * @returns The UnifiedEvent, or null if not found
+     *
+     * @example-ts Get event by slug
+     * const event = await exchange.getEventBySlug('trump-2024-election');
+     * if (event) {
+     *   console.log(event.title);
+     * }
+     *
+     * @example-python Get event by slug
+     * event = exchange.get_event_by_slug('trump-2024-election')
+     * if event:
+     *     print(event.title)
+     */
     async getEventBySlug(slug: string): Promise<UnifiedEvent | null> {
         return fetchEventBySlug(slug, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }

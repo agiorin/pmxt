@@ -225,9 +225,25 @@ export class PolymarketExchange extends PredictionMarketExchange {
     }
 
     /**
-     * Pre-warm the SDK's internal caches for a token by fetching tick size,
-     * fee rate, and neg-risk in parallel. Call this when you start watching
-     * a market so that subsequent createOrder calls hit only POST /order.
+     * Pre-warm the SDK's internal caches for a market outcome.
+     *
+     * Fetches tick size, fee rate, and neg-risk in parallel so that subsequent
+     * `createOrder` calls skip those lookups and hit only `POST /order`.
+     * Call this when you start watching a market.
+     *
+     * @param outcomeId - The CLOB Token ID for the outcome (use `outcome.outcomeId`)
+     *
+     * @example-ts Pre-warm before placing orders
+     * const markets = await exchange.fetchMarkets({ query: 'Trump' });
+     * const outcomeId = markets[0].outcomes[0].outcomeId;
+     * await exchange.preWarmMarket(outcomeId);
+     * // Subsequent createOrder calls are faster
+     *
+     * @example-python Pre-warm before placing orders
+     * markets = exchange.fetch_markets(query='Trump')
+     * outcome_id = markets[0].outcomes[0].outcome_id
+     * exchange.pre_warm_market(outcome_id)
+     * # Subsequent create_order calls are faster
      */
     async preWarmMarket(outcomeId: string): Promise<void> {
         const auth = this.ensureAuth();
