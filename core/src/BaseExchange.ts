@@ -245,11 +245,29 @@ export abstract class PredictionMarketExchange {
     abstract get name(): string;
 
     /**
-     * Load and cache markets from the exchange.
-     * This method populates `this.markets` and `this.marketsBySlug`.
-     * 
-     * @param reload - Force a reload of markets from the API even if already loaded
+     * Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`.
+     * Subsequent calls return the cached result without hitting the API again.
+     *
+     * This is the correct way to paginate or iterate over markets without drift.
+     * Because `fetchMarkets()` always hits the API, repeated calls with different `offset`
+     * values may return inconsistent results if the exchange reorders or adds markets between
+     * requests. Use `loadMarkets()` once to get a stable snapshot, then paginate over
+     * `Object.values(exchange.markets)` locally.
+     *
+     * @param reload - Force a fresh fetch from the API even if markets are already loaded
      * @returns Dictionary of markets indexed by marketId
+     *
+     * @example-ts Stable pagination
+     * await exchange.loadMarkets();
+     * const all = Object.values(exchange.markets);
+     * const page1 = all.slice(0, 100);
+     * const page2 = all.slice(100, 200);
+     *
+     * @example-python Stable pagination
+     * exchange.load_markets()
+     * all = list(exchange.markets.values())
+     * page1 = all[:100]
+     * page2 = all[100:200]
      */
     async loadMarkets(reload: boolean = false): Promise<Record<string, UnifiedMarket>> {
         if (this.loadedMarkets && !reload) {
@@ -277,7 +295,7 @@ export abstract class PredictionMarketExchange {
 
     /**
      * Fetch markets with optional filtering, search, or slug lookup.
-     * This is the primary method for retrieving markets.
+     * Always hits the exchange API — results reflect the live state at the time of the call.
      *
      * @param params - Optional parameters for filtering and search
      * @param params.query - Search keyword to filter markets
@@ -287,6 +305,10 @@ export abstract class PredictionMarketExchange {
      * @param params.sort - Sort order ('volume' | 'liquidity' | 'newest')
      * @param params.searchIn - Where to search ('title' | 'description' | 'both')
      * @returns Array of unified markets
+     *
+     * @note Calling this repeatedly with different `offset` values does not guarantee stable
+     * ordering — exchanges may reorder or add markets between requests. For stable iteration
+     * across pages, use `loadMarkets()` and paginate over `Object.values(exchange.markets)`.
      *
      * @note Some exchanges (like Limitless) may only support status 'active' for search results.
      *
