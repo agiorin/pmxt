@@ -26,7 +26,7 @@ Kalshi provides two independent environments:
 | **Production** | `api.elections.kalshi.com` | Live trading with real money |
 | **Demo** | `demo-api.elections.kalshi.com` | Safe paper-trading for testing |
 
-The credentials for each environment are separate — generate them from the corresponding Kalshi dashboard (production or [demo](https://demo.kalshi.com)).
+The credentials for each environment are separate — generate them from the corresponding Kalshi dashboard (production or demo).
 
 Switching environments is controlled by the `KALSHI_DEMO_MODE` environment variable or the `demoMode` / `demo_mode` constructor option:
 
