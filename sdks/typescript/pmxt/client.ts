@@ -16,6 +16,7 @@ import {
     CancelOrderRequest,
     FetchOpenOrdersRequest,
     FetchPositionsRequest,
+    FetchOrderRequest,
     ExchangeCredentials,
 } from "../generated/src/index.js";
 
@@ -810,14 +811,14 @@ export abstract class Exchange {
     async fetchOrder(orderId: string): Promise<Order> {
         await this.initPromise;
         try {
-            const requestBody: CancelOrderRequest = {
+            const requestBody: FetchOrderRequest = {
                 args: [orderId],
                 credentials: this.getCredentials()
             };
 
             const response = await this.api.fetchOrder({
                 exchange: this.exchangeName as any,
-                cancelOrderRequest: requestBody,
+                fetchOrderRequest: requestBody,
             });
 
             const data = this.handleResponse(response);
