@@ -6,6 +6,7 @@ import {
     OHLCVParams,
     HistoryFilterParams,
     TradesParams,
+    MyTradesParams,
 } from '../../BaseExchange';
 import {
     UnifiedMarket,
@@ -14,6 +15,7 @@ import {
     PriceCandle,
     CandleInterval,
     Trade,
+    UserTrade,
     Order,
     Position,
     Balance,
@@ -65,6 +67,9 @@ export class ProbableExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: false as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: false as const,
+        fetchAllOrders: false as const,
     };
 
     private auth?: ProbableAuth;
@@ -227,6 +232,27 @@ export class ProbableExchange extends PredictionMarketExchange {
         }
 
         return candles;
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const auth = this.ensureAuth();
+        const address = auth.getAddress();
+
+        const queryParams: Record<string, any> = { user: address };
+        if (params?.limit) queryParams.limit = params.limit;
+
+        const data = await this.callApi('getPublicApiV1Trades', queryParams);
+        const trades = Array.isArray(data) ? data : (data.data || []);
+        return trades.map((t: any) => ({
+            id: String(t.tradeId || t.id || t.timestamp),
+            timestamp: typeof t.time === 'number'
+                ? (t.time > 1e12 ? t.time : t.time * 1000)
+                : Date.now(),
+            price: parseFloat(t.price || '0'),
+            amount: parseFloat(t.qty || t.size || t.amount || '0'),
+            side: (t.side || '').toLowerCase() === 'buy' ? 'buy' as const : 'sell' as const,
+            orderId: t.orderId,
+        }));
     }
 
     // --------------------------------------------------------------------------

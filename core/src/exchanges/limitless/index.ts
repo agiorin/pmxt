@@ -7,6 +7,8 @@ import {
     TradesParams,
     ExchangeCredentials,
     EventFetchParams,
+    MyTradesParams,
+    OrderHistoryParams,
 } from '../../BaseExchange';
 import {
     UnifiedMarket,
@@ -14,6 +16,7 @@ import {
     PriceCandle,
     OrderBook,
     Trade,
+    UserTrade,
     Order,
     Position,
     Balance,
@@ -57,6 +60,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: true as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: true as const,
+        fetchAllOrders: true as const,
     };
 
     private auth?: LimitlessAuth;
@@ -290,6 +296,70 @@ export class LimitlessExchange extends PredictionMarketExchange {
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
         }
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const auth = this.ensureAuth();
+        try {
+            const response = await this.http.get('https://api.limitless.exchange/portfolio/trades', {
+                headers: { Authorization: `Bearer ${auth.getApiKey()}` },
+            });
+            const trades = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+            return trades.map((t: any) => ({
+                id: t.id || String(t.timestamp),
+                timestamp: t.createdAt ? new Date(t.createdAt).getTime() : (t.timestamp || 0),
+                price: parseFloat(t.price || '0'),
+                amount: parseFloat(t.quantity || t.amount || '0'),
+                side: (t.side || '').toLowerCase() === 'buy' ? 'buy' as const : 'sell' as const,
+                orderId: t.orderId,
+            }));
+        } catch (error: any) {
+            throw limitlessErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        const client = this.ensureClient();
+        if (!params?.marketId) {
+            console.warn('Limitless: fetchClosedOrders requires marketId (slug). Returning [].');
+            return [];
+        }
+        const orders = await client.getOrders(params.marketId, ['MATCHED']);
+        return orders.map((o: any) => ({
+            id: o.id,
+            marketId: params.marketId!,
+            outcomeId: o.tokenId || 'unknown',
+            side: o.side.toLowerCase() as 'buy' | 'sell',
+            type: 'limit' as const,
+            price: parseFloat(o.price),
+            amount: parseFloat(o.quantity),
+            status: 'filled' as const,
+            filled: parseFloat(o.quantity),
+            remaining: 0,
+            timestamp: o.createdAt ? new Date(o.createdAt).getTime() : Date.now(),
+        }));
+    }
+
+    async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        const client = this.ensureClient();
+        if (!params?.marketId) {
+            console.warn('Limitless: fetchAllOrders requires marketId (slug). Returning [].');
+            return [];
+        }
+        const orders = await client.getOrders(params.marketId, ['LIVE', 'MATCHED']);
+        return orders.map((o: any) => ({
+            id: o.id,
+            marketId: params.marketId!,
+            outcomeId: o.tokenId || 'unknown',
+            side: o.side.toLowerCase() as 'buy' | 'sell',
+            type: 'limit' as const,
+            price: parseFloat(o.price),
+            amount: parseFloat(o.quantity),
+            status: o.status === 'LIVE' ? 'open' as const : 'filled' as const,
+            filled: o.status === 'MATCHED' ? parseFloat(o.quantity) : 0,
+            remaining: o.status === 'LIVE' ? parseFloat(o.quantity) : 0,
+            timestamp: o.createdAt ? new Date(o.createdAt).getTime() : Date.now(),
+        }));
     }
 
     async fetchPositions(): Promise<Position[]> {

@@ -74,6 +74,9 @@ export class BaoziExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: false as const,
+        fetchMyTrades: false as const,
+        fetchClosedOrders: false as const,
+        fetchAllOrders: false as const,
     };
 
     private auth?: BaoziAuth;

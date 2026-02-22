@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.12.0] - 2026-02-22
+
+### Added
+
+- **Unified Order History API**: Standardized methods across all exchanges for retrieving private trade and order history.
+  - New methods: `fetchMyTrades()`, `fetchClosedOrders()`, and `fetchAllOrders()`.
+  - Introduced `UserTrade` type which includes `orderId` for linking trades to specific orders.
+- **Exchange Support**:
+  - Implemented `fetchMyTrades` for **Polymarket**, **Limitless**, **Myriad**, and **Probable**.
+  - Implemented `fetchClosedOrders` and `fetchAllOrders` for **Kalshi**, **Polymarket**, **Limitless**, **Probable**, and **Myriad**.
+- **Compliance Testing**: Added comprehensive test suites for validating order and trade history implementations across all exchanges.
+
+### Changed
+
+- **Testing Utilities**: Added `validateUserTrade` to compliance test suite for standardized trade verification.
+
+## [2.12.0] - 2026-02-22
+
+### Added
+
+- **Unified Order History API**: Standardized methods across all exchanges for retrieving private trade and order history.
+  - New methods: `fetchMyTrades()`, `fetchClosedOrders()`, and `fetchAllOrders()`.
+  - Introduced `UserTrade` type which includes `orderId` for linking trades to specific orders.
+- **Exchange Support**:
+  - Implemented `fetchMyTrades` for **Polymarket**, **Limitless**, **Myriad**, and **Probable**.
+  - Implemented `fetchClosedOrders` and `fetchAllOrders` for **Kalshi**, **Polymarket**, **Limitless**, **Probable**, and **Myriad**.
+- **Compliance Testing**: Added comprehensive test suites for validating order and trade history implementations across all exchanges.
+
+### Changed
+
+- **Testing Utilities**: Added `validateUserTrade` to compliance test suite for standardized trade verification.
+
 ## [2.11.0] - 2026-02-22
 
 ### Added

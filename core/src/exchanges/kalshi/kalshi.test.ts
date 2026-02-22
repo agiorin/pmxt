@@ -380,6 +380,211 @@ describe('KalshiExchange', () => {
         });
     });
 
+    describe('Trading History Methods', () => {
+        beforeEach(() => {
+            exchange = new KalshiExchange(mockCredentials);
+        });
+
+        describe('fetchMyTrades', () => {
+            it('should map GetFills response to UserTrade array', async () => {
+                const mockResponse = {
+                    data: {
+                        fills: [
+                            {
+                                fill_id: 'fill-abc',
+                                order_id: 'order-123',
+                                created_time: '2026-01-13T12:00:00Z',
+                                yes_price: 55,
+                                count: 10,
+                                side: 'yes',
+                            },
+                            {
+                                fill_id: 'fill-def',
+                                order_id: 'order-456',
+                                created_time: '2026-01-13T13:00:00Z',
+                                yes_price: 45,
+                                count: 5,
+                                side: 'no',
+                            },
+                        ],
+                    },
+                };
+                (mockAxiosInstance.request as jest.Mock).mockResolvedValue(mockResponse);
+
+                const trades = await exchange.fetchMyTrades();
+
+                expect(Array.isArray(trades)).toBe(true);
+                expect(trades).toHaveLength(2);
+
+                expect(trades[0].id).toBe('fill-abc');
+                expect(trades[0].orderId).toBe('order-123');
+                expect(trades[0].price).toBe(0.55);   // 55 / 100
+                expect(trades[0].amount).toBe(10);
+                expect(trades[0].side).toBe('buy');   // 'yes' => 'buy'
+
+                expect(trades[1].id).toBe('fill-def');
+                expect(trades[1].side).toBe('sell');  // 'no' => 'sell'
+                expect(trades[1].price).toBe(0.45);   // 45 / 100
+            });
+
+            it('should pass outcomeId as ticker (stripping -NO suffix) and date params', async () => {
+                const mockResponse = { data: { fills: [] } };
+                (mockAxiosInstance.request as jest.Mock).mockResolvedValue(mockResponse);
+
+                await exchange.fetchMyTrades({
+                    outcomeId: 'TEST-MARKET-NO',
+                    since: new Date('2026-01-01T00:00:00Z'),
+                    until: new Date('2026-01-31T00:00:00Z'),
+                    limit: 50,
+                });
+
+                expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        params: expect.objectContaining({
+                            ticker: 'TEST-MARKET',   // -NO stripped
+                            min_ts: Math.floor(new Date('2026-01-01T00:00:00Z').getTime() / 1000),
+                            max_ts: Math.floor(new Date('2026-01-31T00:00:00Z').getTime() / 1000),
+                            limit: 50,
+                        }),
+                    })
+                );
+            });
+
+            it('should return empty array when fills is missing', async () => {
+                (mockAxiosInstance.request as jest.Mock).mockResolvedValue({ data: {} });
+                const trades = await exchange.fetchMyTrades();
+                expect(trades).toHaveLength(0);
+            });
+        });
+
+        describe('fetchClosedOrders', () => {
+            it('should map GetHistoricalOrders response to Order array', async () => {
+                const mockResponse = {
+                    data: {
+                        orders: [
+                            {
+                                order_id: 'hist-order-1',
+                                ticker: 'TEST-MARKET',
+                                side: 'yes',
+                                type: 'limit',
+                                yes_price: 60,
+                                count: 8,
+                                remaining_count: 0,
+                                status: 'executed',
+                                created_time: '2026-01-10T10:00:00Z',
+                            },
+                        ],
+                    },
+                };
+                (mockAxiosInstance.request as jest.Mock).mockResolvedValue(mockResponse);
+
+                const orders = await exchange.fetchClosedOrders();
+
+                expect(orders).toHaveLength(1);
+                expect(orders[0].id).toBe('hist-order-1');
+                expect(orders[0].marketId).toBe('TEST-MARKET');
+                expect(orders[0].side).toBe('buy');       // 'yes' => 'buy'
+                expect(orders[0].price).toBe(0.60);       // 60 / 100
+                expect(orders[0].amount).toBe(8);
+                expect(orders[0].filled).toBe(8);         // count - remaining_count (0)
+                expect(orders[0].remaining).toBe(0);
+                expect(orders[0].status).toBe('filled');  // 'executed' => 'filled'
+            });
+
+            it('should pass marketId as ticker and limit', async () => {
+                const mockResponse = { data: { orders: [] } };
+                (mockAxiosInstance.request as jest.Mock).mockResolvedValue(mockResponse);
+
+                await exchange.fetchClosedOrders({ marketId: 'TEST-MARKET', limit: 25 });
+
+                expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        params: expect.objectContaining({
+                            ticker: 'TEST-MARKET',
+                            limit: 25,
+                        }),
+                    })
+                );
+            });
+        });
+
+        describe('fetchAllOrders', () => {
+            it('should merge live and historical orders, dedup, and sort descending by timestamp', async () => {
+                const liveResponse = {
+                    data: {
+                        orders: [
+                            {
+                                order_id: 'order-live-1',
+                                ticker: 'TEST',
+                                side: 'yes',
+                                type: 'limit',
+                                yes_price: 50,
+                                count: 5,
+                                remaining_count: 5,
+                                status: 'resting',
+                                created_time: '2026-01-15T10:00:00Z',
+                            },
+                            {
+                                // duplicate that also appears in historical
+                                order_id: 'order-hist-1',
+                                ticker: 'TEST',
+                                side: 'no',
+                                type: 'limit',
+                                yes_price: 40,
+                                count: 3,
+                                remaining_count: 0,
+                                status: 'executed',
+                                created_time: '2026-01-10T08:00:00Z',
+                            },
+                        ],
+                    },
+                };
+                const historicalResponse = {
+                    data: {
+                        orders: [
+                            {
+                                order_id: 'order-hist-1',  // duplicate
+                                ticker: 'TEST',
+                                side: 'no',
+                                type: 'limit',
+                                yes_price: 40,
+                                count: 3,
+                                remaining_count: 0,
+                                status: 'executed',
+                                created_time: '2026-01-10T08:00:00Z',
+                            },
+                            {
+                                order_id: 'order-hist-2',
+                                ticker: 'TEST',
+                                side: 'yes',
+                                type: 'limit',
+                                yes_price: 55,
+                                count: 10,
+                                remaining_count: 0,
+                                status: 'executed',
+                                created_time: '2026-01-05T06:00:00Z',
+                            },
+                        ],
+                    },
+                };
+
+                (mockAxiosInstance.request as jest.Mock)
+                    .mockResolvedValueOnce(liveResponse)
+                    .mockResolvedValueOnce(historicalResponse);
+
+                const orders = await exchange.fetchAllOrders();
+
+                // 3 unique orders (order-hist-1 deduped)
+                expect(orders).toHaveLength(3);
+
+                // sorted descending: order-live-1, order-hist-1, order-hist-2
+                expect(orders[0].id).toBe('order-live-1');
+                expect(orders[1].id).toBe('order-hist-1');
+                expect(orders[2].id).toBe('order-hist-2');
+            });
+        });
+    }); // Trading History Methods
+
     describe('Order Status Mapping', () => {
         beforeEach(() => {
             exchange = new KalshiExchange(mockCredentials);

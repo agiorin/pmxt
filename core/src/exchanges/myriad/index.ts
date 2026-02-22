@@ -1,5 +1,5 @@
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
-import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Balance, Order, Position, CreateOrderParams } from '../../types';
+import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams, MyTradesParams } from '../../BaseExchange';
+import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, UserTrade, Balance, Order, Position, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
@@ -27,6 +27,9 @@ export class MyriadExchange extends PredictionMarketExchange {
         fetchBalance: 'emulated' as const,
         watchOrderBook: 'emulated' as const,
         watchTrades: 'emulated' as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: false as const,
+        fetchAllOrders: false as const,
     };
 
     private auth?: MyriadAuth;
@@ -136,6 +139,35 @@ export class MyriadExchange extends PredictionMarketExchange {
 
         return filtered.map((t: any, index: number) => ({
             id: `${t.blockNumber || t.timestamp}-${index}`,
+            timestamp: (t.timestamp || 0) * 1000,
+            price: t.shares > 0 ? Number(t.value) / Number(t.shares) : 0,
+            amount: Number(t.shares || 0),
+            side: t.action === 'buy' ? 'buy' as const : 'sell' as const,
+        }));
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const walletAddress = this.ensureAuth().walletAddress;
+        if (!walletAddress) {
+            throw new AuthenticationError(
+                'fetchMyTrades requires a wallet address. Pass privateKey as the wallet address in credentials.',
+                'Myriad'
+            );
+        }
+        const queryParams: Record<string, any> = { address: walletAddress };
+        if (params?.marketId) {
+            const parts = params.marketId.split(':');
+            if (parts.length >= 2) queryParams.market_id = parts[1];
+        }
+        if (params?.since) queryParams.since = Math.floor(params.since.getTime() / 1000);
+        if (params?.until) queryParams.until = Math.floor(params.until.getTime() / 1000);
+        if (params?.limit) queryParams.limit = params.limit;
+
+        const data = await this.callApi('getUsersEvents', queryParams);
+        const events = data.data || data.events || [];
+        const tradeEvents = events.filter((e: any) => e.action === 'buy' || e.action === 'sell');
+        return tradeEvents.map((t: any, i: number) => ({
+            id: `${t.blockNumber || t.timestamp}-${i}`,
             timestamp: (t.timestamp || 0) * 1000,
             price: t.shares > 0 ? Number(t.value) / Number(t.shares) : 0,
             amount: Number(t.shares || 0),

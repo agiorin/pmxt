@@ -1,5 +1,5 @@
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
-import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Balance, Order, Position, CreateOrderParams } from '../../types';
+import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams, MyTradesParams, OrderHistoryParams } from '../../BaseExchange';
+import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, UserTrade, Balance, Order, Position, CreateOrderParams } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
 import { fetchOHLCV } from './fetchOHLCV';
@@ -34,6 +34,9 @@ export class KalshiExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: true as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: true as const,
+        fetchAllOrders: true as const,
     };
 
     private auth?: KalshiAuth;
@@ -248,21 +251,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
     async fetchOrder(orderId: string): Promise<Order> {
         const data = await this.callApi('GetOrder', { order_id: orderId });
-        const order = data.order;
-
-        return {
-            id: order.order_id,
-            marketId: order.ticker,
-            outcomeId: order.ticker,
-            side: order.side === 'yes' ? 'buy' : 'sell',
-            type: order.type === 'limit' ? 'limit' : 'market',
-            price: order.yes_price ? order.yes_price / 100 : undefined,
-            amount: order.count,
-            status: this.mapKalshiOrderStatus(order.status),
-            filled: order.count - (order.remaining_count || 0),
-            remaining: order.remaining_count || 0,
-            timestamp: new Date(order.created_time).getTime(),
-        };
+        return this.mapKalshiOrder(data.order);
     }
 
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
@@ -273,20 +262,65 @@ export class KalshiExchange extends PredictionMarketExchange {
 
         const data = await this.callApi('GetOrders', queryParams);
         const orders = data.orders || [];
+        return orders.map((order: any) => this.mapKalshiOrder(order));
+    }
 
-        return orders.map((order: any) => ({
-            id: order.order_id,
-            marketId: order.ticker,
-            outcomeId: order.ticker,
-            side: order.side === 'yes' ? 'buy' : 'sell',
-            type: order.type === 'limit' ? 'limit' : 'market',
-            price: order.yes_price ? order.yes_price / 100 : undefined,
-            amount: order.count,
-            status: 'open' as const,
-            filled: order.count - (order.remaining_count || 0),
-            remaining: order.remaining_count || 0,
-            timestamp: new Date(order.created_time).getTime(),
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const queryParams: Record<string, any> = {};
+        if (params?.outcomeId || params?.marketId) {
+            queryParams.ticker = (params.outcomeId || params.marketId)!.replace(/-NO$/, '');
+        }
+        if (params?.since) queryParams.min_ts = Math.floor(params.since.getTime() / 1000);
+        if (params?.until) queryParams.max_ts = Math.floor(params.until.getTime() / 1000);
+        if (params?.limit) queryParams.limit = params.limit;
+        if (params?.cursor) queryParams.cursor = params.cursor;
+
+        const data = await this.callApi('GetFills', queryParams);
+        return (data.fills || []).map((f: any) => ({
+            id: f.fill_id,
+            timestamp: new Date(f.created_time).getTime(),
+            price: f.yes_price / 100,
+            amount: f.count,
+            side: f.side === 'yes' ? 'buy' as const : 'sell' as const,
+            orderId: f.order_id,
         }));
+    }
+
+    async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        const queryParams: Record<string, any> = {};
+        if (params?.marketId) queryParams.ticker = params.marketId;
+        if (params?.until) queryParams.max_ts = Math.floor(params.until.getTime() / 1000);
+        if (params?.limit) queryParams.limit = params.limit;
+        if (params?.cursor) queryParams.cursor = params.cursor;
+
+        const data = await this.callApi('GetHistoricalOrders', queryParams);
+        return (data.orders || []).map((o: any) => this.mapKalshiOrder(o));
+    }
+
+    async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        const queryParams: Record<string, any> = {};
+        if (params?.marketId) queryParams.ticker = params.marketId;
+        if (params?.since) queryParams.min_ts = Math.floor(params.since.getTime() / 1000);
+        if (params?.until) queryParams.max_ts = Math.floor(params.until.getTime() / 1000);
+        if (params?.limit) queryParams.limit = params.limit;
+
+        const historicalParams = { ...queryParams };
+        delete historicalParams.min_ts; // GetHistoricalOrders only supports max_ts
+
+        const [liveData, historicalData] = await Promise.all([
+            this.callApi('GetOrders', queryParams),
+            this.callApi('GetHistoricalOrders', historicalParams),
+        ]);
+
+        const seen = new Set<string>();
+        const all: Order[] = [];
+        for (const o of [...(liveData.orders || []), ...(historicalData.orders || [])]) {
+            if (!seen.has(o.order_id)) {
+                seen.add(o.order_id);
+                all.push(this.mapKalshiOrder(o));
+            }
+        }
+        return all.sort((a, b) => b.timestamp - a.timestamp);
     }
 
     async fetchPositions(): Promise<Position[]> {
@@ -310,9 +344,26 @@ export class KalshiExchange extends PredictionMarketExchange {
         });
     }
 
+    // Helper to map a raw Kalshi order object to a unified Order
+    private mapKalshiOrder(order: any): Order {
+        return {
+            id: order.order_id,
+            marketId: order.ticker,
+            outcomeId: order.ticker,
+            side: order.side === 'yes' ? 'buy' : 'sell',
+            type: order.type === 'limit' ? 'limit' : 'market',
+            price: order.yes_price ? order.yes_price / 100 : undefined,
+            amount: order.count,
+            status: this.mapKalshiOrderStatus(order.status),
+            filled: order.count - (order.remaining_count || 0),
+            remaining: order.remaining_count || 0,
+            timestamp: new Date(order.created_time).getTime(),
+        };
+    }
+
     // Helper to map Kalshi order status to unified status
-    private mapKalshiOrderStatus(status: string): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
-        switch (status.toLowerCase()) {
+    private mapKalshiOrderStatus(status: string | undefined): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+        switch ((status ?? '').toLowerCase()) {
             case 'resting':
                 return 'open';
             case 'canceled':

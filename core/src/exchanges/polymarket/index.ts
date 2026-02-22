@@ -1,6 +1,6 @@
 import { createHmac } from 'crypto';
-import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams } from '../../BaseExchange';
-import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from '../../types';
+import { PredictionMarketExchange, MarketFilterParams, HistoryFilterParams, OHLCVParams, TradesParams, ExchangeCredentials, EventFetchParams, MyTradesParams } from '../../BaseExchange';
+import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, UserTrade, Order, Position, Balance, CreateOrderParams } from '../../types';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { fetchMarkets } from './fetchMarkets';
 import { fetchEvents } from './fetchEvents';
@@ -40,6 +40,9 @@ export class PolymarketExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: true as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: false as const,
+        fetchAllOrders: false as const,
     };
 
     private auth?: PolymarketAuth;
@@ -396,6 +399,28 @@ export class PolymarketExchange extends PredictionMarketExchange {
         } catch (error: any) {
             throw polymarketErrorMapper.mapError(error);
         }
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const auth = this.ensureAuth();
+        const address = await auth.getEffectiveFunderAddress();
+
+        const queryParams: Record<string, any> = { user: address };
+        if (params?.marketId) queryParams.market = params.marketId;
+        if (params?.limit) queryParams.limit = params.limit;
+        if (params?.since) queryParams.start = Math.floor(params.since.getTime() / 1000);
+        if (params?.until) queryParams.end = Math.floor(params.until.getTime() / 1000);
+
+        const data = await this.callApi('getTrades', queryParams);
+        const trades = Array.isArray(data) ? data : (data.data || []);
+        return trades.map((t: any) => ({
+            id: t.id || t.transactionHash || String(t.timestamp),
+            timestamp: typeof t.timestamp === 'number' ? t.timestamp * 1000 : Date.now(),
+            price: parseFloat(t.price || '0'),
+            amount: parseFloat(t.size || t.amount || '0'),
+            side: t.side === 'BUY' ? 'buy' as const : t.side === 'SELL' ? 'sell' as const : 'unknown' as const,
+            orderId: t.orderId,
+        }));
     }
 
     async fetchPositions(): Promise<Position[]> {

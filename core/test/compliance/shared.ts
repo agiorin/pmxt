@@ -1,5 +1,5 @@
 import * as pmxt from '../../src';
-import { UnifiedEvent, UnifiedMarket, MarketOutcome, PriceCandle, OrderBook, Trade, Position, Order } from '../../src/types';
+import { UnifiedEvent, UnifiedMarket, MarketOutcome, PriceCandle, OrderBook, Trade, UserTrade, Position, Order } from '../../src/types';
 import { generateKeyPairSync } from 'crypto';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -224,6 +224,13 @@ export function validateTrade(trade: Trade, exchangeName: string, outcomeId: str
     expect(trade.amount).toBeGreaterThan(0);
 
     expect(['buy', 'sell', 'unknown']).toContain(trade.side);
+}
+
+export function validateUserTrade(trade: UserTrade, exchangeName: string) {
+    validateTrade(trade, exchangeName, trade.id);
+    if (trade.orderId !== undefined) {
+        expect(typeof trade.orderId).toBe('string');
+    }
 }
 
 export function validatePosition(position: Position, exchangeName: string) {
