@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.13.2] - 2026-02-22
+
+### Fixed
+
+- **TypeScript SDK Build**: Resolved type shadowing issues in the auto-generated SDK by ensuring all request body schemas in the OpenAPI specification carry a distinct `title` property.
+- **Client Implementation**: Corrected calling conventions and type references in `client.ts` for `fetchBalance`, `cancelOrder`, and `fetchOrder` to align with the latest generated types.
+
 ## [2.13.1] - 2026-02-22
 
 ### Fixed

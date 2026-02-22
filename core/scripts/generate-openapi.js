@@ -288,6 +288,7 @@ function buildPathSpec(method, sourceFile) {
   }
 
   const requestBodySchema = {
+    title: name.charAt(0).toUpperCase() + name.slice(1) + 'Request',
     type: 'object',
     properties: {
       args: argsSchema,

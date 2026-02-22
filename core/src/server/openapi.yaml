@@ -37,6 +37,7 @@ paths:
         content:
           application/json:
             schema:
+              title: LoadMarketsRequest
               type: object
               properties:
                 args:
@@ -76,6 +77,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchMarketsRequest
               type: object
               properties:
                 args:
@@ -112,6 +114,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchMarketsPaginatedRequest
               type: object
               properties:
                 args:
@@ -154,6 +157,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchEventsRequest
               type: object
               properties:
                 args:
@@ -190,6 +194,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchMarketRequest
               type: object
               properties:
                 args:
@@ -224,6 +229,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchEventRequest
               type: object
               properties:
                 args:
@@ -258,6 +264,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchOHLCVRequest
               type: object
               properties:
                 args:
@@ -299,6 +306,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchOrderBookRequest
               type: object
               properties:
                 args:
@@ -336,6 +344,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchTradesRequest
               type: object
               properties:
                 args:
@@ -377,6 +386,7 @@ paths:
         content:
           application/json:
             schema:
+              title: CreateOrderRequest
               type: object
               properties:
                 args:
@@ -484,6 +494,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchOpenOrdersRequest
               type: object
               properties:
                 args:
@@ -518,6 +529,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchMyTradesRequest
               type: object
               properties:
                 args:
@@ -551,6 +563,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchClosedOrdersRequest
               type: object
               properties:
                 args:
@@ -584,6 +597,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchAllOrdersRequest
               type: object
               properties:
                 args:
@@ -617,6 +631,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchPositionsRequest
               type: object
               properties:
                 args:
@@ -650,6 +665,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FetchBalanceRequest
               type: object
               properties:
                 args:
@@ -683,6 +699,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetExecutionPriceRequest
               type: object
               properties:
                 args:
@@ -726,6 +743,7 @@ paths:
         content:
           application/json:
             schema:
+              title: GetExecutionPriceDetailedRequest
               type: object
               properties:
                 args:
@@ -767,6 +785,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FilterMarketsRequest
               type: object
               properties:
                 args:
@@ -813,6 +832,7 @@ paths:
         content:
           application/json:
             schema:
+              title: FilterEventsRequest
               type: object
               properties:
                 args:
@@ -859,6 +879,7 @@ paths:
         content:
           application/json:
             schema:
+              title: WatchOrderBookRequest
               type: object
               properties:
                 args:
@@ -898,6 +919,7 @@ paths:
         content:
           application/json:
             schema:
+              title: WatchTradesRequest
               type: object
               properties:
                 args:
@@ -940,6 +962,7 @@ paths:
         content:
           application/json:
             schema:
+              title: CloseRequest
               type: object
               properties:
                 args:

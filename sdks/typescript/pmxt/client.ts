@@ -16,6 +16,7 @@ import {
     CancelOrderRequest,
     FetchOpenOrdersRequest,
     FetchPositionsRequest,
+    FetchBalanceRequest,
     FetchOrderRequest,
     ExchangeCredentials,
 } from "../generated/src/index.js";
@@ -894,14 +895,14 @@ export abstract class Exchange {
     async fetchBalance(): Promise<Balance[]> {
         await this.initPromise;
         try {
-            const requestBody: FetchPositionsRequest = {
+            const requestBody: FetchBalanceRequest = {
                 args: [],
                 credentials: this.getCredentials()
             };
 
             const response = await this.api.fetchBalance({
                 exchange: this.exchangeName as any,
-                fetchPositionsRequest: requestBody,
+                fetchBalanceRequest: requestBody,
             });
 
             const data = this.handleResponse(response);
