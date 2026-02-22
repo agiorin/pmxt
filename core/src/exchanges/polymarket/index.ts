@@ -62,6 +62,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
         }
 
         super(credentials);
+        this.rateLimit = 200;
         this.wsConfig = wsConfig;
 
         // Initialize auth if credentials are provided

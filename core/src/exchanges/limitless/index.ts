@@ -81,6 +81,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
         }
 
         super(credentials);
+        this.rateLimit = 200;
         this.wsConfig = wsConfig;
 
         // Initialize auth if API key or private key are provided

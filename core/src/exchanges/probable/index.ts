@@ -73,6 +73,7 @@ export class ProbableExchange extends PredictionMarketExchange {
 
     constructor(credentials?: ExchangeCredentials, wsConfig?: ProbableWebSocketConfig) {
         super(credentials);
+        this.rateLimit = 500;
         this.wsConfig = wsConfig;
 
         if (credentials?.privateKey && credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {

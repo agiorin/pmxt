@@ -92,6 +92,7 @@ export class BaoziExchange extends PredictionMarketExchange {
         }
 
         super(credentials);
+        this.rateLimit = 500;
 
         rpcUrl = rpcUrl
             || process.env.BAOZI_RPC_URL

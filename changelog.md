@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.11.0] - 2026-02-22
+
+### Added
+
+- **CCXT-Style Rate Limiting**: Implemented automatic rate limiting across all exchanges using a token bucket (leaky bucket) algorithm, preventing 429 errors and request throttling.
+  - **Unified Throttling**: All REST requests (both explicit and via `callApi`) automatically respect exchange rate limits through a single axios request interceptor on `this.http`.
+  - **Per-Exchange Configuration**: Each exchange sets its own rate limit (e.g., Polymarket: 200ms, Kalshi: 100ms, Myriad/Baozi/Probable: 500ms).
+  - **User Control**: Developers can override rate limits per-instance (`exchange.rateLimit = 50`) or disable entirely (`exchange.enableRateLimit = false`).
+  - **Leaky Bucket Implementation**: Queue-based token refill with no busy spinning, maintaining simplicity while ensuring fair request spacing.
+- **Throttler Utility**: New `Throttler` class in `core/src/utils/throttler.ts` providing a standalone, exchange-agnostic token bucket implementation for queue-based async throttling.
+
+### Changed
+
+- **BaseExchange**: Added `rateLimit` property (default 1000ms) and `enableRateLimit` property (default true) to match CCXT conventions.
+
 ## [2.10.0] - 2026-02-19
 
 ### Added

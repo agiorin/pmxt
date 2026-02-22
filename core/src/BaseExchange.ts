@@ -1,6 +1,7 @@
 import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from './types';
 import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } from './utils/math';
 import { MarketNotFound, EventNotFound } from './errors';
+import { Throttler } from './utils/throttler';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // ----------------------------------------------------------------------------
@@ -178,6 +179,22 @@ export abstract class PredictionMarketExchange {
     protected credentials?: ExchangeCredentials;
     public verbose: boolean = false;
     public http: AxiosInstance;
+    public enableRateLimit: boolean = true;
+    private _rateLimit: number = 1000;
+    private _throttler: Throttler;
+
+    get rateLimit(): number {
+        return this._rateLimit;
+    }
+
+    set rateLimit(value: number) {
+        this._rateLimit = value;
+        this._throttler = new Throttler({
+            refillRate: 1 / value,
+            capacity: 1,
+            delay: 1,
+        });
+    }
 
     // Market Cache
     public markets: Record<string, UnifiedMarket> = {};
@@ -207,6 +224,19 @@ export abstract class PredictionMarketExchange {
     constructor(credentials?: ExchangeCredentials) {
         this.credentials = credentials;
         this.http = axios.create();
+        this._throttler = new Throttler({
+            refillRate: 1 / this._rateLimit,
+            capacity: 1,
+            delay: 1,
+        });
+
+        // Rate Limit Interceptor
+        this.http.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+            if (this.enableRateLimit) {
+                await this._throttler.throttle();
+            }
+            return config;
+        });
 
         // Request Interceptor
         this.http.interceptors.request.use((config: InternalAxiosRequestConfig) => {

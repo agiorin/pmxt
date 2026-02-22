@@ -34,6 +34,7 @@ export class MyriadExchange extends PredictionMarketExchange {
 
     constructor(credentials?: ExchangeCredentials) {
         super(credentials);
+        this.rateLimit = 500;
         if (credentials?.apiKey) {
             this.auth = new MyriadAuth(credentials);
         }

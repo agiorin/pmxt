@@ -54,6 +54,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         }
 
         super(credentials);
+        this.rateLimit = 100;
         this.wsConfig = wsConfig;
 
         if (credentials?.apiKey && credentials?.privateKey) {
