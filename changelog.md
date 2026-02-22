@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.12.1] - 2026-02-22
+
+### Fixed
+
+- **Security**: Bound the sidecar server to `127.0.0.1` by default to prevent accidental exposure on all network interfaces (`0.0.0.0`).
+
 ## [2.12.0] - 2026-02-22
 
 ### Added
