@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.13.0] - 2026-02-22
+
+### Added
+
+- **Unified Sidecar API Expansion**: Formally exposed `fetchMyTrades`, `fetchClosedOrders`, and `fetchAllOrders` in the sidecar server and generated SDKs, completing the functional rollout of the Order History API.
+- **New Public Methods**: Introduced `loadMarkets()` and `fetchMarketsPaginated()` to the public SDKs for stateful market caching and stable pagination support.
+- **OpenAPI Auto-Generation**: Implemented a reflection-based specification generator (`core/scripts/generate-openapi.js`) that automatically derives the sidecar API from the `BaseExchange` TypeScript definition.
+- **CI Synchronization Check**: Added a GitHub Action workflow to ensure the OpenAPI spec and SDKs stay perfectly in sync with the core library on every contribution.
+
+### Changed
+
+- **SDK Feature Parity**: Regenerated both Python and TypeScript SDKs to include the latest unified methods and data models (e.g., `UserTrade`, `PaginatedMarketsResult`).
+
+### Documentation
+
+- **Contributor Workflow**: Updated `CONTRIBUTING.md` with instructions on using the new automated OpenAPI generation pipeline.
+
+
 ## [2.12.1] - 2026-02-22
 
 ### Fixed
