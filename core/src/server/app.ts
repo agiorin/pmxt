@@ -30,133 +30,14 @@ export async function startServer(port: number, accessToken: string) {
     res.json({ status: "ok", timestamp: Date.now() });
   });
 
-<<<<<<< HEAD
   // Auth Middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
     const token = req.headers["x-pmxt-access-token"];
     if (!token || token !== accessToken) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          error: "Unauthorized: Invalid or missing access token",
-=======
-    // Auth Middleware
-    app.use((req: Request, res: Response, next: NextFunction) => {
-        const token = req.headers['x-pmxt-access-token'];
-        if (!token || token !== accessToken) {
-            res.status(401).json({ success: false, error: 'Unauthorized: Invalid or missing access token' });
-            return;
-        }
-        next();
-    });
-
-    // Capability map endpoint: GET /api/:exchange/has
-    app.get('/api/:exchange/has', (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const exchangeName = (req.params.exchange as string).toLowerCase();
-            if (!defaultExchanges[exchangeName]) {
-                defaultExchanges[exchangeName] = createExchange(exchangeName);
-            }
-            const exchange = defaultExchanges[exchangeName];
-            res.json({ success: true, data: exchange.has });
-        } catch (error: any) {
-            next(error);
-        }
-    });
-
-    // API endpoint: POST /api/:exchange/:method
-    // Body: { args: any[], credentials?: ExchangeCredentials }
-    app.post('/api/:exchange/:method', async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const exchangeName = (req.params.exchange as string).toLowerCase();
-            const methodName = req.params.method as string;
-            const args = Array.isArray(req.body.args) ? req.body.args : [];
-            const credentials = req.body.credentials as ExchangeCredentials | undefined;
-
-            // 1. Get or Initialize Exchange
-            // If credentials are provided, create a new instance for this request
-            // Otherwise, use the singleton instance
-            let exchange: any;
-            if (credentials && (credentials.privateKey || credentials.apiKey)) {
-                exchange = createExchange(exchangeName, credentials);
-            } else {
-                if (!defaultExchanges[exchangeName]) {
-                    defaultExchanges[exchangeName] = createExchange(exchangeName);
-                }
-                exchange = defaultExchanges[exchangeName];
-            }
-
-            // Set verbose flag if present in request
-            if (req.body.verbose === true) {
-                exchange.verbose = true;
-            } else {
-                // Reset to false for singleton instances to avoid leaking state between requests
-                // For new instances it defaults to false anyway
-                exchange.verbose = false;
-            }
-
-            // 2. Validate Method
-            if (typeof exchange[methodName] !== 'function') {
-                res.status(404).json({ success: false, error: `Method '${methodName}' not found on ${exchangeName}` });
-                return;
-            }
-
-            // 3. Execute with direct argument spreading
-            const result = await exchange[methodName](...args);
-
-            res.json({ success: true, data: result });
-        } catch (error: any) {
-            next(error);
-        }
-    });
-
-    // Error handler
-    app.use((error: any, req: Request, res: Response, next: NextFunction) => {
-        console.error('API Error:', error);
-        if (error.stack) {
-            console.error(error.stack);
-        }
-
-        // Handle BaseError instances with full context
-        if (error instanceof BaseError) {
-            const errorResponse: any = {
-                success: false,
-                error: {
-                    message: error.message,
-                    code: error.code,
-                    retryable: error.retryable
-                }
-            };
-
-            // Add exchange context if available
-            if (error.exchange) {
-                errorResponse.error.exchange = error.exchange;
-            }
-
-            // Add retryAfter for rate limit errors
-            if ('retryAfter' in error && error.retryAfter !== undefined) {
-                errorResponse.error.retryAfter = error.retryAfter;
-            }
-
-            // Add stack trace in development
-            if (process.env.NODE_ENV === 'development') {
-                errorResponse.error.stack = error.stack;
-            }
-
-            res.status(error.status).json(errorResponse);
-            return;
-        }
-
-        // Handle generic errors
-        res.status(error.status || 500).json({
-            success: false,
-            error: {
-                message: error.message || 'Internal server error',
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-            }
->>>>>>> main
-        });
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized: Invalid or missing access token",
+      });
       return;
     }
     next();
@@ -188,14 +69,20 @@ export async function startServer(port: number, accessToken: string) {
           exchange = defaultExchanges[exchangeName];
         }
 
+        // Apply verbose logging if requested via header
+        if (req.headers["x-pmxt-verbose"] === "true") {
+          exchange.verbose = true;
+        } else {
+          // Reset to false for singleton instances to avoid leaking state between requests
+          exchange.verbose = false;
+        }
+
         // 2. Validate Method
         if (typeof exchange[methodName] !== "function") {
-          res
-            .status(404)
-            .json({
-              success: false,
-              error: `Method '${methodName}' not found on ${exchangeName}`,
-            });
+          res.status(404).json({
+            success: false,
+            error: `Method '${methodName}' not found on ${exchangeName}`,
+          });
           return;
         }
 
@@ -210,6 +97,12 @@ export async function startServer(port: number, accessToken: string) {
   );
 
   // Error handler
+  app.use((error: any, req: Request, next: NextFunction, res: Response) => {
+    // Note: Parameter order for error middleware is (err, req, res, next) or (err, req, res)
+    // The previous implementation was slightly off. Fixing it to (error, req, res, next)
+  });
+
+  // Corrected Error handler
   app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     console.error("API Error:", error);
     if (error.stack) {
@@ -242,7 +135,7 @@ export async function startServer(port: number, accessToken: string) {
         errorResponse.error.stack = error.stack;
       }
 
-      res.status(error.status).json(errorResponse);
+      res.status(error.status || 500).json(errorResponse);
       return;
     }
 
