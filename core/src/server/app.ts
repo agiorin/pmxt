@@ -99,12 +99,6 @@ export async function startServer(port: number, accessToken: string) {
   );
 
   // Error handler
-  app.use((error: any, req: Request, next: NextFunction, res: Response) => {
-    // Note: Parameter order for error middleware is (err, req, res, next) or (err, req, res)
-    // The previous implementation was slightly off. Fixing it to (error, req, res, next)
-  });
-
-  // Corrected Error handler
   app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     console.error("API Error:", error);
     if (error.stack) {

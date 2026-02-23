@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.14.1] - 2026-02-23
+
+### Fixed
+
+- **Sidecar Server Build**: Resolved a critical TypeScript compilation error in `app.ts` caused by an invalid Express error handler signature. This fix ensures the unified sidecar server can be successfully bundled and published.
+
 ## [2.14.0] - 2026-02-23
 
 ### Added
