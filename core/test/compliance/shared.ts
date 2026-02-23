@@ -399,12 +399,13 @@ export function initExchange(name: string, cls: any) {
     return new cls({ privateKey: process.env.POLYMARKET_PRIVATE_KEY?.trim() });
   }
   if (name === "KalshiExchange") {
-    return new cls({
+    const isDemo = process.env.KALSHI_DEMO_MODE === "true";
+    const ExchangeClass = isDemo ? pmxt.KalshiDemo : cls;
+    return new ExchangeClass({
       credentials: {
         apiKey: process.env.KALSHI_API_KEY?.trim(),
         privateKey: process.env.KALSHI_PRIVATE_KEY?.trim(),
-      },
-      demoMode: process.env.KALSHI_DEMO_MODE === "true",
+      }
     });
   }
   if (name === "LimitlessExchange") {

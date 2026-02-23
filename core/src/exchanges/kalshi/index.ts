@@ -31,7 +31,7 @@ import { kalshiErrorMapper } from "./errors";
 import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { kalshiApiSpec } from "./api";
-import { getKalshiConfig, KalshiApiConfig } from "./config";
+import { getKalshiConfig, KalshiApiConfig, KALSHI_PATHS } from "./config";
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -39,6 +39,10 @@ export type { KalshiWebSocketConfig };
 export interface KalshiExchangeOptions {
   credentials?: ExchangeCredentials;
   websocket?: KalshiWebSocketConfig;
+}
+
+/** @internal */
+export interface KalshiInternalOptions extends KalshiExchangeOptions {
   demoMode?: boolean;
 }
 
@@ -73,10 +77,10 @@ export class KalshiExchange extends PredictionMarketExchange {
     let demoMode = false;
 
     if (options && "credentials" in options) {
-      // New signature: KalshiExchangeOptions
+      // New signature: KalshiExchangeOptions / KalshiInternalOptions
       credentials = options.credentials;
       wsConfig = options.websocket;
-      demoMode = options.demoMode || false;
+      demoMode = (options as KalshiInternalOptions).demoMode || false;
     } else {
       // Old signature: ExchangeCredentials directly
       credentials = options as ExchangeCredentials | undefined;
@@ -91,7 +95,10 @@ export class KalshiExchange extends PredictionMarketExchange {
       this.auth = new KalshiAuth(credentials);
     }
 
-    const descriptor = parseOpenApiSpec(kalshiApiSpec);
+    const descriptor = parseOpenApiSpec(
+      kalshiApiSpec,
+      this.config.apiUrl + KALSHI_PATHS.TRADE_API,
+    );
     this.defineImplicitApi(descriptor);
   }
 

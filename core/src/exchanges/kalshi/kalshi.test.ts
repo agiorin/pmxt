@@ -246,7 +246,7 @@ describe("KalshiExchange", () => {
         // Verify getHeaders was called with base path only (no query params)
         expect(MockedKalshiAuth.prototype.getHeaders).toHaveBeenCalledWith(
           "GET",
-          getApiPath("portfolio", "orders"),
+          getApiPath("/portfolio/orders"),
         );
       });
 

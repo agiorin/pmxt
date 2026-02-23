@@ -3,6 +3,7 @@ import cors from "cors";
 import { PolymarketExchange } from "../exchanges/polymarket";
 import { LimitlessExchange } from "../exchanges/limitless";
 import { KalshiExchange } from "../exchanges/kalshi";
+import { KalshiDemoExchange } from "../exchanges/kalshi-demo";
 import { ProbableExchange } from "../exchanges/probable";
 import { BaoziExchange } from "../exchanges/baozi";
 import { MyriadExchange } from "../exchanges/myriad";
@@ -14,6 +15,7 @@ const defaultExchanges: Record<string, any> = {
   polymarket: null,
   limitless: null,
   kalshi: null,
+  "kalshi-demo": null,
   probable: null,
   baozi: null,
   myriad: null,
@@ -183,7 +185,13 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
           apiKey: credentials?.apiKey || process.env.KALSHI_API_KEY,
           privateKey: credentials?.privateKey || process.env.KALSHI_PRIVATE_KEY,
         },
-        demoMode: process.env.KALSHI_DEMO_MODE === "true",
+      });
+    case "kalshi-demo":
+      return new KalshiDemoExchange({
+        credentials: {
+          apiKey: credentials?.apiKey || process.env.KALSHI_API_KEY,
+          privateKey: credentials?.privateKey || process.env.KALSHI_PRIVATE_KEY,
+        },
       });
     case "probable":
       return new ProbableExchange({

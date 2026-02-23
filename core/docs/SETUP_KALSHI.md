@@ -28,12 +28,14 @@ Kalshi provides two independent environments:
 
 The credentials for each environment are separate — generate them from the corresponding Kalshi dashboard (production or demo).
 
-Switching environments is controlled by the `KALSHI_DEMO_MODE` environment variable or the `demoMode` / `demo_mode` constructor option:
+### Integration Pattern
 
-| Setting | Value | Effect |
+To switch between production and demo, simply instantiate the appropriate class. Both classes share identical methods but target different base URLs.
+
+| Class | Target Environment | Use Case |
 |---|---|---|
-| `KALSHI_DEMO_MODE` | `true` | Use demo environment |
-| `KALSHI_DEMO_MODE` | `false` *(default)* | Use production environment |
+| `Kalshi` / `KalshiExchange` | Production | Live trading |
+| `KalshiDemo` / `KalshiDemoExchange` | Demo | Paper-trading and testing |
 
 ---
 
@@ -43,7 +45,6 @@ Switching environments is controlled by the `KALSHI_DEMO_MODE` environment varia
 # Kalshi
 KALSHI_API_KEY=               # Key ID from the Kalshi API settings page
 KALSHI_PRIVATE_KEY=           # RSA private key in PEM format (or file path)
-KALSHI_DEMO_MODE=             # Set to `true` to use the demo environment (default: false)
 ```
 
 ---
@@ -77,16 +78,13 @@ order = kalshi.create_order(
 
 # ── Demo / paper-trading environment ─────────────────────────────────────────
 # Use demo credentials generated on demo.kalshi.com
-kalshi_demo = pmxt.Kalshi(
+kalshi_demo = pmxt.KalshiDemo(
     api_key=os.getenv("KALSHI_API_KEY"),       # demo API key
     private_key=os.getenv("KALSHI_PRIVATE_KEY"),
-    demo_mode=True,
 )
 
 balance = kalshi_demo.fetch_balance()
 ```
-
-*Alternatively, set `KALSHI_DEMO_MODE=true` in your `.env` file and omit the `demo_mode` argument.*
 
 ---
 
@@ -120,18 +118,17 @@ const order = await kalshi.createOrder({
 
 // ── Demo / paper-trading environment ─────────────────────────────────────────
 // Use demo credentials generated on demo.kalshi.com
-const kalshiDemo = new KalshiExchange({
+import { KalshiDemoExchange } from 'pmxt';
+
+const kalshiDemo = new KalshiDemoExchange({
   credentials: {
     apiKey: process.env.KALSHI_API_KEY,       // demo API key
     privateKey: process.env.KALSHI_PRIVATE_KEY,
   },
-  demoMode: true,
 });
 
 const demoBalance = await kalshiDemo.fetchBalance();
 ```
-
-*Alternatively, set `KALSHI_DEMO_MODE=true` in your `.env` file; the server picks this up automatically without needing `demoMode: true` in code.*
 
 ---
 
