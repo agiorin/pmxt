@@ -165,7 +165,7 @@ exchange = pmxt.Polymarket(
 
 #### Kalshi
 ```python
-exchange = pmxt.Kalshi(
+ exchange = pmxt.Kalshi(
     api_key=os.getenv('KALSHI_API_KEY'),
     private_key=os.getenv('KALSHI_PRIVATE_KEY') # RSA Private Key
 )

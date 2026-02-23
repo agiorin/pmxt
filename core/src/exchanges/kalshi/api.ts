@@ -1,6 +1,6 @@
 /**
- * Auto-generated from /Users/samueltinnerholm/Documents/GitHub/pmxt/core/specs/kalshi/Kalshi.yaml
- * Generated at: 2026-02-17T19:29:13.568Z
+ * Auto-generated from /home/harry-riddle/dev/github.com/0xharryriddle/pmxt/core/specs/kalshi/Kalshi.yaml
+ * Generated at: 2026-02-19T07:21:04.359Z
  * Do not edit manually -- run "npm run fetch:openapi" to regenerate.
  */
 export const kalshiApiSpec = {
@@ -11,7 +11,16 @@ export const kalshiApiSpec = {
     },
     "servers": [
         {
-            "url": "https://api.elections.kalshi.com/trade-api/v2"
+            "url": "https://{env}.elections.kalshi.com/trade-api/v2",
+            "variables": {
+                "env": {
+                    "default": "api",
+                    "enum": [
+                        "api",
+                        "demo-api"
+                    ]
+                }
+            }
         }
     ],
     "paths": {

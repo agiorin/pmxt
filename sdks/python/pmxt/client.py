@@ -1770,7 +1770,7 @@ class Kalshi(Exchange):
         >>> kalshi = Kalshi()
         >>> markets = kalshi.fetch_markets(query="Fed rates")
         >>>
-        >>> # Trading (requires auth)
+        >>> # Trading on production (requires auth)
         >>> kalshi = Kalshi(
         ...     api_key=os.getenv("KALSHI_API_KEY"),
         ...     private_key=os.getenv("KALSHI_PRIVATE_KEY")
@@ -1796,6 +1796,51 @@ class Kalshi(Exchange):
         """
         super().__init__(
             exchange_name="kalshi",
+            api_key=api_key,
+            private_key=private_key,
+            base_url=base_url,
+            auto_start_server=auto_start_server,
+        )
+
+
+class KalshiDemo(Exchange):
+    """
+    Kalshi demo/paper-trading exchange client.
+
+    Targets Kalshi's demo environment (demo-api.elections.kalshi.com).
+    Credentials are the same as production but no real money is at risk.
+
+    Example:
+        >>> # Public demo data (no auth)
+        >>> kalshi = KalshiDemo()
+        >>> markets = kalshi.fetch_markets(query="Fed rates")
+        >>>
+        >>> # Paper trading (requires auth)
+        >>> kalshi = KalshiDemo(
+        ...     api_key=os.getenv("KALSHI_API_KEY"),
+        ...     private_key=os.getenv("KALSHI_PRIVATE_KEY")
+        ... )
+        >>> balance = kalshi.fetch_balance()
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        private_key: Optional[str] = None,
+        base_url: str = "http://localhost:3847",
+        auto_start_server: bool = True,
+    ):
+        """
+        Initialize Kalshi demo client.
+
+        Args:
+            api_key: Kalshi API key (required for trading)
+            private_key: Kalshi private key (required for trading)
+            base_url: Base URL of the PMXT sidecar server
+            auto_start_server: Automatically start server if not running (default: True)
+        """
+        super().__init__(
+            exchange_name="kalshi-demo",
             api_key=api_key,
             private_key=private_key,
             base_url=base_url,

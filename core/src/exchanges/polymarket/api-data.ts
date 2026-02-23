@@ -1,6 +1,6 @@
 /**
- * Auto-generated from /Users/samueltinnerholm/Documents/GitHub/pmxt/core/specs/polymarket/Polymarket_Data_API.yaml
- * Generated at: 2026-02-17T19:29:13.578Z
+ * Auto-generated from /home/harry-riddle/dev/github.com/0xharryriddle/pmxt/core/specs/polymarket/Polymarket_Data_API.yaml
+ * Generated at: 2026-02-19T07:21:04.368Z
  * Do not edit manually -- run "npm run fetch:openapi" to regenerate.
  */
 export const polymarketDataSpec = {
