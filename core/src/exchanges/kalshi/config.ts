@@ -18,12 +18,12 @@
 // ── Base URL constants ────────────────────────────────────────────────────────
 
 export const KALSHI_PROD_API_URL = "https://api.elections.kalshi.com";
-export const KALSHI_DEMO_API_URL = "https://demo-api.elections.kalshi.com";
+export const KALSHI_DEMO_API_URL = "https://demo-api.kalshi.co";
 
 export const KALSHI_PROD_WS_URL =
   "wss://api.elections.kalshi.com/trade-api/ws/v2";
 export const KALSHI_DEMO_WS_URL =
-  "wss://demo-api.elections.kalshi.com/trade-api/ws/v2";
+  "wss://demo-api.kalshi.co/trade-api/ws/v2";
 
 // ── Path constants ────────────────────────────────────────────────────────────
 
