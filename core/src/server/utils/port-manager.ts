@@ -31,7 +31,7 @@ export class PortManager {
                 resolve(true);
             });
 
-            server.listen(port);
+            server.listen(port, '127.0.0.1');
         });
     }
 }

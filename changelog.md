@@ -2,6 +2,114 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.13.2] - 2026-02-22
+
+### Fixed
+
+- **TypeScript SDK Build**: Resolved type shadowing issues in the auto-generated SDK by ensuring all request body schemas in the OpenAPI specification carry a distinct `title` property.
+- **Client Implementation**: Corrected calling conventions and type references in `client.ts` for `fetchBalance`, `cancelOrder`, and `fetchOrder` to align with the latest generated types.
+
+## [2.13.1] - 2026-02-22
+
+### Fixed
+
+- **TypeScript SDK Build**: Resolved critical compilation errors introduced by OpenAPI spec auto-generation (v2.13.0).
+  - Added missing `title` fields to inline request schemas in `openapi.yaml` (cancelOrder, fetchOrder endpoints) so the OpenAPI generator creates proper named types.
+  - Fixed incorrect type references in `client.ts` `fetchOrder` method (was using `CancelOrderRequest` instead of `FetchOrderRequest`).
+  - Enhanced `fix-generated.js` post-processing script to properly handle union type discriminators and TypeScript type narrowing issues in generated code.
+  - Fixed type narrowing failures in `FilterEventsRequestArgsInner` and `FilterMarketsRequestArgsInner` by adding explicit type casts in `.every()` and `.map()` calls.
+
+## [2.13.0] - 2026-02-22
+
+### Added
+
+- **Unified Sidecar API Expansion**: Formally exposed `fetchMyTrades`, `fetchClosedOrders`, and `fetchAllOrders` in the sidecar server and generated SDKs, completing the functional rollout of the Order History API.
+- **New Public Methods**: Introduced `loadMarkets()` and `fetchMarketsPaginated()` to the public SDKs for stateful market caching and stable pagination support.
+- **OpenAPI Auto-Generation**: Implemented a reflection-based specification generator (`core/scripts/generate-openapi.js`) that automatically derives the sidecar API from the `BaseExchange` TypeScript definition.
+- **CI Synchronization Check**: Added a GitHub Action workflow to ensure the OpenAPI spec and SDKs stay perfectly in sync with the core library on every contribution.
+
+### Changed
+
+- **SDK Feature Parity**: Regenerated both Python and TypeScript SDKs to include the latest unified methods and data models (e.g., `UserTrade`, `PaginatedMarketsResult`).
+
+### Documentation
+
+- **Contributor Workflow**: Updated `CONTRIBUTING.md` with instructions on using the new automated OpenAPI generation pipeline.
+
+
+## [2.12.1] - 2026-02-22
+
+### Fixed
+
+- **Security**: Bound the sidecar server to `127.0.0.1` by default to prevent accidental exposure on all network interfaces (`0.0.0.0`).
+
+## [2.12.0] - 2026-02-22
+
+### Added
+
+- **Unified Order History API**: Standardized methods across all exchanges for retrieving private trade and order history.
+  - New methods: `fetchMyTrades()`, `fetchClosedOrders()`, and `fetchAllOrders()`.
+  - Introduced `UserTrade` type which includes `orderId` for linking trades to specific orders.
+- **Exchange Support**:
+  - Implemented `fetchMyTrades` for **Polymarket**, **Limitless**, **Myriad**, and **Probable**.
+  - Implemented `fetchClosedOrders` and `fetchAllOrders` for **Kalshi**, **Polymarket**, **Limitless**, **Probable**, and **Myriad**.
+- **Compliance Testing**: Added comprehensive test suites for validating order and trade history implementations across all exchanges.
+
+### Changed
+
+- **Testing Utilities**: Added `validateUserTrade` to compliance test suite for standardized trade verification.
+
+## [2.12.0] - 2026-02-22
+
+### Added
+
+- **Unified Order History API**: Standardized methods across all exchanges for retrieving private trade and order history.
+  - New methods: `fetchMyTrades()`, `fetchClosedOrders()`, and `fetchAllOrders()`.
+  - Introduced `UserTrade` type which includes `orderId` for linking trades to specific orders.
+- **Exchange Support**:
+  - Implemented `fetchMyTrades` for **Polymarket**, **Limitless**, **Myriad**, and **Probable**.
+  - Implemented `fetchClosedOrders` and `fetchAllOrders` for **Kalshi**, **Polymarket**, **Limitless**, **Probable**, and **Myriad**.
+- **Compliance Testing**: Added comprehensive test suites for validating order and trade history implementations across all exchanges.
+
+### Changed
+
+- **Testing Utilities**: Added `validateUserTrade` to compliance test suite for standardized trade verification.
+
+## [2.11.0] - 2026-02-22
+
+### Added
+
+- **CCXT-Style Rate Limiting**: Implemented automatic rate limiting across all exchanges using a token bucket (leaky bucket) algorithm, preventing 429 errors and request throttling.
+  - **Unified Throttling**: All REST requests (both explicit and via `callApi`) automatically respect exchange rate limits through a single axios request interceptor on `this.http`.
+  - **Per-Exchange Configuration**: Each exchange sets its own rate limit (e.g., Polymarket: 200ms, Kalshi: 100ms, Myriad/Baozi/Probable: 500ms).
+  - **User Control**: Developers can override rate limits per-instance (`exchange.rateLimit = 50`) or disable entirely (`exchange.enableRateLimit = false`).
+  - **Leaky Bucket Implementation**: Queue-based token refill with no busy spinning, maintaining simplicity while ensuring fair request spacing.
+- **Throttler Utility**: New `Throttler` class in `core/src/utils/throttler.ts` providing a standalone, exchange-agnostic token bucket implementation for queue-based async throttling.
+
+### Changed
+
+- **BaseExchange**: Added `rateLimit` property (default 1000ms) and `enableRateLimit` property (default true) to match CCXT conventions.
+
+## [2.10.0] - 2026-02-19
+
+### Added
+
+- **Low-Level API Access (`callApi` / `call_api`)**: Exposed a new method on all exchange instances that allows direct invocation of any exchange-specific REST endpoint by its OpenAPI `operationId`. This gives advanced users full access to every underlying API endpoint (Polymarket CLOB/Gamma/Data, Kalshi, Limitless, Probable, Myriad) without leaving the unified SDK interface.
+  - TypeScript: `await exchange.callApi('operationName', { param: 'value' })`
+  - Python: `exchange.call_api('operation_name', {'param': 'value'})`
+- **Low-Level API Reference Documentation**: Both Python and TypeScript API reference docs now include a comprehensive "Low-Level API Reference" section listing every available endpoint per exchange, with method, path, parameters, and auth requirements.
+
+### Documentation
+
+- **API Reference Templates**: Updated Handlebars templates and the doc generation pipeline to render per-exchange endpoint tables and detailed parameter listings from OpenAPI specs.
+
+## [2.9.2] - 2026-02-19
+
+### Documentation
+
+- **Pagination Stability Guidance**: Clarified that repeated `fetchMarkets()` calls with different `offset` values do not guarantee stable ordering. Added guidance and examples on using `loadMarkets()` as the correct approach for stable iteration over the entire market catalog. (Closes #41)
+- **Automatic Statistics**: Updated specific total download badges and metadata.
+
 ## [2.9.1] - 2026-02-18
 
 ### Documentation

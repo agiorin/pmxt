@@ -6,6 +6,7 @@ import {
     OHLCVParams,
     HistoryFilterParams,
     TradesParams,
+    MyTradesParams,
 } from '../../BaseExchange';
 import {
     UnifiedMarket,
@@ -14,6 +15,7 @@ import {
     PriceCandle,
     CandleInterval,
     Trade,
+    UserTrade,
     Order,
     Position,
     Balance,
@@ -65,6 +67,9 @@ export class ProbableExchange extends PredictionMarketExchange {
         fetchBalance: true as const,
         watchOrderBook: true as const,
         watchTrades: false as const,
+        fetchMyTrades: true as const,
+        fetchClosedOrders: false as const,
+        fetchAllOrders: false as const,
     };
 
     private auth?: ProbableAuth;
@@ -73,6 +78,7 @@ export class ProbableExchange extends PredictionMarketExchange {
 
     constructor(credentials?: ExchangeCredentials, wsConfig?: ProbableWebSocketConfig) {
         super(credentials);
+        this.rateLimit = 500;
         this.wsConfig = wsConfig;
 
         if (credentials?.privateKey && credentials?.apiKey && credentials?.apiSecret && credentials?.passphrase) {
@@ -124,10 +130,46 @@ export class ProbableExchange extends PredictionMarketExchange {
         );
     }
 
+    /**
+     * Fetch a single event by its numeric ID (Probable only).
+     *
+     * @param id - The numeric event ID
+     * @returns The UnifiedEvent, or null if not found
+     *
+     * @example-ts Get event by ID
+     * const event = await exchange.getEventById('42');
+     * if (event) {
+     *   console.log(event.title);
+     *   console.log(event.markets.length, 'markets');
+     * }
+     *
+     * @example-python Get event by ID
+     * event = exchange.get_event_by_id('42')
+     * if event:
+     *     print(event.title)
+     *     print(len(event.markets), 'markets')
+     */
     async getEventById(id: string): Promise<UnifiedEvent | null> {
         return fetchEventById(id, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }
 
+    /**
+     * Fetch a single event by its URL slug (Probable only).
+     *
+     * @param slug - The event's URL slug (e.g. `"trump-2024-election"`)
+     * @returns The UnifiedEvent, or null if not found
+     *
+     * @example-ts Get event by slug
+     * const event = await exchange.getEventBySlug('trump-2024-election');
+     * if (event) {
+     *   console.log(event.title);
+     * }
+     *
+     * @example-python Get event by slug
+     * event = exchange.get_event_by_slug('trump-2024-election')
+     * if event:
+     *     print(event.title)
+     */
     async getEventBySlug(slug: string): Promise<UnifiedEvent | null> {
         return fetchEventBySlug(slug, this.http, (tokenId) => this.callApi('getPublicApiV1Midpoint', { token_id: tokenId }));
     }
@@ -190,6 +232,27 @@ export class ProbableExchange extends PredictionMarketExchange {
         }
 
         return candles;
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const auth = this.ensureAuth();
+        const address = auth.getAddress();
+
+        const queryParams: Record<string, any> = { user: address };
+        if (params?.limit) queryParams.limit = params.limit;
+
+        const data = await this.callApi('getPublicApiV1Trades', queryParams);
+        const trades = Array.isArray(data) ? data : (data.data || []);
+        return trades.map((t: any) => ({
+            id: String(t.tradeId || t.id || t.timestamp),
+            timestamp: typeof t.time === 'number'
+                ? (t.time > 1e12 ? t.time : t.time * 1000)
+                : Date.now(),
+            price: parseFloat(t.price || '0'),
+            amount: parseFloat(t.qty || t.size || t.amount || '0'),
+            side: (t.side || '').toLowerCase() === 'buy' ? 'buy' as const : 'sell' as const,
+            orderId: t.orderId,
+        }));
     }
 
     // --------------------------------------------------------------------------

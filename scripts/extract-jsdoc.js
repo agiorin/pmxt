@@ -21,6 +21,8 @@ const SOURCE_FILES = [
     { path: path.join(CORE_DIR, 'src/BaseExchange.ts'), exchangeOnly: null },
     { path: path.join(CORE_DIR, 'src/utils/math.ts'), exchangeOnly: null },
     { path: path.join(CORE_DIR, 'src/exchanges/limitless/index.ts'), exchangeOnly: 'limitless' },
+    { path: path.join(CORE_DIR, 'src/exchanges/polymarket/index.ts'), exchangeOnly: 'polymarket' },
+    { path: path.join(CORE_DIR, 'src/exchanges/probable/index.ts'), exchangeOnly: 'probable' },
 ];
 
 const WORKFLOW_PATH = path.join(CORE_DIR, 'workflow-examples.json');

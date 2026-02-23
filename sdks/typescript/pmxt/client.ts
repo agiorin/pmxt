@@ -16,6 +16,8 @@ import {
     CancelOrderRequest,
     FetchOpenOrdersRequest,
     FetchPositionsRequest,
+    FetchBalanceRequest,
+    FetchOrderRequest,
     ExchangeCredentials,
 } from "../generated/src/index.js";
 
@@ -290,14 +292,62 @@ export abstract class Exchange {
         };
     }
 
+    // Low-Level API Access
+
+    /**
+     * Call an exchange-specific REST endpoint by its operationId.
+     * This provides direct access to all implicit API methods defined in
+     * the exchange's OpenAPI spec (e.g., Polymarket CLOB, Kalshi trading API).
+     *
+     * @param operationId - The operationId (or auto-generated name) of the endpoint
+     * @param params - Optional parameters to pass to the endpoint
+     * @returns The raw response data from the exchange
+     *
+     * @example
+     * ```typescript
+     * // Call a Polymarket CLOB endpoint directly
+     * const result = await poly.callApi('getMarket', { condition_id: '0x...' });
+     * ```
+     */
+    async callApi(operationId: string, params?: Record<string, any>): Promise<any> {
+        await this.initPromise;
+        try {
+            const url = `${this.config.basePath}/api/${this.exchangeName}/callApi`;
+
+            const requestBody: any = {
+                args: [operationId, params],
+                credentials: this.getCredentials()
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...this.config.headers
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || response.statusText);
+            }
+
+            const json = await response.json();
+            return this.handleResponse(json);
+        } catch (error) {
+            throw new Error(`Failed to call API '${operationId}': ${error}`);
+        }
+    }
+
     // Market Data Methods
 
     /**
      * Get active markets from the exchange.
-     * 
+     *
      * @param params - Optional filter parameters
      * @returns List of unified markets
-     * 
+     *
      * @example
      * ```typescript
      * const markets = await exchange.fetchMarkets({ limit: 20, sort: "volume" });
@@ -762,14 +812,14 @@ export abstract class Exchange {
     async fetchOrder(orderId: string): Promise<Order> {
         await this.initPromise;
         try {
-            const requestBody: CancelOrderRequest = {
+            const requestBody: FetchOrderRequest = {
                 args: [orderId],
                 credentials: this.getCredentials()
             };
 
             const response = await this.api.fetchOrder({
                 exchange: this.exchangeName as any,
-                cancelOrderRequest: requestBody,
+                fetchOrderRequest: requestBody,
             });
 
             const data = this.handleResponse(response);
@@ -845,14 +895,14 @@ export abstract class Exchange {
     async fetchBalance(): Promise<Balance[]> {
         await this.initPromise;
         try {
-            const requestBody: FetchPositionsRequest = {
+            const requestBody: FetchBalanceRequest = {
                 args: [],
                 credentials: this.getCredentials()
             };
 
             const response = await this.api.fetchBalance({
                 exchange: this.exchangeName as any,
-                fetchPositionsRequest: requestBody,
+                fetchBalanceRequest: requestBody,
             });
 
             const data = this.handleResponse(response);

@@ -4,10 +4,42 @@ const yaml = require('js-yaml');
 const Handlebars = require('handlebars');
 
 const CORE_DIR = path.resolve(__dirname, '../core');
+const SPECS_DIR = path.join(CORE_DIR, 'specs');
 const OPENAPI_PATH = path.join(CORE_DIR, 'src/server/openapi.yaml');
 const GENERATED_CONFIG_PATH = path.join(CORE_DIR, 'api-doc-config.generated.json');
 const PYTHON_OUT = path.resolve(__dirname, '../sdks/python/API_REFERENCE.md');
 const TS_OUT = path.resolve(__dirname, '../sdks/typescript/API_REFERENCE.md');
+
+// Exchange spec files in order of display
+const EXCHANGE_SPECS = [
+    {
+        exchange: 'polymarket', displayName: 'Polymarket', files: [
+            path.join(SPECS_DIR, 'polymarket/PolymarketGammaAPI.yaml'),
+            path.join(SPECS_DIR, 'polymarket/PolymarketClobAPI.yaml'),
+            path.join(SPECS_DIR, 'polymarket/Polymarket_Data_API.yaml'),
+        ]
+    },
+    {
+        exchange: 'kalshi', displayName: 'Kalshi', files: [
+            path.join(SPECS_DIR, 'kalshi/Kalshi.yaml'),
+        ]
+    },
+    {
+        exchange: 'limitless', displayName: 'Limitless', files: [
+            path.join(SPECS_DIR, 'limitless/Limitless.yaml'),
+        ]
+    },
+    {
+        exchange: 'probable', displayName: 'Probable', files: [
+            path.join(SPECS_DIR, 'probable/probable.yaml'),
+        ]
+    },
+    {
+        exchange: 'myriad', displayName: 'Myriad', files: [
+            path.join(SPECS_DIR, 'myriad/myriad.yaml'),
+        ]
+    },
+];
 
 // --- Helper Functions ---
 
@@ -116,6 +148,78 @@ function parseModels(openapi) {
     return { dataModels, filterModels };
 }
 
+// --- Exchange Endpoint Parsing (from per-exchange OpenAPI YAML files) ---
+
+function generateCallApiName(httpMethod, urlPath) {
+    const segments = urlPath
+        .split('/')
+        .filter(s => s && !s.startsWith('{'));
+    const pascal = segments.map(s =>
+        s.split(/[-_]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('')
+    );
+    return httpMethod.toLowerCase() + pascal.join('');
+}
+
+function parseExchangeEndpoints() {
+    const groups = [];
+
+    for (const { exchange, displayName, files } of EXCHANGE_SPECS) {
+        const endpoints = [];
+
+        for (const filePath of files) {
+            if (!fs.existsSync(filePath)) {
+                console.warn(`Warning: Exchange spec not found: ${filePath}`);
+                continue;
+            }
+
+            const spec = yaml.load(fs.readFileSync(filePath, 'utf8'));
+            const topLevelSecurity = !!(spec.security && spec.security.length > 0);
+            const paths = spec.paths || {};
+
+            for (const [urlPath, pathItem] of Object.entries(paths)) {
+                // Collect path-level parameters
+                const pathLevelParams = (pathItem.parameters || [])
+                    .filter(p => p.in === 'path' || p.in === 'query');
+
+                for (const [httpMethod, operation] of Object.entries(pathItem)) {
+                    if (!['get', 'post', 'put', 'patch', 'delete'].includes(httpMethod.toLowerCase())) continue;
+
+                    const name = operation.operationId || generateCallApiName(httpMethod, urlPath);
+                    const isPrivate = operation.security !== undefined
+                        ? !!(operation.security && operation.security.length > 0)
+                        : topLevelSecurity;
+
+                    // Merge path-level and operation-level parameters
+                    const allParams = [...pathLevelParams, ...(operation.parameters || [])];
+                    const params = allParams.map(p => ({
+                        name: p.name,
+                        in: p.in,
+                        required: p.required || p.in === 'path',
+                        type: (p.schema && p.schema.type) || 'string',
+                        description: p.description || '',
+                        enum: (p.schema && p.schema.enum) || null,
+                    }));
+
+                    endpoints.push({
+                        name,
+                        method: httpMethod.toUpperCase(),
+                        path: urlPath,
+                        summary: operation.summary || name,
+                        params,
+                        isPrivate,
+                    });
+                }
+            }
+        }
+
+        if (endpoints.length > 0) {
+            groups.push({ exchange, displayName, endpoints });
+        }
+    }
+
+    return groups;
+}
+
 // --- Format Examples ---
 
 function formatExamples(examples, commentPrefix) {
@@ -133,6 +237,7 @@ function formatExamples(examples, commentPrefix) {
 const { openapi, config } = loadSpecs();
 const methods = parseMethods(config);
 const { dataModels, filterModels } = parseModels(openapi);
+const exchangeGroups = parseExchangeEndpoints();
 
 // --- Handlebars Setup ---
 
@@ -242,6 +347,7 @@ const pythonOut = pythonTemplate({
     methods: pythonMethods,
     dataModels,
     filterModels,
+    exchangeGroups,
     workflowExample: config.workflowExample.python
 });
 fs.writeFileSync(PYTHON_OUT, pythonOut);
@@ -264,6 +370,7 @@ const tsOut = tsTemplate({
     methods: tsMethods,
     dataModels,
     filterModels,
+    exchangeGroups,
     workflowExample: config.workflowExample.typescript
 });
 fs.writeFileSync(TS_OUT, tsOut);

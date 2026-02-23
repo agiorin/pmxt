@@ -142,3 +142,41 @@ class {{this.name}}:
 
 ---
 {{/each}}
+
+## Low-Level API Reference
+
+Advanced: call exchange-specific REST endpoints directly via `exchange.call_api(name, params)`.
+
+```python
+# Example
+result = exchange.call_api('operationName', {'param': 'value'})
+```
+
+{{#each exchangeGroups}}
+### {{this.displayName}}
+
+| `call_api()` name | Method | Path | Summary | Auth |
+|-----------------|--------|------|---------|------|
+{{#each this.endpoints}}
+| `{{this.name}}` | `{{this.method}}` | `{{this.path}}` | {{this.summary}} | {{#if this.isPrivate}}Required{{else}}Public{{/if}} |
+{{/each}}
+
+#### Endpoint Details
+
+{{#each this.endpoints}}
+##### `{{this.name}}`
+
+**{{this.method}}** `{{this.path}}`
+
+{{this.summary}}{{#if this.isPrivate}} *(Auth required)*{{/if}}
+
+{{#if this.params}}
+**Parameters:**
+{{#each this.params}}
+- `{{this.name}}` ({{this.in}}, {{this.type}}){{#if this.required}} **required**{{/if}}{{#if this.description}} — {{this.description}}{{/if}}{{#if this.enum}} — enum: `{{this.enum}}`{{/if}}
+{{/each}}
+{{/if}}
+
+---
+{{/each}}
+{{/each}}

@@ -86,6 +86,10 @@ export interface Trade {
     side: 'buy' | 'sell' | 'unknown';
 }
 
+export interface UserTrade extends Trade {
+    orderId?: string;
+}
+
 // ----------------------------------------------------------------------------
 // Trading Data Models
 // ----------------------------------------------------------------------------

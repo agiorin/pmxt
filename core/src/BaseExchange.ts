@@ -1,6 +1,7 @@
-import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, Order, Position, Balance, CreateOrderParams } from './types';
+import { UnifiedMarket, UnifiedEvent, PriceCandle, CandleInterval, OrderBook, Trade, UserTrade, Order, Position, Balance, CreateOrderParams } from './types';
 import { getExecutionPrice, getExecutionPriceDetailed, ExecutionPriceResult } from './utils/math';
 import { MarketNotFound, EventNotFound } from './errors';
+import { Throttler } from './utils/throttler';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // ----------------------------------------------------------------------------
@@ -72,6 +73,23 @@ export interface TradesParams {
     start?: Date;
     end?: Date;
     limit?: number;
+}
+
+export interface MyTradesParams {
+    outcomeId?: string;  // filter to specific outcome/ticker
+    marketId?: string;   // filter to specific market
+    since?: Date;
+    until?: Date;
+    limit?: number;
+    cursor?: string;     // for Kalshi cursor pagination
+}
+
+export interface OrderHistoryParams {
+    marketId?: string;   // required for Limitless (slug)
+    since?: Date;
+    until?: Date;
+    limit?: number;
+    cursor?: string;
 }
 
 // ----------------------------------------------------------------------------
@@ -152,6 +170,9 @@ export interface ExchangeHas {
     fetchBalance: ExchangeCapability;
     watchOrderBook: ExchangeCapability;
     watchTrades: ExchangeCapability;
+    fetchMyTrades: ExchangeCapability;
+    fetchClosedOrders: ExchangeCapability;
+    fetchAllOrders: ExchangeCapability;
 }
 
 export interface ExchangeCredentials {
@@ -168,6 +189,22 @@ export interface ExchangeCredentials {
     funderAddress?: string;  // The address funding the trades (defaults to signer address)
 }
 
+export interface ExchangeOptions {
+    /**
+     * How long (ms) a market snapshot created by `fetchMarketsPaginated` remains valid
+     * before being discarded and re-fetched from the API on the next call.
+     * Defaults to 0 (no TTL — the snapshot is re-fetched on every initial call).
+     */
+    snapshotTTL?: number;
+}
+
+/** Shape returned by fetchMarketsPaginated */
+export interface PaginatedMarketsResult {
+    data: UnifiedMarket[];
+    total: number;
+    nextCursor?: string;
+}
+
 // ----------------------------------------------------------------------------
 // Base Exchange Class
 // ----------------------------------------------------------------------------
@@ -178,6 +215,26 @@ export abstract class PredictionMarketExchange {
     protected credentials?: ExchangeCredentials;
     public verbose: boolean = false;
     public http: AxiosInstance;
+    public enableRateLimit: boolean = true;
+    private _rateLimit: number = 1000;
+    private _throttler: Throttler;
+
+    // Snapshot state for cursor-based pagination
+    private _snapshotTTL: number;
+    private _snapshot?: { markets: UnifiedMarket[]; takenAt: number; id: string };
+
+    get rateLimit(): number {
+        return this._rateLimit;
+    }
+
+    set rateLimit(value: number) {
+        this._rateLimit = value;
+        this._throttler = new Throttler({
+            refillRate: 1 / value,
+            capacity: 1,
+            delay: 1,
+        });
+    }
 
     // Market Cache
     public markets: Record<string, UnifiedMarket> = {};
@@ -202,11 +259,28 @@ export abstract class PredictionMarketExchange {
         fetchBalance: false,
         watchOrderBook: false,
         watchTrades: false,
+        fetchMyTrades: false,
+        fetchClosedOrders: false,
+        fetchAllOrders: false,
     };
 
-    constructor(credentials?: ExchangeCredentials) {
+    constructor(credentials?: ExchangeCredentials, options?: ExchangeOptions) {
         this.credentials = credentials;
+        this._snapshotTTL = options?.snapshotTTL ?? 0;
         this.http = axios.create();
+        this._throttler = new Throttler({
+            refillRate: 1 / this._rateLimit,
+            capacity: 1,
+            delay: 1,
+        });
+
+        // Rate Limit Interceptor
+        this.http.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+            if (this.enableRateLimit) {
+                await this._throttler.throttle();
+            }
+            return config;
+        });
 
         // Request Interceptor
         this.http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
@@ -245,11 +319,29 @@ export abstract class PredictionMarketExchange {
     abstract get name(): string;
 
     /**
-     * Load and cache markets from the exchange.
-     * This method populates `this.markets` and `this.marketsBySlug`.
-     * 
-     * @param reload - Force a reload of markets from the API even if already loaded
+     * Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`.
+     * Subsequent calls return the cached result without hitting the API again.
+     *
+     * This is the correct way to paginate or iterate over markets without drift.
+     * Because `fetchMarkets()` always hits the API, repeated calls with different `offset`
+     * values may return inconsistent results if the exchange reorders or adds markets between
+     * requests. Use `loadMarkets()` once to get a stable snapshot, then paginate over
+     * `Object.values(exchange.markets)` locally.
+     *
+     * @param reload - Force a fresh fetch from the API even if markets are already loaded
      * @returns Dictionary of markets indexed by marketId
+     *
+     * @example-ts Stable pagination
+     * await exchange.loadMarkets();
+     * const all = Object.values(exchange.markets);
+     * const page1 = all.slice(0, 100);
+     * const page2 = all.slice(100, 200);
+     *
+     * @example-python Stable pagination
+     * exchange.load_markets()
+     * all = list(exchange.markets.values())
+     * page1 = all[:100]
+     * page2 = all[100:200]
      */
     async loadMarkets(reload: boolean = false): Promise<Record<string, UnifiedMarket>> {
         if (this.loadedMarkets && !reload) {
@@ -277,7 +369,7 @@ export abstract class PredictionMarketExchange {
 
     /**
      * Fetch markets with optional filtering, search, or slug lookup.
-     * This is the primary method for retrieving markets.
+     * Always hits the exchange API — results reflect the live state at the time of the call.
      *
      * @param params - Optional parameters for filtering and search
      * @param params.query - Search keyword to filter markets
@@ -287,6 +379,10 @@ export abstract class PredictionMarketExchange {
      * @param params.sort - Sort order ('volume' | 'liquidity' | 'newest')
      * @param params.searchIn - Where to search ('title' | 'description' | 'both')
      * @returns Array of unified markets
+     *
+     * @note Calling this repeatedly with different `offset` values does not guarantee stable
+     * ordering — exchanges may reorder or add markets between requests. For stable iteration
+     * across pages, use `loadMarkets()` and paginate over `Object.values(exchange.markets)`.
      *
      * @note Some exchanges (like Limitless) may only support status 'active' for search results.
      *
@@ -306,6 +402,71 @@ export abstract class PredictionMarketExchange {
      */
     async fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
         return this.fetchMarketsImpl(params);
+    }
+
+    /**
+     * Fetch markets with cursor-based pagination backed by a stable in-memory snapshot.
+     *
+     * On the first call (or when no cursor is supplied), fetches all markets once and
+     * caches them. Subsequent calls with a cursor returned from a previous call slice
+     * directly from the cached snapshot — no additional API calls are made.
+     *
+     * The snapshot is invalidated after `snapshotTTL` ms (configured via `ExchangeOptions`
+     * in the constructor). A request using a cursor from an expired snapshot throws
+     * `'Cursor has expired'`.
+     *
+     * @param params.limit      - Page size (default: return all markets)
+     * @param params.cursor     - Opaque cursor returned by a previous call
+     * @returns PaginatedMarketsResult with data, total, and optional nextCursor
+     */
+    async fetchMarketsPaginated(params?: { limit?: number; cursor?: string }): Promise<PaginatedMarketsResult> {
+        const limit = params?.limit;
+        const cursor = params?.cursor;
+
+        if (cursor) {
+            // Cursor encodes: snapshotId:offset
+            const sep = cursor.indexOf(':');
+            const snapshotId = cursor.substring(0, sep);
+            const offset = parseInt(cursor.substring(sep + 1), 10);
+
+            if (
+                !this._snapshot ||
+                this._snapshot.id !== snapshotId ||
+                (this._snapshotTTL > 0 && Date.now() - this._snapshot.takenAt > this._snapshotTTL)
+            ) {
+                throw new Error('Cursor has expired');
+            }
+
+            const markets = this._snapshot.markets;
+            const slice = limit !== undefined ? markets.slice(offset, offset + limit) : markets.slice(offset);
+            const nextOffset = offset + slice.length;
+            const nextCursor = nextOffset < markets.length ? `${snapshotId}:${nextOffset}` : undefined;
+
+            return { data: slice, total: markets.length, nextCursor };
+        }
+
+        // No cursor — (re)fetch snapshot
+        if (
+            !this._snapshot ||
+            this._snapshotTTL === 0 ||
+            Date.now() - this._snapshot.takenAt > this._snapshotTTL
+        ) {
+            const markets = await this.fetchMarketsImpl();
+            this._snapshot = {
+                markets,
+                takenAt: Date.now(),
+                id: Math.random().toString(36).slice(2),
+            };
+        }
+
+        const markets = this._snapshot.markets;
+        if (!limit) {
+            return { data: markets, total: markets.length, nextCursor: undefined };
+        }
+
+        const slice = markets.slice(0, limit);
+        const nextCursor = limit < markets.length ? `${this._snapshot.id}:${limit}` : undefined;
+        return { data: slice, total: markets.length, nextCursor };
     }
 
     /**
@@ -617,6 +778,18 @@ export abstract class PredictionMarketExchange {
      */
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
         throw new Error("Method fetchOpenOrders not implemented.");
+    }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        throw new Error("Method fetchMyTrades not implemented.");
+    }
+
+    async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        throw new Error("Method fetchClosedOrders not implemented.");
+    }
+
+    async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        throw new Error("Method fetchAllOrders not implemented.");
     }
 
     /**
