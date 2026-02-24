@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.17.0] - 2026-02-24
+
+### Improved
+
+- **Unified Discovery: Unrestricted Event Fetching**: Removed the mandatory requirement for a query, event identification, or slug in `fetchEvents`. Users can now call `fetchEvents()` without parameters to retrieve the "front page" of an exchange (typically top events by volume).
+- **Polymarket: High-Performance Discovery**: Redirects no-query `fetchEvents` calls to the specific Gamma `/events` list endpoint, providing a cleaner and faster experience than the fuzzy search path.
+- **Kalshi: Client-Side Event Ranking**: Implemented robust client-side sorting for Kalshi events. Since the Kalshi API lacks server-side sorting for the event list, `fetchEvents` now aggregates volume, liquidity, and recency from nested markets to provide consistent `sort` support (`volume`, `liquidity`, `newest`).
+- **Limitless: Semantic Event Mapping**: Mapped Limitless "Group Markets" to the unified `fetchEvents` interface. Discovery calls now automatically filter for group markets, aligning Limitless with event-centric discovery patterns.
+- **Developer Experience**: Synchronized `fetchEvents` behavior with `fetchMarkets` across all exchanges (Baozi, Myriad, Probable, Kalshi, Polymarket, Limitless).
+
+### Fixed
+
+- **Unit Tests**: Updated core validation suite to reflect the relaxed requirements for event fetching.
+
 ## [2.16.1] - 2026-02-24
 
 ### Fixed

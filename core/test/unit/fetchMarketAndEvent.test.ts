@@ -239,7 +239,7 @@ describe('fetchEvent (singular)', () => {
     });
 });
 
-describe('fetchEvents relaxed query requirement', () => {
+describe('fetchEvents no required params', () => {
     it('should accept eventId without query', async () => {
         const exchange = new MockExchange([], [sampleEvent]);
         const events = await exchange.fetchEvents({ eventId: 'event-1' });
@@ -252,16 +252,16 @@ describe('fetchEvents relaxed query requirement', () => {
         expect(events).toHaveLength(1);
     });
 
-    it('should still require at least one of query, eventId, or slug', async () => {
-        const exchange = new MockExchange([], []);
-        await expect(exchange.fetchEvents({}))
-            .rejects.toThrow('fetchEvents() requires a query, eventId, or slug parameter');
+    it('should resolve with empty params object (returns default list)', async () => {
+        const exchange = new MockExchange([], [sampleEvent]);
+        const events = await exchange.fetchEvents({});
+        expect(Array.isArray(events)).toBe(true);
     });
 
-    it('should still require at least one of query, eventId, or slug (no params)', async () => {
-        const exchange = new MockExchange([], []);
-        await expect(exchange.fetchEvents())
-            .rejects.toThrow('fetchEvents() requires a query, eventId, or slug parameter');
+    it('should resolve with no params (returns default list)', async () => {
+        const exchange = new MockExchange([], [sampleEvent]);
+        const events = await exchange.fetchEvents();
+        expect(Array.isArray(events)).toBe(true);
     });
 
     it('should still work with query parameter (backwards compatible)', async () => {

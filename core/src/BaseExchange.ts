@@ -475,7 +475,7 @@ export abstract class PredictionMarketExchange {
      * Events group related markets together (e.g., "Who will be Fed Chair?" contains multiple candidate markets).
      *
      * @param params - Optional parameters for search and filtering
-     * @param params.query - Search keyword to filter events (required)
+     * @param params.query - Search keyword to filter events. If omitted, returns top events by volume.
      * @param params.limit - Maximum number of results
      * @param params.offset - Pagination offset
      * @param params.searchIn - Where to search ('title' | 'description' | 'both')
@@ -494,10 +494,7 @@ export abstract class PredictionMarketExchange {
      * print(fed_event.title, len(fed_event.markets), 'markets')
      */
     async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]> {
-        if (!params?.query && !params?.eventId && !params?.slug) {
-            throw new Error("fetchEvents() requires a query, eventId, or slug parameter");
-        }
-        return this.fetchEventsImpl(params!);
+        return this.fetchEventsImpl(params ?? {});
     }
 
     /**

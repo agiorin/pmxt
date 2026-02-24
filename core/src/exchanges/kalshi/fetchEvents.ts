@@ -45,6 +45,61 @@ async function fetchEventByTicker(
   return [unifiedEvent];
 }
 
+function rawEventToUnified(event: any): UnifiedEvent {
+  const markets: UnifiedMarket[] = [];
+  if (event.markets) {
+    for (const market of event.markets) {
+      const unifiedMarket = mapMarketToUnified(event, market);
+      if (unifiedMarket) {
+        markets.push(unifiedMarket);
+      }
+    }
+  }
+  return {
+    id: event.event_ticker,
+    title: event.title,
+    description: event.mututals_description || "",
+    slug: event.event_ticker,
+    markets: markets,
+    url: `https://kalshi.com/events/${event.event_ticker}`,
+    image: event.image_url,
+    category: event.category,
+    tags: event.tags || [],
+  };
+}
+
+async function fetchAllWithStatus(
+  callApi: CallApi,
+  apiStatus: string,
+): Promise<any[]> {
+  let allEvents: any[] = [];
+  let cursor = null;
+  let page = 0;
+
+  const MAX_PAGES = 1000;
+  const BATCH_SIZE = 200;
+
+  do {
+    const queryParams: any = {
+      limit: BATCH_SIZE,
+      with_nested_markets: true,
+      status: apiStatus,
+    };
+    if (cursor) queryParams.cursor = cursor;
+
+    const data = await callApi("GetEvents", queryParams);
+    const events = data.events || [];
+
+    if (events.length === 0) break;
+
+    allEvents = allEvents.concat(events);
+    cursor = data.cursor;
+    page++;
+  } while (cursor && page < MAX_PAGES);
+
+  return allEvents;
+}
+
 export async function fetchEvents(
   params: EventFetchParams,
   callApi: CallApi,
@@ -64,89 +119,74 @@ export async function fetchEvents(
     const limit = params?.limit || 10000;
     const query = (params?.query || "").toLowerCase();
 
-    const fetchAllWithStatus = async (apiStatus: string) => {
-      let allEvents: any[] = [];
-      let cursor = null;
-      let page = 0;
-
-      const MAX_PAGES = 1000; // Safety cap against infinite loops
-      const BATCH_SIZE = 200; // Max limit per Kalshi API docs
-
-      do {
-        const queryParams: any = {
-          limit: BATCH_SIZE,
-          with_nested_markets: true,
-          status: apiStatus,
-        };
-        if (cursor) queryParams.cursor = cursor;
-
-        const data = await callApi("GetEvents", queryParams);
-        const events = data.events || [];
-
-        if (events.length === 0) break;
-
-        allEvents = allEvents.concat(events);
-        cursor = data.cursor;
-        page++;
-
-        // If we have no search query and have fetched enough events, we can stop early
-        if (!query && allEvents.length >= limit * 1.5) {
-          break;
-        }
-      } while (cursor && page < MAX_PAGES);
-
-      return allEvents;
-    };
-
-    let events = [];
+    let events: any[] = [];
     if (status === "all") {
       const [openEvents, closedEvents, settledEvents] = await Promise.all([
-        fetchAllWithStatus("open"),
-        fetchAllWithStatus("closed"),
-        fetchAllWithStatus("settled"),
+        fetchAllWithStatus(callApi, "open"),
+        fetchAllWithStatus(callApi, "closed"),
+        fetchAllWithStatus(callApi, "settled"),
       ]);
       events = [...openEvents, ...closedEvents, ...settledEvents];
     } else if (status === "closed" || status === "inactive") {
       const [closedEvents, settledEvents] = await Promise.all([
-        fetchAllWithStatus("closed"),
-        fetchAllWithStatus("settled"),
+        fetchAllWithStatus(callApi, "closed"),
+        fetchAllWithStatus(callApi, "settled"),
       ]);
       events = [...closedEvents, ...settledEvents];
     } else {
-      events = await fetchAllWithStatus("open");
+      events = await fetchAllWithStatus(callApi, "open");
     }
 
-    const filtered = events.filter((event: any) => {
-      return (event.title || "").toLowerCase().includes(query);
-    });
+    // Apply keyword filter if a query was provided
+    const filtered = query
+      ? events.filter((event: any) =>
+        (event.title || "").toLowerCase().includes(query),
+      )
+      : events;
 
-    const unifiedEvents: UnifiedEvent[] = filtered.map((event: any) => {
-      const markets: UnifiedMarket[] = [];
-      if (event.markets) {
-        for (const market of event.markets) {
-          const unifiedMarket = mapMarketToUnified(event, market);
-          if (unifiedMarket) {
-            markets.push(unifiedMarket);
-          }
-        }
-      }
+    // Client-side sort — Kalshi's /events endpoint has no sort param.
+    // We aggregate stats from nested markets and sort the full set before slicing.
+    const sort = params?.sort || "volume";
+    const sorted = sortRawEvents(filtered, sort);
 
-      const unifiedEvent: UnifiedEvent = {
-        id: event.event_ticker,
-        title: event.title,
-        description: event.mututals_description || "",
-        slug: event.event_ticker,
-        markets: markets,
-        url: `https://kalshi.com/events/${event.event_ticker}`,
-        image: event.image_url,
-        category: event.category,
-        tags: event.tags || [],
-      };
-      return unifiedEvent;
-    });
-
+    const unifiedEvents: UnifiedEvent[] = sorted.map(rawEventToUnified);
     return unifiedEvents.slice(0, limit);
   } catch (error: any) {
     throw kalshiErrorMapper.mapError(error);
   }
+}
+
+function eventVolume(event: any): number {
+  return (event.markets || []).reduce(
+    (sum: number, m: any) => sum + Number(m.volume || 0),
+    0,
+  );
+}
+
+function eventLiquidity(event: any): number {
+  return (event.markets || []).reduce(
+    (sum: number, m: any) => sum + Number(m.open_interest || m.liquidity || 0),
+    0,
+  );
+}
+
+function eventNewest(event: any): number {
+  // Use the earliest close_time across markets as a proxy for "newness"
+  const times = (event.markets || [])
+    .map((m: any) => (m.close_time ? new Date(m.close_time).getTime() : 0))
+    .filter((t: number) => t > 0);
+  return times.length > 0 ? Math.min(...times) : 0;
+}
+
+function sortRawEvents(events: any[], sort: string): any[] {
+  const copy = [...events];
+  if (sort === "newest") {
+    copy.sort((a, b) => eventNewest(b) - eventNewest(a));
+  } else if (sort === "liquidity") {
+    copy.sort((a, b) => eventLiquidity(b) - eventLiquidity(a));
+  } else {
+    // Default: volume
+    copy.sort((a, b) => eventVolume(b) - eventVolume(a));
+  }
+  return copy;
 }
