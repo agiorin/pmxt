@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.17.4] - 2026-02-24
+
+### Fixed
+
+- **Polymarket Cloudflare WAF Bypass**: The User-Agent header added in v2.17.2 was insufficient to bypass Polymarket's Cloudflare bot detection. Enhanced the Polymarket client with browser-mimicking headers (`Accept`, `Accept-Language`, `Origin: https://polymarket.com`, `Referer`, and `sec-fetch-*` directives). These headers make requests appear as same-site CORS calls from the Polymarket frontend, allowing the API to pass Cloudflare's bot scoring model. `fetchEvents()` now works reliably on all platforms.
+
 ## [2.17.3] - 2026-02-24
 
 ### Fixed
