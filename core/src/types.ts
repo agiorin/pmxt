@@ -50,7 +50,7 @@ export interface UnifiedMarket {
     tags?: string[];
     tickSize?: number; // Minimum price increment (e.g., 0.01, 0.001)
 
-    event?: UnifiedEvent;
+    eventId?: string;
 
     // Convenience getters for binary markets
     yes?: MarketOutcome;

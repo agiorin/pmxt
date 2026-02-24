@@ -72,6 +72,7 @@ function convertMarket(raw: any): UnifiedMarket {
         image: raw.image,
         category: raw.category,
         tags: raw.tags,
+        eventId: raw.eventId,
         yes: convertOutcome(raw.yes),
         no: convertOutcome(raw.no),
         up: convertOutcome(raw.up),
@@ -185,11 +186,6 @@ function convertEvent(raw: any): UnifiedEvent {
         category: raw.category,
         tags: raw.tags,
     };
-
-    // Add bi-directional navigation
-    for (const market of markets) {
-        market.event = event;
-    }
 
     return event;
 }

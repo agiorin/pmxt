@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.17.5] - 2026-02-24
+
+### Fixed
+
+- **`UnifiedMarket.event` circular type corrected to `eventId`**: The `event?: UnifiedEvent` field on `UnifiedMarket` (in both `core/src/types.ts` and the TypeScript SDK `models.ts`) was a design error — storing a full back-reference to the parent event creates a circular structure that breaks `JSON.stringify`. The field is now typed as `eventId?: string`, consistent with how every exchange util already populated it. The TypeScript SDK's `convertMarket` function now also passes `eventId` through from the server response.
+
 ## [2.17.4] - 2026-02-24
 
 ### Fixed
