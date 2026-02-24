@@ -28,6 +28,7 @@ export function mapMarketToUnified(market: any, event?: any): UnifiedMarket | nu
 
     const um = {
         marketId: String(market.id),
+        eventId: event ? String(event.id) : (market.event_id ? String(market.event_id) : undefined),
         title: market.question || market.title || '',
         description: market.description || '',
         outcomes,

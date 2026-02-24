@@ -48,6 +48,7 @@ export interface EventFetchParams {
     query?: string;  // For keyword search
     limit?: number;
     offset?: number;
+    sort?: 'volume' | 'liquidity' | 'newest';
     status?: 'active' | 'inactive' | 'closed' | 'all'; // Filter by event status (default: 'active', 'inactive' and 'closed' are interchangeable)
     searchIn?: 'title' | 'description' | 'both';
     eventId?: string;    // Direct lookup by event ID

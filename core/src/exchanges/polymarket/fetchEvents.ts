@@ -1,22 +1,58 @@
 import axios, { AxiosInstance } from 'axios';
 import { EventFetchParams } from '../../BaseExchange';
 import { UnifiedEvent, UnifiedMarket } from '../../types';
-import { GAMMA_SEARCH_URL, mapMarketToUnified, paginateSearchParallel } from './utils';
+import { GAMMA_API_URL, GAMMA_SEARCH_URL, mapMarketToUnified, paginateSearchParallel } from './utils';
 import { polymarketErrorMapper } from './errors';
 
 export async function fetchEvents(params: EventFetchParams, http: AxiosInstance = axios): Promise<UnifiedEvent[]> {
     try {
-        if (!params.query) {
-            throw new Error("Query is required for Polymarket event search");
+        if (!params.query && !params.eventId && !params.slug) {
+            throw new Error("Query, eventId, or slug is required for Polymarket event search");
         }
 
         const limit = params.limit || 10000;
         const status = params.status || 'active';
 
+        // Helper to map a raw event to a UnifiedEvent
+        const mapRawEventToUnified = (event: any): UnifiedEvent => {
+            const markets: UnifiedMarket[] = [];
+            if (event.markets && Array.isArray(event.markets)) {
+                for (const market of event.markets) {
+                    const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
+                    if (unifiedMarket) {
+                        markets.push(unifiedMarket);
+                    }
+                }
+            }
+            return {
+                id: event.id || event.slug,
+                title: event.title,
+                description: event.description || '',
+                slug: event.slug,
+                markets: markets,
+                url: `https://polymarket.com/event/${event.slug}`,
+                image: event.image || `https://polymarket.com/api/og?slug=${event.slug}`,
+                category: event.category || event.tags?.[0]?.label,
+                tags: event.tags?.map((t: any) => t.label) || []
+            };
+        };
+
+        if (params.eventId || params.slug) {
+            const queryParams = params.eventId ? { id: params.eventId } : { slug: params.slug };
+            const response = await http.get(GAMMA_API_URL, { params: queryParams });
+            const events = response.data;
+            if (!events || events.length === 0) return [];
+            return events.map(mapRawEventToUnified).slice(0, limit);
+        }
+
+        let sortParam = 'volume';
+        if (params.sort === 'newest') sortParam = 'startDate';
+        if (params.sort === 'liquidity') sortParam = 'liquidity';
+
         const queryParams: any = {
             q: params.query,
             limit_per_type: 50,
-            sort: 'volume',
+            sort: sortParam,
             ascending: false
         };
 
@@ -57,7 +93,7 @@ export async function fetchEvents(params: EventFetchParams, http: AxiosInstance 
         }
 
         // Client-side filtering to ensure title matches (API does fuzzy search)
-        const lowerQuery = params.query.toLowerCase();
+        const lowerQuery = params.query!.toLowerCase();
         const searchIn = params.searchIn || 'title';
 
         const filteredEvents = events.filter((event: any) => {
@@ -69,33 +105,7 @@ export async function fetchEvents(params: EventFetchParams, http: AxiosInstance 
             return titleMatch || descMatch; // 'both'
         });
 
-        // Map events to UnifiedEvent
-        const unifiedEvents: UnifiedEvent[] = filteredEvents.map((event: any) => {
-            const markets: UnifiedMarket[] = [];
-
-            if (event.markets && Array.isArray(event.markets)) {
-                for (const market of event.markets) {
-                    const unifiedMarket = mapMarketToUnified(event, market, { useQuestionAsCandidateFallback: true });
-                    if (unifiedMarket) {
-                        markets.push(unifiedMarket);
-                    }
-                }
-            }
-
-            const unifiedEvent: UnifiedEvent = {
-                id: event.id || event.slug,
-                title: event.title,
-                description: event.description || '',
-                slug: event.slug,
-                markets: markets,
-                url: `https://polymarket.com/event/${event.slug}`,
-                image: event.image || `https://polymarket.com/api/og?slug=${event.slug}`,
-                category: event.category || event.tags?.[0]?.label,
-                tags: event.tags?.map((t: any) => t.label) || []
-            };
-
-            return unifiedEvent;
-        });
+        const unifiedEvents = filteredEvents.map(mapRawEventToUnified);
 
         return unifiedEvents.slice(0, limit);
 

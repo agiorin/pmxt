@@ -69,6 +69,7 @@ export function mapMarketToUnified(
   const um = {
     id: market.ticker,
     marketId: market.ticker,
+    eventId: event.event_ticker,
     title: event.title,
     description: market.rules_primary || market.rules_secondary || "",
     outcomes: outcomes,

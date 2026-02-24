@@ -15,7 +15,7 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
         const tokenEntries = Object.entries(market.tokens);
         // Ensure prices array exists, otherwise default to empty
         const prices = Array.isArray(market.prices) ? market.prices : [];
-        
+
         tokenEntries.forEach(([label, tokenId], index) => {
             const outcomePrice = prices[index] || 0;
             const outcomeIdValue = tokenId as string;
@@ -36,6 +36,7 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
     const um = {
         id: market.slug,
         marketId: market.slug,
+        eventId: market.slug,
         title: market.title || market.question,
         description: market.description,
         outcomes: outcomes,

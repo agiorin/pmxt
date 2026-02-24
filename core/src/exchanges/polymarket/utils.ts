@@ -77,6 +77,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
     const um = {
         id: market.id,
         marketId: market.id,
+        eventId: event.id || event.slug,
         title: market.question ? `${event.title} - ${market.question}` : event.title,
         description: market.description || event.description,
         outcomes: outcomes,

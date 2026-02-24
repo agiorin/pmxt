@@ -31,6 +31,7 @@ export interface UnifiedEvent {
 export interface UnifiedMarket {
     /** The unique identifier for this market */
     marketId: string;
+    eventId?: string;
     title: string;
     description: string;
     slug?: string;

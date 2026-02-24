@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.16.0] - 2026-02-24
+
+### Added
+
+- **Unified Traversal: Market-to-Event Linkage**: Added `eventId` to the `UnifiedMarket` interface across all exchanges. This allows direct navigation from a market back to its parent event container.
+- **Unified Traversal: Outcome-to-Market Linkage**: Ensured `marketId` is consistently populated on all `MarketOutcome` objects.
+- **Event Search: Unified Sorting**: Added `sort` parameter support to `fetchEvents` for better developer experience and consistency with `fetchMarkets`.
+
+### Improved
+
+- **Polymarket: Direct Event Lookup**: Enhanced `fetchEvents` for Polymarket to support direct `eventId` and `slug` lookups, removing the previous requirement for a keyword search query when the ID is already known.
+- **Cross-Exchange Consistency**: Synchronized `fetchEvents` and `fetchMarkets` behavior across Polymarket, Kalshi, Limitless, Myriad, and Probable.
+
 ## [2.15.0] - 2026-02-24
 
 ### Added
