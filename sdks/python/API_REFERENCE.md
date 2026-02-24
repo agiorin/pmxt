@@ -55,7 +55,7 @@ pmxt.restart_server()
 
 ### `load_markets`
 
-Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`.
+How long (ms) a market snapshot created by `fetchMarketsPaginated` remains valid
 
 
 **Signature:**
@@ -120,6 +120,33 @@ markets = exchange.fetch_markets(slug='will-trump-win')
 ordering — exchanges may reorder or add markets between requests. For stable iteration
 across pages, use `loadMarkets()` and paginate over `Object.values(exchange.markets)`.
 Some exchanges (like Limitless) may only support status 'active' for search results.
+
+---
+### `fetch_markets_paginated`
+
+Fetch markets with cursor-based pagination backed by a stable in-memory snapshot.
+
+
+**Signature:**
+
+```python
+def fetch_markets_paginated(params: Optional[{ limit?: number; cursor?: string }] = None) -> PaginatedMarketsResult:
+```
+
+**Parameters:**
+
+- `params` ({ limit?: number; cursor?: string }) - **Optional**: params
+  - `params.limit` - Page size (default: return all markets)
+  - `params.cursor` - Opaque cursor returned by a previous call
+
+**Returns:** [PaginatedMarketsResult](#paginatedmarketsresult) - PaginatedMarketsResult with data, total, and optional nextCursor
+
+**Example:**
+
+```python
+# No example available
+```
+
 
 ---
 ### `fetch_events`
@@ -999,6 +1026,7 @@ market_id: str # The unique identifier for this market
 title: str # 
 description: str # 
 outcomes: List[MarketOutcome] # 
+event_id: str # Link to parent event
 resolution_date: str # 
 volume24h: float # 
 volume: float # 
@@ -1106,6 +1134,24 @@ timestamp: int #
 ```
 
 ---
+### `UserTrade`
+
+
+
+```python
+@dataclass
+class UserTrade:
+id: str # 
+price: float # 
+amount: float # 
+side: str # 
+timestamp: int # 
+order_id: str # 
+outcome_id: str # 
+market_id: str # 
+```
+
+---
 ### `Order`
 
 
@@ -1173,6 +1219,19 @@ fully_filled: bool #
 ```
 
 ---
+### `PaginatedMarketsResult`
+
+
+
+```python
+@dataclass
+class PaginatedMarketsResult:
+data: List[UnifiedMarket] # 
+total: int # 
+next_cursor: str # 
+```
+
+---
 ### `ExchangeCredentials`
 
 Optional authentication credentials for exchange operations
@@ -1233,6 +1292,7 @@ similarity_threshold: float #
 @dataclass
 class EventFetchParams:
 query: str # 
+sort: str # 
 limit: int # 
 offset: int # 
 status: str # Filter by event status (default: active)
@@ -1297,6 +1357,37 @@ type: str #
 amount: float # 
 price: float # 
 fee: float # 
+```
+
+---
+### `MyTradesParams`
+
+
+
+```python
+@dataclass
+class MyTradesParams:
+outcome_id: str # Filter to specific outcome/ticker
+market_id: str # Filter to specific market
+since: str # 
+until: str # 
+limit: int # 
+cursor: str # For Kalshi cursor pagination
+```
+
+---
+### `OrderHistoryParams`
+
+
+
+```python
+@dataclass
+class OrderHistoryParams:
+market_id: str # Required for Limitless (slug)
+since: str # 
+until: str # 
+limit: int # 
+cursor: str # 
 ```
 
 ---

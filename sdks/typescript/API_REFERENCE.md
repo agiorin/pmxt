@@ -57,7 +57,7 @@ await pmxt.restartServer();
 
 ### `loadMarkets`
 
-Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`.
+How long (ms) a market snapshot created by `fetchMarketsPaginated` remains valid
 
 
 **Signature:**
@@ -122,6 +122,33 @@ const markets = await exchange.fetchMarkets({ slug: 'will-trump-win' });
 ordering — exchanges may reorder or add markets between requests. For stable iteration
 across pages, use `loadMarkets()` and paginate over `Object.values(exchange.markets)`.
 Some exchanges (like Limitless) may only support status 'active' for search results.
+
+---
+### `fetchMarketsPaginated`
+
+Fetch markets with cursor-based pagination backed by a stable in-memory snapshot.
+
+
+**Signature:**
+
+```typescript
+async fetchMarketsPaginated(params?: { limit?: number; cursor?: string }): Promise<PaginatedMarketsResult>
+```
+
+**Parameters:**
+
+- `params` ({ limit?: number; cursor?: string }) - **Optional**: params
+  - `params.limit` - Page size (default: return all markets)
+  - `params.cursor` - Opaque cursor returned by a previous call
+
+**Returns:** Promise<[PaginatedMarketsResult](#paginatedmarketsresult)> - PaginatedMarketsResult with data, total, and optional nextCursor
+
+**Example:**
+
+```typescript
+// No example available
+```
+
 
 ---
 ### `fetchEvents`
@@ -1018,6 +1045,7 @@ marketId: string; // The unique identifier for this market
 title: string; // 
 description: string; // 
 outcomes: MarketOutcome[]; // 
+eventId: string; // Link to parent event
 resolutionDate: string; // 
 volume24h: number; // 
 volume: number; // 
@@ -1126,6 +1154,24 @@ timestamp: number; //
 ```
 
 ---
+### `UserTrade`
+
+
+
+```typescript
+interface UserTrade {
+id: string; // 
+price: number; // 
+amount: number; // 
+side: string; // 
+timestamp: number; // 
+orderId: string; // 
+outcomeId: string; // 
+marketId: string; // 
+}
+```
+
+---
 ### `Order`
 
 
@@ -1193,6 +1239,19 @@ fullyFilled: boolean; //
 ```
 
 ---
+### `PaginatedMarketsResult`
+
+
+
+```typescript
+interface PaginatedMarketsResult {
+data: UnifiedMarket[]; // 
+total: number; // 
+nextCursor: string; // 
+}
+```
+
+---
 ### `ExchangeCredentials`
 
 Optional authentication credentials for exchange operations
@@ -1252,6 +1311,7 @@ similarityThreshold?: number; //
 ```typescript
 interface EventFetchParams {
 query?: string; // 
+sort?: string; // 
 limit?: number; // 
 offset?: number; // 
 status?: string; // Filter by event status (default: active)
@@ -1316,6 +1376,37 @@ type: string; //
 amount: number; // 
 price?: number; // 
 fee?: number; // 
+}
+```
+
+---
+### `MyTradesParams`
+
+
+
+```typescript
+interface MyTradesParams {
+outcomeId?: string; // Filter to specific outcome/ticker
+marketId?: string; // Filter to specific market
+since?: string; // 
+until?: string; // 
+limit?: number; // 
+cursor?: string; // For Kalshi cursor pagination
+}
+```
+
+---
+### `OrderHistoryParams`
+
+
+
+```typescript
+interface OrderHistoryParams {
+marketId?: string; // Required for Limitless (slug)
+since?: string; // 
+until?: string; // 
+limit?: number; // 
+cursor?: string; // 
 }
 ```
 

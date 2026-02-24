@@ -952,39 +952,6 @@ paths:
       description: >-
         Watch trade executions in real-time via WebSocket. Returns a promise that resolves with the next trade(s). Call
         repeatedly in a loop to stream updates (CCXT Pro pattern).
-  '/api/{exchange}/testDummyMethod':
-    post:
-      summary: Test Dummy Method
-      operationId: testDummyMethod
-      parameters:
-        - $ref: '#/components/parameters/ExchangeParam'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              title: TestDummyMethodRequest
-              type: object
-              properties:
-                args:
-                  type: array
-                  maxItems: 1
-                  items:
-                    type: string
-                credentials:
-                  $ref: '#/components/schemas/ExchangeCredentials'
-      responses:
-        '200':
-          description: Test Dummy Method response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: string
-      description: Test method for auto-generation verification.
   '/api/{exchange}/close':
     post:
       summary: Close
@@ -1011,6 +978,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+      description: >-
+        Close all WebSocket connections and clean up resources. Call this when you're done streaming to properly release
+        connections.
 components:
   parameters:
     ExchangeParam:
@@ -1069,6 +1039,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MarketOutcome'
+        eventId:
+          type: string
+          description: Link to parent event
         resolutionDate:
           type: string
           format: date-time
@@ -1356,6 +1329,12 @@ components:
       properties:
         query:
           type: string
+        sort:
+          type: string
+          enum:
+            - volume
+            - liquidity
+            - newest
         limit:
           type: integer
           default: 10000

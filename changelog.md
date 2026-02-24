@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.16.1] - 2026-02-24
+
+### Fixed
+
+- **Documentation: Automated Generator**: Fixed a bug in `generate-openapi.js` where certain model fields (like `eventId` and `sort`) were not being correctly reflected in the generated SDK documentation.
+- **SDK: Regenerated Reference Docs**: Synchronized `API_REFERENCE.md` for both Python and TypeScript to include the newly added traversal and sorting capabilities.
+
 ## [2.16.0] - 2026-02-24
 
 ### Added

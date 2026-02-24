@@ -407,6 +407,7 @@ const SCHEMAS = {
       title: { type: 'string' },
       description: { type: 'string' },
       outcomes: { type: 'array', items: { $ref: '#/components/schemas/MarketOutcome' } },
+      eventId: { type: 'string', description: 'Link to parent event' },
       resolutionDate: { type: 'string', format: 'date-time' },
       volume24h: { type: 'number' },
       volume: { type: 'number' },
@@ -599,6 +600,7 @@ const SCHEMAS = {
     type: 'object',
     properties: {
       query: { type: 'string' },
+      sort: { type: 'string', enum: ['volume', 'liquidity', 'newest'] },
       limit: { type: 'integer', default: 10000 },
       offset: { type: 'integer' },
       status: {
