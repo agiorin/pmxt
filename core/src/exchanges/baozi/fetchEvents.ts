@@ -1,5 +1,5 @@
 import { Connection } from '@solana/web3.js';
-import { EventFetchParams } from '../../BaseExchange';
+import { EventFetchParams, RequestOptions } from '../../BaseExchange';
 import { UnifiedEvent } from '../../types';
 import { fetchMarkets } from './fetchMarkets';
 import { baoziErrorMapper } from './errors';
@@ -11,6 +11,7 @@ import { baoziErrorMapper } from './errors';
 export async function fetchEvents(
     connection: Connection,
     params: EventFetchParams,
+    options?: RequestOptions,
 ): Promise<UnifiedEvent[]> {
     try {
         const markets = await fetchMarkets(connection, {
@@ -19,7 +20,7 @@ export async function fetchEvents(
             offset: params.offset,
             status: params.status,
             searchIn: params.searchIn,
-        });
+        }, options);
 
         return markets.map(m => {
             const unifiedEvent = {

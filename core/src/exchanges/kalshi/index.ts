@@ -5,6 +5,7 @@ import {
   OHLCVParams,
   TradesParams,
   ExchangeCredentials,
+  RequestOptions,
   EventFetchParams,
   MyTradesParams,
   OrderHistoryParams,
@@ -32,6 +33,11 @@ import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { kalshiApiSpec } from "./api";
 import { getKalshiConfig, KalshiApiConfig, KALSHI_PATHS } from "./config";
+import {
+  getKalshiPriceContext,
+  fromKalshiCents,
+  invertKalshiCents,
+} from "./price";
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -146,26 +152,30 @@ export class KalshiExchange extends PredictionMarketExchange {
 
   protected async fetchMarketsImpl(
     params?: MarketFilterParams,
+    options?: RequestOptions,
   ): Promise<UnifiedMarket[]> {
-    return fetchMarkets(params, this.callApi.bind(this));
+    return fetchMarkets(params, this.callApi.bind(this), options);
   }
 
   protected async fetchEventsImpl(
     params: EventFetchParams,
+    options?: RequestOptions,
   ): Promise<UnifiedEvent[]> {
-    return fetchEvents(params, this.callApi.bind(this));
+    return fetchEvents(params, this.callApi.bind(this), options);
   }
 
   async fetchOHLCV(
     id: string,
     params: OHLCVParams,
+    options?: RequestOptions,
   ): Promise<PriceCandle[]> {
-    return fetchOHLCV(id, params, this.callApi.bind(this));
+    return fetchOHLCV(id, params, this.callApi.bind(this), options);
   }
 
-  async fetchOrderBook(id: string): Promise<OrderBook> {
+  async fetchOrderBook(id: string, options?: RequestOptions): Promise<OrderBook> {
     validateIdFormat(id, "OrderBook");
 
+    const priceContext = getKalshiPriceContext(options);
     const isNoOutcome = id.endsWith("-NO");
     const ticker = id.replace(/-NO$/, "");
     const data = (await this.callApi("GetMarketOrderbook", { ticker }))
@@ -176,20 +186,20 @@ export class KalshiExchange extends PredictionMarketExchange {
 
     if (isNoOutcome) {
       bids = (data.no || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0], priceContext),
         size: level[1],
       }));
       asks = (data.yes || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100,
+        price: invertKalshiCents(level[0], priceContext),
         size: level[1],
       }));
     } else {
       bids = (data.yes || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0], priceContext),
         size: level[1],
       }));
       asks = (data.no || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100,
+        price: invertKalshiCents(level[0], priceContext),
         size: level[1],
       }));
     }
@@ -203,6 +213,7 @@ export class KalshiExchange extends PredictionMarketExchange {
   async fetchTrades(
     id: string,
     params: TradesParams | HistoryFilterParams,
+    options?: RequestOptions,
   ): Promise<Trade[]> {
     if ("resolution" in params && params.resolution !== undefined) {
       console.warn(
@@ -210,6 +221,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         "It will be removed in v3.0.0. Please remove it from your code.",
       );
     }
+    const priceContext = getKalshiPriceContext(options);
     const ticker = id.replace(/-NO$/, "");
     const data = await this.callApi("GetTrades", {
       ticker,
@@ -219,7 +231,7 @@ export class KalshiExchange extends PredictionMarketExchange {
     return trades.map((t: any) => ({
       id: t.trade_id,
       timestamp: new Date(t.created_time).getTime(),
-      price: t.yes_price / 100,
+      price: fromKalshiCents(t.yes_price, priceContext),
       amount: t.count,
       side: t.taker_side === "yes" ? "buy" : "sell",
     }));
@@ -229,10 +241,11 @@ export class KalshiExchange extends PredictionMarketExchange {
   // User Data Methods
   // ----------------------------------------------------------------------------
 
-  async fetchBalance(): Promise<Balance[]> {
+  async fetchBalance(options?: RequestOptions): Promise<Balance[]> {
     const data = await this.callApi("GetBalance");
-    const available = data.balance / 100;
-    const total = data.portfolio_value / 100;
+    const priceContext = getKalshiPriceContext(options);
+    const available = fromKalshiCents(data.balance, priceContext);
+    const total = fromKalshiCents(data.portfolio_value, priceContext);
     return [
       {
         currency: "USD",
@@ -291,12 +304,12 @@ export class KalshiExchange extends PredictionMarketExchange {
     };
   }
 
-  async fetchOrder(orderId: string): Promise<Order> {
+  async fetchOrder(orderId: string, options?: RequestOptions): Promise<Order> {
     const data = await this.callApi("GetOrder", { order_id: orderId });
-    return this.mapKalshiOrder(data.order);
+    return this.mapKalshiOrder(data.order, options);
   }
 
-  async fetchOpenOrders(marketId?: string): Promise<Order[]> {
+  async fetchOpenOrders(marketId?: string, options?: RequestOptions): Promise<Order[]> {
     const queryParams: Record<string, any> = { status: "resting" };
     if (marketId) {
       queryParams.ticker = marketId;
@@ -304,10 +317,13 @@ export class KalshiExchange extends PredictionMarketExchange {
 
     const data = await this.callApi("GetOrders", queryParams);
     const orders = data.orders || [];
-    return orders.map((order: any) => this.mapKalshiOrder(order));
+    return orders.map((order: any) => this.mapKalshiOrder(order, options));
   }
 
-  async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+  async fetchMyTrades(
+    params?: MyTradesParams,
+    options?: RequestOptions,
+  ): Promise<UserTrade[]> {
     const queryParams: Record<string, any> = {};
     if (params?.outcomeId || params?.marketId) {
       queryParams.ticker = (params.outcomeId || params.marketId)!.replace(
@@ -323,17 +339,21 @@ export class KalshiExchange extends PredictionMarketExchange {
     if (params?.cursor) queryParams.cursor = params.cursor;
 
     const data = await this.callApi("GetFills", queryParams);
+    const priceContext = getKalshiPriceContext(options);
     return (data.fills || []).map((f: any) => ({
       id: f.fill_id,
       timestamp: new Date(f.created_time).getTime(),
-      price: f.yes_price / 100,
+      price: fromKalshiCents(f.yes_price, priceContext),
       amount: f.count,
       side: f.side === "yes" ? ("buy" as const) : ("sell" as const),
       orderId: f.order_id,
     }));
   }
 
-  async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
+  async fetchClosedOrders(
+    params?: OrderHistoryParams,
+    options?: RequestOptions,
+  ): Promise<Order[]> {
     const queryParams: Record<string, any> = {};
     if (params?.marketId) queryParams.ticker = params.marketId;
     if (params?.until)
@@ -342,10 +362,13 @@ export class KalshiExchange extends PredictionMarketExchange {
     if (params?.cursor) queryParams.cursor = params.cursor;
 
     const data = await this.callApi("GetHistoricalOrders", queryParams);
-    return (data.orders || []).map((o: any) => this.mapKalshiOrder(o));
+    return (data.orders || []).map((o: any) => this.mapKalshiOrder(o, options));
   }
 
-  async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
+  async fetchAllOrders(
+    params?: OrderHistoryParams,
+    options?: RequestOptions,
+  ): Promise<Order[]> {
     const queryParams: Record<string, any> = {};
     if (params?.marketId) queryParams.ticker = params.marketId;
     if (params?.since)
@@ -370,20 +393,21 @@ export class KalshiExchange extends PredictionMarketExchange {
     ]) {
       if (!seen.has(o.order_id)) {
         seen.add(o.order_id);
-        all.push(this.mapKalshiOrder(o));
+        all.push(this.mapKalshiOrder(o, options));
       }
     }
     return all.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  async fetchPositions(): Promise<Position[]> {
+  async fetchPositions(options?: RequestOptions): Promise<Position[]> {
     const data = await this.callApi("GetPositions");
     const positions = data.market_positions || [];
 
+    const priceContext = getKalshiPriceContext(options);
     return positions.map((pos: any) => {
       const absPosition = Math.abs(pos.position);
       const entryPrice =
-        absPosition > 0 ? pos.total_cost / absPosition / 100 : 0;
+        absPosition > 0 ? fromKalshiCents(pos.total_cost, priceContext) / absPosition : 0;
 
       return {
         marketId: pos.ticker,
@@ -391,22 +415,31 @@ export class KalshiExchange extends PredictionMarketExchange {
         outcomeLabel: pos.ticker,
         size: pos.position,
         entryPrice,
-        currentPrice: pos.market_price ? pos.market_price / 100 : entryPrice,
-        unrealizedPnL: pos.market_exposure ? pos.market_exposure / 100 : 0,
-        realizedPnL: pos.realized_pnl ? pos.realized_pnl / 100 : 0,
+        currentPrice: pos.market_price
+          ? fromKalshiCents(pos.market_price, priceContext)
+          : entryPrice,
+        unrealizedPnL: pos.market_exposure
+          ? fromKalshiCents(pos.market_exposure, priceContext)
+          : 0,
+        realizedPnL: pos.realized_pnl
+          ? fromKalshiCents(pos.realized_pnl, priceContext)
+          : 0,
       };
     });
   }
 
   // Helper to map a raw Kalshi order object to a unified Order
-  private mapKalshiOrder(order: any): Order {
+  private mapKalshiOrder(order: any, options?: RequestOptions): Order {
+    const priceContext = getKalshiPriceContext(options);
     return {
       id: order.order_id,
       marketId: order.ticker,
       outcomeId: order.ticker,
       side: order.side === "yes" ? "buy" : "sell",
       type: order.type === "limit" ? "limit" : "market",
-      price: order.yes_price ? order.yes_price / 100 : undefined,
+      price: order.yes_price
+        ? fromKalshiCents(order.yes_price, priceContext)
+        : undefined,
       amount: order.count,
       status: this.mapKalshiOrderStatus(order.status),
       filled: order.count - (order.remaining_count || 0),
@@ -439,7 +472,11 @@ export class KalshiExchange extends PredictionMarketExchange {
 
   private ws?: KalshiWebSocket;
 
-  async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+  async watchOrderBook(
+    id: string,
+    limit?: number,
+    options?: RequestOptions,
+  ): Promise<OrderBook> {
     const auth = this.ensureAuth();
 
     if (!this.ws) {
@@ -452,13 +489,14 @@ export class KalshiExchange extends PredictionMarketExchange {
     }
     // Normalize ticker (strip -NO suffix if present)
     const marketTicker = id.replace(/-NO$/, "");
-    return this.ws.watchOrderBook(marketTicker);
+    return this.ws.watchOrderBook(marketTicker, options);
   }
 
   async watchTrades(
     id: string,
     since?: number,
     limit?: number,
+    options?: RequestOptions,
   ): Promise<Trade[]> {
     const auth = this.ensureAuth();
 
@@ -472,7 +510,7 @@ export class KalshiExchange extends PredictionMarketExchange {
     }
     // Normalize ticker (strip -NO suffix if present)
     const marketTicker = id.replace(/-NO$/, "");
-    return this.ws.watchTrades(marketTicker);
+    return this.ws.watchTrades(marketTicker, options);
   }
 
   async close(): Promise<void> {

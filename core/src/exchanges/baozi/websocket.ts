@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { OrderBook } from '../../types';
+import { RequestOptions } from '../../BaseExchange';
 import {
     MARKET_DISCRIMINATOR,
     RACE_MARKET_DISCRIMINATOR,
@@ -23,7 +24,11 @@ export class BaoziWebSocket {
     private orderBookResolvers = new Map<string, QueuedPromise<OrderBook>[]>();
     private subscriptions = new Map<string, number>();
 
-    async watchOrderBook(connection: Connection, outcomeId: string): Promise<OrderBook> {
+    async watchOrderBook(
+        connection: Connection,
+        outcomeId: string,
+        options?: RequestOptions,
+    ): Promise<OrderBook> {
         const marketPubkey = outcomeId.replace(/-YES$|-NO$|-\d+$/, '');
         const marketKey = new PublicKey(marketPubkey);
 
@@ -38,10 +43,10 @@ export class BaoziWebSocket {
 
                         if (Buffer.from(discriminator).equals(MARKET_DISCRIMINATOR)) {
                             const parsed = parseMarket(data);
-                            market = mapBooleanToUnified(parsed, marketPubkey);
+                            market = mapBooleanToUnified(parsed, marketPubkey, options);
                         } else if (Buffer.from(discriminator).equals(RACE_MARKET_DISCRIMINATOR)) {
                             const parsed = parseRaceMarket(data);
-                            market = mapRaceToUnified(parsed, marketPubkey);
+                            market = mapRaceToUnified(parsed, marketPubkey, options);
                         }
 
                         if (!market) return;

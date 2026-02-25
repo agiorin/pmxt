@@ -1,4 +1,4 @@
-import { EventFetchParams } from "../../BaseExchange";
+import { EventFetchParams, RequestOptions } from "../../BaseExchange";
 import { UnifiedEvent, UnifiedMarket } from "../../types";
 import { mapMarketToUnified } from "./utils";
 import { kalshiErrorMapper } from "./errors";
@@ -11,6 +11,7 @@ type CallApi = (
 async function fetchEventByTicker(
   eventTicker: string,
   callApi: CallApi,
+  options?: RequestOptions,
 ): Promise<UnifiedEvent[]> {
   const normalizedTicker = eventTicker.toUpperCase();
   const data = await callApi("GetEvent", {
@@ -24,7 +25,7 @@ async function fetchEventByTicker(
   const markets: UnifiedMarket[] = [];
   if (event.markets) {
     for (const market of event.markets) {
-      const unifiedMarket = mapMarketToUnified(event, market);
+      const unifiedMarket = mapMarketToUnified(event, market, options);
       if (unifiedMarket) {
         markets.push(unifiedMarket);
       }
@@ -46,11 +47,14 @@ async function fetchEventByTicker(
   return [unifiedEvent];
 }
 
-function rawEventToUnified(event: any): UnifiedEvent {
+function rawEventToUnified(
+  event: any,
+  options?: RequestOptions,
+): UnifiedEvent {
   const markets: UnifiedMarket[] = [];
   if (event.markets) {
     for (const market of event.markets) {
-      const unifiedMarket = mapMarketToUnified(event, market);
+      const unifiedMarket = mapMarketToUnified(event, market, options);
       if (unifiedMarket) {
         markets.push(unifiedMarket);
       }
@@ -106,16 +110,17 @@ async function fetchAllWithStatus(
 export async function fetchEvents(
   params: EventFetchParams,
   callApi: CallApi,
+  options?: RequestOptions,
 ): Promise<UnifiedEvent[]> {
   try {
     // Handle eventId lookup (direct API call)
     if (params.eventId) {
-      return await fetchEventByTicker(params.eventId, callApi);
+      return await fetchEventByTicker(params.eventId, callApi, options);
     }
 
     // Handle slug lookup (slug IS the event ticker on Kalshi)
     if (params.slug) {
-      return await fetchEventByTicker(params.slug, callApi);
+      return await fetchEventByTicker(params.slug, callApi, options);
     }
 
     const status = params?.status || "active";
@@ -152,7 +157,9 @@ export async function fetchEvents(
     const sort = params?.sort || "volume";
     const sorted = sortRawEvents(filtered, sort);
 
-    const unifiedEvents: UnifiedEvent[] = sorted.map(rawEventToUnified);
+    const unifiedEvents: UnifiedEvent[] = sorted.map((event) =>
+      rawEventToUnified(event, options),
+    );
     return unifiedEvents.slice(0, limit);
   } catch (error: any) {
     throw kalshiErrorMapper.mapError(error);
