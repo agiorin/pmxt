@@ -1,20 +1,32 @@
+import { RequestOptions } from "../../BaseExchange";
 import { UnifiedMarket, MarketOutcome, CandleInterval } from "../../types";
 import { addBinaryOutcomes } from "../../utils/market-utils";
+import {
+  getKalshiPriceContext,
+  fromKalshiCents,
+  invertKalshiUnified,
+} from "./price";
 
 export function mapMarketToUnified(
   event: any,
   market: any,
+  options?: RequestOptions,
 ): UnifiedMarket | null {
   if (!market) return null;
 
+  const priceContext = getKalshiPriceContext(options);
+
   // Calculate price
-  let price = 0.5;
+  let price = priceContext.defaultPrice;
   if (market.last_price) {
-    price = market.last_price / 100;
+    price = fromKalshiCents(market.last_price, priceContext);
   } else if (market.yes_ask && market.yes_bid) {
-    price = (market.yes_ask + market.yes_bid) / 200;
+    price =
+      (fromKalshiCents(market.yes_ask, priceContext) +
+        fromKalshiCents(market.yes_bid, priceContext)) /
+      2;
   } else if (market.yes_ask) {
-    price = market.yes_ask / 100;
+    price = fromKalshiCents(market.yes_ask, priceContext);
   }
 
   // Extract candidate name
@@ -25,7 +37,19 @@ export function mapMarketToUnified(
 
   // Calculate 24h change
   let priceChange = 0;
-  if (
+  if (priceContext.isRaw) {
+    if (
+      market.previous_price !== undefined &&
+      market.last_price !== undefined
+    ) {
+      priceChange = market.last_price - market.previous_price;
+    } else if (
+      market.previous_price_dollars !== undefined &&
+      market.last_price_dollars !== undefined
+    ) {
+      priceChange = market.last_price_dollars - market.previous_price_dollars;
+    }
+  } else if (
     market.previous_price_dollars !== undefined &&
     market.last_price_dollars !== undefined
   ) {
@@ -44,7 +68,7 @@ export function mapMarketToUnified(
       outcomeId: `${market.ticker}-NO`,
       marketId: market.ticker,
       label: candidateName ? `Not ${candidateName}` : "No",
-      price: 1 - price,
+      price: invertKalshiUnified(price, priceContext),
       priceChange24h: -priceChange, // Inverse change for No? simplified assumption
     },
   ];
