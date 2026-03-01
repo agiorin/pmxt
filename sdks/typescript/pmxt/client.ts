@@ -37,6 +37,7 @@ import {
 } from "./models.js";
 
 import { ServerManager } from "./server-manager.js";
+import { buildArgsWithOptionalOptions } from "./args.js";
 
 // Converter functions
 function convertMarket(raw: any): UnifiedMarket {
@@ -382,8 +383,7 @@ export abstract class Exchange {
     async fetchMarkets(params?: any): Promise<UnifiedMarket[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchMarkets`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -404,8 +404,7 @@ export abstract class Exchange {
     async fetchMarketsPaginated(params?: any): Promise<PaginatedMarketsResult> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchMarketsPaginated`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -430,8 +429,7 @@ export abstract class Exchange {
     async fetchEvents(params?: any): Promise<UnifiedEvent[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchEvents`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -452,8 +450,7 @@ export abstract class Exchange {
     async fetchMarket(params?: any): Promise<UnifiedMarket> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchMarket`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -474,8 +471,7 @@ export abstract class Exchange {
     async fetchEvent(params?: any): Promise<UnifiedEvent> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchEvent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -562,8 +558,7 @@ export abstract class Exchange {
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (marketId !== undefined) args.push(marketId);
+            const args = buildArgsWithOptionalOptions(marketId);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchOpenOrders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -584,8 +579,7 @@ export abstract class Exchange {
     async fetchMyTrades(params?: any): Promise<UserTrade[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchMyTrades`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -606,8 +600,7 @@ export abstract class Exchange {
     async fetchClosedOrders(params?: any): Promise<Order[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchClosedOrders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },
@@ -628,8 +621,7 @@ export abstract class Exchange {
     async fetchAllOrders(params?: any): Promise<Order[]> {
         await this.initPromise;
         try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
+            const args = buildArgsWithOptionalOptions(params);
             const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/fetchAllOrders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.config.headers },

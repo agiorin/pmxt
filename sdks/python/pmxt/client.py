@@ -1452,7 +1452,7 @@ class Exchange(ABC):
         self,
         outcome_id: Optional[str] = None,
         market_id: Optional[str] = None,
-        since: Optional[Any] = None,
+        since: Optional[Union[datetime, int, float, str]] = None,
         limit: Optional[int] = None,
         cursor: Optional[str] = None,
     ) -> List[UserTrade]:
@@ -1489,8 +1489,8 @@ class Exchange(ABC):
     def fetch_closed_orders(
         self,
         market_id: Optional[str] = None,
-        since: Optional[Any] = None,
-        until: Optional[Any] = None,
+        since: Optional[Union[datetime, int, float, str]] = None,
+        until: Optional[Union[datetime, int, float, str]] = None,
         limit: Optional[int] = None,
     ) -> List[Order]:
         """
@@ -1523,8 +1523,8 @@ class Exchange(ABC):
     def fetch_all_orders(
         self,
         market_id: Optional[str] = None,
-        since: Optional[Any] = None,
-        until: Optional[Any] = None,
+        since: Optional[Union[datetime, int, float, str]] = None,
+        until: Optional[Union[datetime, int, float, str]] = None,
         limit: Optional[int] = None,
     ) -> List[Order]:
         """

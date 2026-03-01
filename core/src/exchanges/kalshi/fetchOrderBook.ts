@@ -3,6 +3,7 @@ import { OrderBook } from "../../types";
 import { validateIdFormat } from "../../utils/validation";
 import { kalshiErrorMapper } from "./errors";
 import { getMarketsUrl } from "./config";
+import { fromKalshiCents, invertKalshiCents } from "./price";
 
 export async function fetchOrderBook(
   baseUrl: string,
@@ -31,12 +32,12 @@ export async function fetchOrderBook(
       // - Bids: people buying NO (use data.no directly)
       // - Asks: people selling NO = people buying YES (invert data.yes)
       bids = (data.no || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0]),
         size: level[1],
       }));
 
       asks = (data.yes || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100, // Invert YES price to get NO ask price
+        price: invertKalshiCents(level[0]), // Invert YES price to get NO ask price
         size: level[1],
       }));
     } else {
@@ -44,12 +45,12 @@ export async function fetchOrderBook(
       // - Bids: people buying YES (use data.yes directly)
       // - Asks: people selling YES = people buying NO (invert data.no)
       bids = (data.yes || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0]),
         size: level[1],
       }));
 
       asks = (data.no || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100, // Invert NO price to get YES ask price
+        price: invertKalshiCents(level[0]), // Invert NO price to get YES ask price
         size: level[1],
       }));
     }
