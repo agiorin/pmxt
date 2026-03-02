@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { AddressSubscriber, ActivityBuilder, WatchedEventActivity } from './watcher';
+import { AddressSubscriber, ActivityBuilder, WatchedEventActivity, AddressWatcherConfig } from './watcher';
 import { Trade } from '../types';
 
 // ----------------------------------------------------------------------------
@@ -56,6 +56,7 @@ export interface GoldSkyConfig {
     reconnectDelayMs?: number;
 }
 
+export interface GoldSkyWatcherConfig extends GoldSkyConfig, Pick<AddressWatcherConfig, "pollMs"> {}
 // ----------------------------------------------------------------------------
 // Default subscription builders
 // ----------------------------------------------------------------------------

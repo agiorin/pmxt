@@ -5,7 +5,7 @@ interface QueuedResolver {
     reject: (reason?: any) => void;
 }
 
-type FetchFn = (address: string, types: WatchedAddressOption[]) => Promise<WatchedAddressActivity>;
+export type FetchFn = (address: string, types: WatchedAddressOption[]) => Promise<WatchedAddressActivity>;
 
 /**
  * Partial activity constructed from a watched event's on-chain data.
@@ -52,10 +52,10 @@ export interface AddressSubscriber {
 }
 
 // ----------------------------------------------------------------------------
-// Options
+// Configs
 // ----------------------------------------------------------------------------
 
-export interface AddressWatcherOptions {
+export interface AddressWatcherConfig {
     /**
      * Polling interval when no GraphQl subscription is configured.
      * @default 3000
@@ -114,11 +114,11 @@ export class WatcherManager {
     private readonly subscriber?: AddressSubscriber;
     private readonly buildActivity?: ActivityBuilder;
 
-    constructor(fetchFn: FetchFn, options: AddressWatcherOptions = {}) {
+    constructor(fetchFn: FetchFn, config: AddressWatcherConfig = {}) {
         this.fetchFn = fetchFn;
-        this.pollMs = options.pollMs ?? 3000;
-        this.subscriber = options.subscriber;
-        this.buildActivity = options.buildActivity;
+        this.pollMs = config.pollMs ?? 3000;
+        this.subscriber = config.subscriber;
+        this.buildActivity = config.buildActivity;
     }
 
     /**
