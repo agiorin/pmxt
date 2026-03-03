@@ -6,18 +6,18 @@
  * which is licensed under the MIT License.
  */
 
-import { OrderBook, Trade, OrderLevel } from '../../types';
+import { OrderBook, OrderLevel, QueuedPromise, Trade, WatchedAddressActivity, WatchedAddressOption } from '../../types';
+import { GoldSkySubscriber, GoldSkyWatcherConfig } from "../../utils/goldsky";
+import { FetchFn, WatcherManager } from "../../utils/watcher";
 
-interface QueuedPromise<T> {
-    resolve: (value: T | PromiseLike<T>) => void;
-    reject: (reason?: any) => void;
-}
 
 export interface PolymarketWebSocketConfig {
     /** Reconnection check interval in milliseconds (default: 5000) */
     reconnectIntervalMs?: number;
     /** Pending subscription flush interval in milliseconds (default: 100) */
     flushIntervalMs?: number;
+    /** GoldSky subscription configurations */
+    goldSkyConfig?: GoldSkyWatcherConfig;
 }
 
 /**
@@ -26,14 +26,76 @@ export interface PolymarketWebSocketConfig {
  */
 export class PolymarketWebSocket {
     private manager: any;
+    private readonly watcher: WatcherManager;
     private orderBookResolvers = new Map<string, QueuedPromise<OrderBook>[]>();
     private tradeResolvers = new Map<string, QueuedPromise<Trade[]>[]>();
     private orderBooks = new Map<string, OrderBook>();
     private config: PolymarketWebSocketConfig;
     private initializationPromise?: Promise<void>;
 
-    constructor(config: PolymarketWebSocketConfig = {}) {
+    constructor(fetchFn: FetchFn, config: PolymarketWebSocketConfig = {}) {
         this.config = config;
+        const subscriber = this.config.goldSkyConfig ? new GoldSkySubscriber(this.config.goldSkyConfig) : undefined;
+        this.watcher = new WatcherManager(fetchFn, {
+            subscriber,
+            buildActivity: this.config.goldSkyConfig?.buildActivity,
+            pollMs: this.config.goldSkyConfig?.pollMs
+        });
+    }
+
+    async watchOrderBook(id: string): Promise<OrderBook> {
+        await this.ensureInitialized();
+
+        // Subscribe to the asset if not already subscribed
+        const currentAssets = this.manager.getAssetIds();
+        if (!currentAssets.includes(id)) {
+            await this.manager.addSubscriptions([id]);
+        }
+
+        // Return a promise that resolves on the next orderbook update
+        return new Promise<OrderBook>((resolve, reject) => {
+            if (!this.orderBookResolvers.has(id)) {
+                this.orderBookResolvers.set(id, []);
+            }
+            this.orderBookResolvers.get(id)!.push({ resolve, reject });
+        });
+    }
+
+    async watchTrades(id: string, address?: string): Promise<Trade[]> {
+        if (address) {
+            return this.watcher.watch(address, ['trades'], id);
+        }
+
+        await this.ensureInitialized();
+
+        // Subscribe to the asset if not already subscribed
+        const currentAssets = this.manager.getAssetIds();
+        if (!currentAssets.includes(id)) {
+            await this.manager.addSubscriptions([id]);
+        }
+
+        // Return a promise that resolves on the next trade
+        return new Promise<Trade[]>((resolve, reject) => {
+            if (!this.tradeResolvers.has(id)) {
+                this.tradeResolvers.set(id, []);
+            }
+            this.tradeResolvers.get(id)!.push({ resolve, reject });
+        });
+    }
+
+    async watchAddress(address: string, types: WatchedAddressOption[]): Promise<WatchedAddressActivity> {
+        return this.watcher.watch(address, types);
+    }
+
+    async unwatchAddress(address: string): Promise<void> {
+        return this.watcher.unwatch(address);
+    }
+
+    async close() {
+        if (this.manager) {
+            await this.manager.clearState();
+        }
+        this.watcher.close();
     }
 
     private async ensureInitialized() {
@@ -83,42 +145,6 @@ export class PolymarketWebSocket {
         })();
 
         return this.initializationPromise;
-    }
-
-    async watchOrderBook(id: string): Promise<OrderBook> {
-        await this.ensureInitialized();
-
-        // Subscribe to the asset if not already subscribed
-        const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(id)) {
-            await this.manager.addSubscriptions([id]);
-        }
-
-        // Return a promise that resolves on the next orderbook update
-        return new Promise<OrderBook>((resolve, reject) => {
-            if (!this.orderBookResolvers.has(id)) {
-                this.orderBookResolvers.set(id, []);
-            }
-            this.orderBookResolvers.get(id)!.push({ resolve, reject });
-        });
-    }
-
-    async watchTrades(id: string): Promise<Trade[]> {
-        await this.ensureInitialized();
-
-        // Subscribe to the asset if not already subscribed
-        const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(id)) {
-            await this.manager.addSubscriptions([id]);
-        }
-
-        // Return a promise that resolves on the next trade
-        return new Promise<Trade[]>((resolve, reject) => {
-            if (!this.tradeResolvers.has(id)) {
-                this.tradeResolvers.set(id, []);
-            }
-            this.tradeResolvers.get(id)!.push({ resolve, reject });
-        });
     }
 
     private handleBookSnapshot(event: any) {
@@ -210,12 +236,6 @@ export class PolymarketWebSocket {
         if (resolvers && resolvers.length > 0) {
             resolvers.forEach((r) => r.resolve(orderBook));
             this.orderBookResolvers.set(id, []);
-        }
-    }
-
-    async close() {
-        if (this.manager) {
-            await this.manager.clearState();
         }
     }
 }

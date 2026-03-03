@@ -1,9 +1,4 @@
-import { WatchedAddressActivity, WatchedAddressOption, Position, Balance } from '../types';
-
-interface QueuedResolver {
-    resolve: (value: WatchedAddressActivity) => void;
-    reject: (reason?: any) => void;
-}
+import { Balance, Position, QueuedPromise, Trade, WatchedAddressActivity, WatchedAddressOption } from '../types';
 
 export type FetchFn = (address: string, types: WatchedAddressOption[]) => Promise<WatchedAddressActivity>;
 
@@ -45,8 +40,10 @@ export interface AddressSubscriber {
      * cannot be set up (the watcher will fall back to polling-only on error).
      */
     subscribe(address: string, onEvent: (data: unknown) => void): Promise<void>;
+
     /** Stop receiving notifications for `address`. */
     unsubscribe(address: string): void;
+
     /** Tear down all subscriptions and close underlying connections. */
     close(): void;
 }
@@ -104,10 +101,10 @@ export interface AddressWatcherConfig {
  */
 export class WatcherManager {
     private pollTimers = new Map<string, ReturnType<typeof setInterval>>();
-    private resolvers = new Map<string, QueuedResolver[]>();
     private lastState = new Map<string, WatchedAddressActivity>();
     private watchedTypes = new Map<string, WatchedAddressOption[]>();
-    private pollingInFlight = new Set<string>();
+    private assetIdResolvers = new Map<string, QueuedPromise<Trade[]>[]>();
+    private resolvers = new Map<string, QueuedPromise<WatchedAddressActivity>[]>();
 
     private readonly pollMs: number;
     private readonly fetchFn: FetchFn;
@@ -122,13 +119,16 @@ export class WatcherManager {
     }
 
     /**
-     * Watch an address for activity changes.
+     * Watch an address for activity changes (CCXT Pro pattern).
      *
      * @param address - Public wallet address to watch
      * @param types - Subset of activity to watch
+     * @param assetId - Optional asset id to filter activity changes.
      * @returns Promise that resolves with the latest WatchedAddressActivity snapshot
      */
-    async watch(address: string, types: WatchedAddressOption[]): Promise<WatchedAddressActivity> {
+    watch(address: string, types: WatchedAddressOption[], assetId: string): Promise<Trade[]>;
+    watch(address: string, types: WatchedAddressOption[]): Promise<WatchedAddressActivity>;
+    async watch(address: string, types: WatchedAddressOption[], assetId?: string): Promise<WatchedAddressActivity | Trade[]> {
         const key = address.toLowerCase();
 
         if (!this.watchedTypes.has(key)) {
@@ -154,11 +154,26 @@ export class WatcherManager {
                 const timer = setInterval(() => this.poll(address), this.pollMs);
                 this.pollTimers.set(key, timer);
             }
+
+            if (assetId) {
+                return initial.trades?.filter(t => t.outcomeId === assetId) ?? [];
+            }
             return initial;
         }
 
-        // Refresh the set of watched types on each call as it might change across requests
-        this.watchedTypes.set(key, types);
+        // Address already watched — merge any new types into the polling set
+        const currTypes = this.watchedTypes.get(key)!;
+        this.watchedTypes.set(key, [...new Set([...currTypes, ...types])]);
+
+        if (assetId) {
+            const assetKey = `${key} ${assetId}`;
+            return new Promise<Trade[]>((resolve, reject) => {
+                if (!this.assetIdResolvers.has(assetKey)) {
+                    this.assetIdResolvers.set(assetKey, []);
+                }
+                this.assetIdResolvers.get(assetKey)!.push({ resolve, reject });
+            });
+        }
 
         return new Promise<WatchedAddressActivity>((resolve, reject) => {
             if (!this.resolvers.has(key)) {
@@ -166,6 +181,48 @@ export class WatcherManager {
             }
             this.resolvers.get(key)!.push({ resolve, reject });
         });
+    }
+
+    /**
+     * Stop watching an address, cancel its poll timer, unsubscribe from the
+     * subscriber, and reject any pending callers.
+     *
+     * @param address - Public wallet address to unwatch
+     */
+    unwatch(address: string): void {
+        const key = address.toLowerCase();
+
+        const timer = this.pollTimers.get(key);
+        if (timer) {
+            clearInterval(timer);
+            this.pollTimers.delete(key);
+        }
+
+        this.subscriber?.unsubscribe(address);
+
+        const resolvers = this.resolvers.get(key);
+        if (resolvers) {
+            resolvers.forEach(r => r.reject(new Error(`Stopped watching ${address}`)));
+            this.resolvers.delete(key);
+        }
+
+        this.lastState.delete(key);
+        this.watchedTypes.delete(key);
+
+        for (const [k, v] of this.assetIdResolvers.entries()) {
+            if (k.startsWith(`${key} `)) {
+                v.forEach((r) => r.reject(new Error(`Stopped watching ${address}`)));
+                this.assetIdResolvers.delete(k);
+            }
+        }
+    }
+
+    /** Stop all active watchers and close the underlying trigger. */
+    close(): void {
+        for (const address of [...this.watchedTypes.keys()]) {
+            this.unwatch(address);
+        }
+        this.subscriber?.close();
     }
 
     /**
@@ -184,7 +241,7 @@ export class WatcherManager {
     private async handleSubscriptionData(address: string, data: unknown): Promise<void> {
         const key = address.toLowerCase();
         const types = this.watchedTypes.get(key);
-        if (!types || this.pollingInFlight.has(key)) return;
+        if (!types) return;
 
         const lastActivity = this.lastState.get(key);
         const partial = this.buildActivity
@@ -195,8 +252,6 @@ export class WatcherManager {
             return this.poll(address);
         }
 
-        // Have a partial — fetch only the types not covered by the event data
-        this.pollingInFlight.add(key);
         try {
             const missingTypes = types.filter(t => !(t in partial)) as WatchedAddressOption[];
             let merged: WatchedAddressActivity;
@@ -217,10 +272,9 @@ export class WatcherManager {
                     resolvers.forEach(r => r.resolve(merged));
                     this.resolvers.set(key, []);
                 }
+                this.dispatchAssetResolvers(key, merged);
             }
         } catch {
-        } finally {
-            this.pollingInFlight.delete(key);
         }
     }
 
@@ -236,9 +290,6 @@ export class WatcherManager {
         const types = this.watchedTypes.get(key);
         if (!types) return;
 
-        if (this.pollingInFlight.has(key)) return;
-        this.pollingInFlight.add(key);
-
         try {
             const current = await this.fetchFn(address, types);
             const last = this.lastState.get(key);
@@ -250,10 +301,21 @@ export class WatcherManager {
                     resolvers.forEach(r => r.resolve(current));
                     this.resolvers.set(key, []);
                 }
+                this.dispatchAssetResolvers(key, current);
             }
         } catch {
-        } finally {
-            this.pollingInFlight.delete(key);
+        }
+    }
+
+    private dispatchAssetResolvers(addrKey: string, activity: WatchedAddressActivity): void {
+        for (const [assetKey, resolvers] of this.assetIdResolvers) {
+            if (!assetKey.startsWith(`${addrKey} `) || !resolvers.length) continue;
+            const assetId = assetKey.slice(addrKey.length + 1);
+            const matching = (activity.trades ?? []).filter(t => t.outcomeId === assetId);
+            if (matching.length > 0) {
+                resolvers.forEach(r => r.resolve(matching));
+                this.assetIdResolvers.set(assetKey, []);
+            }
         }
     }
 
@@ -295,41 +357,5 @@ export class WatcherManager {
         }
 
         return false;
-    }
-
-    /**
-     * Stop watching an address, cancel its poll timer, unsubscribe from the
-     * subscriber, and reject any pending callers.
-     *
-     * @param address - Public wallet address to unwatch
-     */
-    unwatch(address: string): void {
-        const key = address.toLowerCase();
-
-        const timer = this.pollTimers.get(key);
-        if (timer) {
-            clearInterval(timer);
-            this.pollTimers.delete(key);
-        }
-
-        this.subscriber?.unsubscribe(address);
-
-        const resolvers = this.resolvers.get(key);
-        if (resolvers) {
-            resolvers.forEach(r => r.reject(new Error(`Stopped watching ${address}`)));
-            this.resolvers.delete(key);
-        }
-
-        this.lastState.delete(key);
-        this.watchedTypes.delete(key);
-        this.pollingInFlight.delete(key);
-    }
-
-    /** Stop all active watchers and close the underlying trigger. */
-    close(): void {
-        for (const address of [...this.pollTimers.keys()]) {
-            this.unwatch(address);
-        }
-        this.subscriber?.close();
     }
 }
