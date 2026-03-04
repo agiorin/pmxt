@@ -662,6 +662,32 @@ const SCHEMAS = {
       fee: { type: 'number' },
     },
   },
+  BuiltOrder: {
+    type: 'object',
+    description: 'An order built but not yet submitted, ready for inspection or middleware forwarding',
+    properties: {
+      exchange: { type: 'string', description: 'The exchange name this order was built for' },
+      params: { $ref: '#/components/schemas/CreateOrderParams' },
+      signedOrder: {
+        type: 'object',
+        additionalProperties: true,
+        description: 'For CLOB exchanges (Polymarket): the EIP-712 signed order ready to POST',
+      },
+      tx: {
+        type: 'object',
+        description: 'For on-chain AMM exchanges: the EVM transaction payload (reserved for future use)',
+        properties: {
+          to: { type: 'string' },
+          data: { type: 'string' },
+          value: { type: 'string' },
+          chainId: { type: 'integer' },
+        },
+      },
+      raw: {
+        description: 'The raw, exchange-native payload. Always present.',
+      },
+    },
+  },
   MyTradesParams: {
     type: 'object',
     properties: {

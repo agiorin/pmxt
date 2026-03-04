@@ -163,7 +163,7 @@ def fetch_events(params: Optional[EventFetchParams] = None) -> List[UnifiedEvent
 **Parameters:**
 
 - `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Optional parameters for search and filtering
-  - `params.query` - Search keyword to filter events (required)
+  - `params.query` - Search keyword to filter events. If omitted, returns top events by volume.
   - `params.limit` - Maximum number of results
   - `params.offset` - Pagination offset
   - `params.search_in` - Where to search ('title' | 'description' | 'both')
@@ -243,13 +243,13 @@ Fetch historical OHLCV (candlestick) price data for a specific market outcome.
 **Signature:**
 
 ```python
-def fetch_ohlcv(id: str, params: OHLCVParams | HistoryFilterParams) -> List[PriceCandle]:
+def fetch_ohlcv(id: str, params: OHLCVParams) -> List[PriceCandle]:
 ```
 
 **Parameters:**
 
 - `id` (str): The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
-- `params` (OHLCVParams | HistoryFilterParams): OHLCV parameters including resolution (required)
+- `params` ([OHLCVParams](#ohlcvparams)): OHLCV parameters including resolution (required)
 
 **Returns:** List[[PriceCandle](#pricecandle)] - Array of price candles
 
@@ -368,6 +368,69 @@ order = exchange.create_order(
     type='market',
     amount=5
 )
+```
+
+
+---
+### `build_order`
+
+Build an order payload without submitting it to the exchange.
+
+
+**Signature:**
+
+```python
+def build_order(params: CreateOrderParams) -> BuiltOrder:
+```
+
+**Parameters:**
+
+- `params` ([CreateOrderParams](#createorderparams)): Order parameters (same as createOrder)
+
+**Returns:** [BuiltOrder](#builtorder) - A BuiltOrder containing the exchange-native payload
+
+**Example:**
+
+```python
+# Build then submit a Polymarket order
+built = exchange.build_order(
+    market_id=market.market_id,
+    outcome_id=market.yes.outcome_id,
+    side='buy',
+    type='limit',
+    amount=10,
+    price=0.55
+)
+print(built.signed_order)
+order = exchange.submit_order(built)
+```
+
+
+---
+### `submit_order`
+
+Submit a pre-built order returned by buildOrder().
+
+
+**Signature:**
+
+```python
+def submit_order(built: BuiltOrder) -> Order:
+```
+
+**Parameters:**
+
+- `built` ([BuiltOrder](#builtorder)): A BuiltOrder from buildOrder()
+
+**Returns:** [Order](#order) - The submitted order
+
+**Example:**
+
+```python
+# Submit a pre-built order
+built = exchange.build_order(params)
+order = exchange.submit_order(built)
+print(f"Order {order.id}: {order.status}")
 ```
 
 
@@ -1229,6 +1292,21 @@ class PaginatedMarketsResult:
 data: List[UnifiedMarket] # 
 total: int # 
 next_cursor: str # 
+```
+
+---
+### `BuiltOrder`
+
+An order built but not yet submitted, ready for inspection or middleware forwarding
+
+```python
+@dataclass
+class BuiltOrder:
+exchange: str # The exchange name this order was built for
+params: CreateOrderParams # 
+signed_order: object # For CLOB exchanges (Polymarket): the EIP-712 signed order ready to POST
+tx: object # For on-chain AMM exchanges: the EVM transaction payload (reserved for future use)
+raw: Any # The raw, exchange-native payload. Always present.
 ```
 
 ---
