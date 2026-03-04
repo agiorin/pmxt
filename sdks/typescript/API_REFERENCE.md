@@ -55,9 +55,34 @@ await pmxt.restartServer();
 
 ## Methods
 
-### `loadMarkets`
+### `implicitApi`
 
 How long (ms) a market snapshot created by `fetchMarketsPaginated` remains valid
+
+
+**Signature:**
+
+```typescript
+async implicitApi(): Promise<ImplicitApiMethodInfo[]>
+```
+
+**Parameters:**
+
+- None
+
+**Returns:** Promise<ImplicitApiMethodInfo[]> - Result
+
+**Example:**
+
+```typescript
+// No example available
+```
+
+
+---
+### `loadMarkets`
+
+Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`.
 
 
 **Signature:**
@@ -165,7 +190,7 @@ async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]>
 **Parameters:**
 
 - `params` ([EventFetchParams](#eventfetchparams)) - **Optional**: Optional parameters for search and filtering
-  - `params.query` - Search keyword to filter events (required)
+  - `params.query` - Search keyword to filter events. If omitted, returns top events by volume.
   - `params.limit` - Maximum number of results
   - `params.offset` - Pagination offset
   - `params.searchIn` - Where to search ('title' | 'description' | 'both')
@@ -248,13 +273,13 @@ Fetch historical OHLCV (candlestick) price data for a specific market outcome.
 **Signature:**
 
 ```typescript
-async fetchOHLCV(id: string, params: OHLCVParams | HistoryFilterParams): Promise<PriceCandle[]>
+async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]>
 ```
 
 **Parameters:**
 
 - `id` (string): The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
-- `params` (OHLCVParams | HistoryFilterParams): OHLCV parameters including resolution (required)
+- `params` ([OHLCVParams](#ohlcvparams)): OHLCV parameters including resolution (required)
 
 **Returns:** Promise<[PriceCandle](#pricecandle)[]> - Array of price candles
 
@@ -475,12 +500,12 @@ Fetch current user positions across all markets.
 **Signature:**
 
 ```typescript
-async fetchPositions(): Promise<Position[]>
+async fetchPositions(address?: string): Promise<Position[]>
 ```
 
 **Parameters:**
 
-- None
+- `address` (string) - **Optional**: Optional public wallet address
 
 **Returns:** Promise<[Position](#position)[]> - Array of user positions
 
@@ -505,12 +530,12 @@ Fetch account balances.
 **Signature:**
 
 ```typescript
-async fetchBalance(): Promise<Balance[]>
+async fetchBalance(address?: string): Promise<Balance[]>
 ```
 
 **Parameters:**
 
-- None
+- `address` (string) - **Optional**: Optional public wallet address
 
 **Returns:** Promise<[Balance](#balance)[]> - Array of account balances
 
@@ -693,12 +718,13 @@ Watch trade executions in real-time via WebSocket.
 **Signature:**
 
 ```typescript
-async watchTrades(id: string, since?: number, limit?: number): Promise<Trade[]>
+async watchTrades(id: string, address?: string, since?: number, limit?: number): Promise<Trade[]>
 ```
 
 **Parameters:**
 
 - `id` (string): The Outcome ID to watch
+- `address` (string) - **Optional**: Public wallet address
 - `since` (number) - **Optional**: Optional timestamp to filter trades from
 - `limit` (number) - **Optional**: Optional limit for number of trades
 
@@ -714,6 +740,62 @@ while (true) {
     console.log(`${trade.side} ${trade.amount} @ ${trade.price}`);
   }
 }
+```
+
+
+---
+### `watchAddress`
+
+Stream activity for a public wallet address
+
+
+**Signature:**
+
+```typescript
+async watchAddress(address: string, types?: SubscriptionOption[]): Promise<SubscribedAddressSnapshot>
+```
+
+**Parameters:**
+
+- `address` (string): Public wallet address to watch
+- `types` (SubscriptionOption[]) - **Optional**: Subset of activity to watch (default: all types)
+
+**Returns:** Promise<SubscribedAddressSnapshot> - Promise that resolves with the latest SubscribedAddressSnapshot snapshot
+
+**Example:**
+
+```typescript
+// Stream wallet activity
+while (true) {
+  const activity = await exchange.watchAddress('0xabc...', ['trades', 'positions']);
+  console.log(activity.trades, activity.positions);
+}
+```
+
+
+---
+### `unwatchAddress`
+
+Stop watching a previously registered wallet address and release its resource updates.
+
+
+**Signature:**
+
+```typescript
+async unwatchAddress(address: string): Promise<void>
+```
+
+**Parameters:**
+
+- `address` (string): Public wallet address to stop watching
+
+**Returns:** Promise<void> - Result
+
+**Example:**
+
+```typescript
+// Stop watching
+await exchange.unwatchAddress('0xabc...');
 ```
 
 
@@ -740,31 +822,6 @@ async close(): Promise<void>
 ```typescript
 // Close connections
 await exchange.close();
-```
-
-
----
-### `implicitApi`
-
-Introspection getter: returns info about all implicit API methods.
-
-
-**Signature:**
-
-```typescript
-async implicitApi(): Promise<ImplicitApiMethodInfo[]>
-```
-
-**Parameters:**
-
-- None
-
-**Returns:** Promise<ImplicitApiMethodInfo[]> - Result
-
-**Example:**
-
-```typescript
-// No example available
 ```
 
 
