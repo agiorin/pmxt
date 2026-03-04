@@ -12,11 +12,9 @@ import {
     TradesParams,
 } from '../../BaseExchange';
 import { AuthenticationError } from '../../errors';
-import {
-    buildLimitlessBalanceActivity,
-    LIMITLESS_DEFAULT_SUBSCRIPTION,
-    WatcherConfig
-} from '../../subscriber/external/goldsky';
+import { SubscribedAddressSnapshot, SubscriptionOption } from "../../subscriber/base";
+import { buildLimitlessBalanceActivity, LIMITLESS_DEFAULT_SUBSCRIPTION, } from '../../subscriber/external/goldsky';
+import { WatcherConfig } from '../../subscriber/watcher';
 import {
     Balance,
     CreateOrderParams,
@@ -24,8 +22,6 @@ import {
     OrderBook,
     Position,
     PriceCandle,
-    SubscribedAddressSnapshot,
-    SubscriptionOption,
     Trade,
     UnifiedEvent,
     UnifiedMarket,

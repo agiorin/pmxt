@@ -11,6 +11,7 @@ import {
     TradesParams
 } from '../../BaseExchange';
 import { AuthenticationError } from '../../errors';
+import { SubscribedAddressSnapshot, SubscriptionOption } from "../../subscriber/base";
 import {
     buildPolymarketTradesActivity,
     POLYMARKET_DEFAULT_SUBSCRIPTION,
@@ -24,8 +25,6 @@ import {
     OrderBook,
     Position,
     PriceCandle,
-    SubscribedAddressSnapshot,
-    SubscriptionOption,
     Trade,
     UnifiedEvent,
     UnifiedMarket,
