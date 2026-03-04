@@ -77,6 +77,8 @@ export class BaoziExchange extends PredictionMarketExchange {
         fetchMyTrades: false as const,
         fetchClosedOrders: false as const,
         fetchAllOrders: false as const,
+        buildOrder: false as const,
+        submitOrder: false as const,
     };
 
     private auth?: BaoziAuth;
