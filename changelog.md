@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.19.0] - 2026-03-04
+
+### Added
+
+- **Build-Only Order Mode**: Introduced `buildOrder()` and `submitOrder()` methods enabling a two-step order workflow. This allows integrators (e.g., Smart Order Routers) to build exchange-native order payloads, inspect or forward them through middleware, then submit them later without reconstructing parameters.
+  - **New Type**: `BuiltOrder` interface containing the exchange name, original params, and exchange-native payload (with optional `signedOrder` for CLOB exchanges and reserved `tx` field for future on-chain exchanges).
+  - **New Methods**: `buildOrder(params)` constructs the order without submitting; `submitOrder(built)` submits a pre-built order.
+  - **Capability Flags**: Both methods exposed in `exchange.has` (e.g., `exchange.has.buildOrder`, `exchange.has.submitOrder`).
+  - **Polymarket Support**: `buildOrder` uses the CLOB client's `createOrder()` method to sign the order; `submitOrder` uses `postOrder()` to submit the signed payload. Refactored `createOrder` to delegate to both for backwards compatibility.
+  - **Kalshi Support**: `buildOrder` constructs the request body without making an HTTP call; `submitOrder` POSTs the pre-built body to the CreateOrder endpoint. Refactored `createOrder` to maintain compatibility.
+  - **Limitless**: Not yet supported (`buildOrder: false`), as the SDK lacks a distinct build-without-submit pattern.
+
+### Changed
+
+- **OpenAPI Auto-generation**: Updated the OpenAPI generator to recognize the new `BuiltOrder` type and auto-generate corresponding REST endpoints for `buildOrder` and `submitOrder`.
+
 ## [2.18.1] - 2026-02-28
 
 ### Fixed
