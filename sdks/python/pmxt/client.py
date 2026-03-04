@@ -41,6 +41,7 @@ from .models import (
     MarketFilterFunction,
     EventFilterCriteria,
     EventFilterFunction,
+    SubscribedAddressSnapshot,
 )
 from .server_manager import ServerManager
 
@@ -207,6 +208,17 @@ def _convert_execution_result(raw: Dict[str, Any]) -> ExecutionPriceResult:
         price=raw.get("price", 0),
         filled_amount=raw.get("filledAmount", 0),
         fully_filled=raw.get("fullyFilled", False),
+    )
+
+
+def _convert_subscription_snapshot(raw: Dict[str, Any]) -> SubscribedAddressSnapshot:
+    """Convert raw API response to SubscribedAddressSnapshot."""
+    return SubscribedAddressSnapshot(
+        address=raw.get("address"),
+        trades=raw.get("trades"),
+        positions=raw.get("positions"),
+        balances=raw.get("balances"),
+        timestamp=raw.get("timestamp"),
     )
 
 
@@ -1113,6 +1125,7 @@ class Exchange(ABC):
     def watch_trades(
         self,
         outcome_id: str,
+        address: Optional[str] = None,
         since: Optional[int] = None,
         limit: Optional[int] = None
     ) -> List[Trade]:
@@ -1124,6 +1137,7 @@ class Exchange(ABC):
         
         Args:
             outcome_id: Outcome ID to watch
+            address: Public wallet to be watched
             since: Optional timestamp to filter trades from
             limit: Optional limit for number of trades
             
@@ -1139,6 +1153,8 @@ class Exchange(ABC):
         """
         try:
             args = [outcome_id]
+            if address is not None:
+                args.append(address)
             if since is not None:
                 args.append(since)
             if limit is not None:
@@ -1162,6 +1178,90 @@ class Exchange(ABC):
             return [_convert_trade(t) for t in data]
         except ApiException as e:
             raise Exception(f"Failed to watch trades: {self._extract_api_error(e)}") from None
+
+    def watch_address(
+        self,
+        address: str,
+        types: list[str] = None,
+    ) -> SubscribedAddressSnapshot:
+        """
+        Watch real-time updates of a public wallet via WebSocket.
+
+        Returns a promise that resolves with the next update(s).
+        Call repeatedly in a loop to stream updates (CCXT Pro pattern).
+
+        Args:
+            address: Public wallet to be watched
+            types: Subscription options including 'trades', 'positions', and 'balances'
+
+        Returns:
+            Next update(s)
+
+        Example:
+            >>> # Stream updates of a public wallet address
+            >>> while True:
+            ...     snapshots = exchange.watch_address(address, types)
+            ...     for snapshot in snapshots:
+            ...         print(f"Trade: {snapshot.trades}")
+        """
+        try:
+            args = [address]
+            if types is not None:
+                args.append(types)
+
+            body_dict = {"args": args}
+
+            # Add credentials if available
+            creds = self._get_credentials_dict()
+            if creds:
+                body_dict["credentials"] = creds
+
+            request_body = internal_models.WatchAddressRequest.from_dict(body_dict)
+
+            response = self._api.watch_address(
+                exchange=self.exchange_name,
+                watch_address_request=request_body,
+            )
+
+            data = self._handle_response(response.to_dict())
+            return _convert_subscription_snapshot(data)
+        except ApiException as e:
+            raise Exception(f"Failed to watch address: {self._extract_api_error(e)}") from None
+
+   def unwatch_address(
+       self,
+       address: str,
+   ) -> None:
+       """
+       Stop watching a previously registered wallet address and release its resource updates.
+
+       Args:
+           address: Public wallet to be unwatched
+
+       Returns:
+           None
+       """
+       try:
+           args = [address]
+
+           body_dict = {"args": args}
+
+           # Add credentials if available
+           creds = self._get_credentials_dict()
+           if creds:
+               body_dict["credentials"] = creds
+
+           request_body = internal_models.UnwatchAddressRequest.from_dict(body_dict)
+
+           response = self._api.unwatch_address(
+               exchange=self.exchange_name,
+               unwatch_address_request=request_body,
+           )
+
+           data = self._handle_response(response.to_dict())
+           return data
+       except ApiException as e:
+           raise Exception(f"Failed to unwatch address: {self._extract_api_error(e)}") from None
 
     def watch_prices(self, market_address: str, callback: Optional[Any] = None) -> Any:
         """
@@ -1591,15 +1691,20 @@ class Exchange(ABC):
 
     # Account Methods
 
-    def fetch_positions(self) -> List[Position]:
+    def fetch_positions(self, address: Optional[str] = None) -> List[Position]:
         """
         Get current positions across all markets.
+
+        Args:
+            address: Public wallet address
         
         Returns:
             List of positions
         """
         try:
-            body_dict = {"args": []}
+            args = [address] if address is not None else []
+
+            body_dict = {"args": args}
             
             # Add credentials if available
             creds = self._get_credentials_dict()
@@ -1618,15 +1723,20 @@ class Exchange(ABC):
         except ApiException as e:
             raise Exception(f"Failed to fetch positions: {self._extract_api_error(e)}") from None
     
-    def fetch_balance(self) -> List[Balance]:
+    def fetch_balance(self, address: Optional[str] = None) -> List[Balance]:
         """
         Get account balance.
+
+        Args:
+            address: Public wallet address
         
         Returns:
             List of balances (by currency)
         """
         try:
-            body_dict = {"args": []}
+            args = [address] if address is not None else []
+
+            body_dict = {"args": args}
             
             # Add credentials if available
             creds = self._get_credentials_dict()
