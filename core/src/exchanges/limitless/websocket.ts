@@ -71,16 +71,15 @@ export class LimitlessWebSocket {
         this.setupEventHandlers();
 
         const watcherConfig = this.config.watcherConfig
-        const subscriber = watcherConfig ? new GoldSkySubscriber({
+        const subscriber = new GoldSkySubscriber({
             ...watcherConfig,
             buildSubscription: LIMITLESS_DEFAULT_SUBSCRIPTION,
-        }) : undefined;
+        });
         this.watcher = new AddressWatcher(
             (address, types) => this.callApi("fetchWatchedAddressActivity", { address, types }),
             {
                 subscriber,
                 buildActivity: buildLimitlessBalanceActivity,
-                pollMs: watcherConfig?.pollMs
             }
         );
     }

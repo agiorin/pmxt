@@ -12,8 +12,8 @@ import {
     TradesParams,
 } from '../../BaseExchange';
 import { AuthenticationError } from '../../errors';
-import { SubscribedAddressSnapshot, SubscriptionOption } from "../../subscriber/base";
-import { buildLimitlessBalanceActivity, LIMITLESS_DEFAULT_SUBSCRIPTION, } from '../../subscriber/external/goldsky';
+import { SubscribedAddressSnapshot, SubscriptionOption } from '../../subscriber/base';
+import { buildLimitlessBalanceActivity, LIMITLESS_DEFAULT_SUBSCRIPTION } from '../../subscriber/external/goldsky';
 import { WatcherConfig } from '../../subscriber/watcher';
 import {
     Balance,
@@ -557,10 +557,13 @@ export class LimitlessExchange extends PredictionMarketExchange {
      * Fetch a composite activity snapshot for a Base-chain address from the Limitless
      * public portfolio API and Base RPC. Used internally by the BaseSubscriber polling loop.
      */
-    private async fetchWatchedAddressActivity(
+    private async fetchWatchedAddressActivity(params: {
         address: string,
         types: SubscriptionOption[],
-    ): Promise<SubscribedAddressSnapshot> {
+    }): Promise<SubscribedAddressSnapshot> {
+        const address = params.address;
+        const types = params.types;
+
         const result: SubscribedAddressSnapshot = { address, timestamp: Date.now() };
         const fetches: Promise<void>[] = [];
 
@@ -577,7 +580,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
                     })
                     .catch(() => {
                         result.positions = [];
-                    }),
+                    })
             );
         }
 
@@ -585,7 +588,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             fetches.push(
                 this.getAddressOnChainBalance(address)
                     .then((balances) => {
-                        result.balances = balances
+                        result.balances = balances;
                     })
                     .catch(() => {
                         result.balances = [];

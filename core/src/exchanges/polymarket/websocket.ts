@@ -6,13 +6,13 @@
  * which is licensed under the MIT License.
  */
 
-import { SubscribedAddressSnapshot, SubscriptionOption } from "../../subscriber/base";
+import { SubscribedAddressSnapshot, SubscriptionOption } from '../../subscriber/base';
 import {
-    buildPolymarketTradesActivity,
+    buildPolymarketActivity,
     GoldSkySubscriber,
-    POLYMARKET_TRADES_SUBSCRIPTION
-} from "../../subscriber/external/goldsky";
-import { AddressWatcher, FetchFn, WatcherConfig } from "../../subscriber/watcher";
+    POLYMARKET_DEFAULT_SUBSCRIPTION
+} from '../../subscriber/external/goldsky';
+import { AddressWatcher, WatcherConfig } from '../../subscriber/watcher';
 import { OrderBook, OrderLevel, QueuedPromise, Trade } from '../../types';
 
 
@@ -38,18 +38,20 @@ export class PolymarketWebSocket {
     private config: PolymarketWebSocketConfig;
     private initializationPromise?: Promise<void>;
 
-    constructor(fetchFn: FetchFn, config: PolymarketWebSocketConfig = {}) {
+    constructor(callApi: (operationId: string, params?: Record<string, any>) => Promise<any>, config: PolymarketWebSocketConfig = {}) {
         this.config = config;
         const watcherConfig = this.config.watcherConfig;
-        const subscriber = watcherConfig ? new GoldSkySubscriber({
+        const subscriber = new GoldSkySubscriber({
             ...watcherConfig,
-            buildSubscription: POLYMARKET_TRADES_SUBSCRIPTION,
-        }) : undefined;
-        this.watcher = new AddressWatcher(fetchFn, {
-            subscriber,
-            buildActivity: buildPolymarketTradesActivity,
-            pollMs: watcherConfig?.pollMs
+            buildSubscription: POLYMARKET_DEFAULT_SUBSCRIPTION
         });
+        this.watcher = new AddressWatcher(
+            (address, types) => callApi('fetchWatchedAddressActivity', { address, types }),
+            {
+                subscriber,
+                buildActivity: buildPolymarketActivity
+            }
+        );
     }
 
     async watchOrderBook(id: string): Promise<OrderBook> {
@@ -134,11 +136,11 @@ export class PolymarketWebSocket {
                         },
                         onError: async (error: Error) => {
                             console.error('Polymarket WebSocket error:', error.message);
-                        },
+                        }
                     },
                     {
                         reconnectAndCleanupIntervalMs: this.config.reconnectIntervalMs ?? 5000,
-                        pendingFlushIntervalMs: this.config.flushIntervalMs ?? 100,
+                        pendingFlushIntervalMs: this.config.flushIntervalMs ?? 100
                     }
                 );
             } catch (e) {
@@ -161,18 +163,18 @@ export class PolymarketWebSocket {
 
         const bids: OrderLevel[] = event.bids.map((b: any) => ({
             price: parseFloat(b.price),
-            size: parseFloat(b.size),
+            size: parseFloat(b.size)
         })).sort((a: any, b: any) => b.price - a.price);
 
         const asks: OrderLevel[] = event.asks.map((a: any) => ({
             price: parseFloat(a.price),
-            size: parseFloat(a.size),
+            size: parseFloat(a.size)
         })).sort((a: any, b: any) => a.price - b.price);
 
         const orderBook: OrderBook = {
             bids,
             asks,
-            timestamp: event.timestamp ? (isNaN(Number(event.timestamp)) ? new Date(event.timestamp).getTime() : Number(event.timestamp)) : Date.now(),
+            timestamp: event.timestamp ? (isNaN(Number(event.timestamp)) ? new Date(event.timestamp).getTime() : Number(event.timestamp)) : Date.now()
         };
 
         this.orderBooks.set(id, orderBook);
@@ -230,7 +232,7 @@ export class PolymarketWebSocket {
             timestamp: event.timestamp ? (isNaN(Number(event.timestamp)) ? new Date(event.timestamp).getTime() : Number(event.timestamp)) : Date.now(),
             price: parseFloat(event.price),
             amount: parseFloat(event.size),
-            side: event.side.toLowerCase() as 'buy' | 'sell' | 'unknown',
+            side: event.side.toLowerCase() as 'buy' | 'sell' | 'unknown'
         };
 
         const resolvers = this.tradeResolvers.get(id);

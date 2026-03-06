@@ -8,15 +8,11 @@ import {
     MyTradesParams,
     OHLCVParams,
     PredictionMarketExchange,
-    TradesParams
+    TradesParams,
 } from '../../BaseExchange';
 import { AuthenticationError } from '../../errors';
-import { SubscribedAddressSnapshot, SubscriptionOption } from "../../subscriber/base";
-import {
-    buildPolymarketTradesActivity,
-    POLYMARKET_DEFAULT_SUBSCRIPTION,
-    POLYMARKET_TRADES_SUBSCRIPTION
-} from '../../subscriber/external/goldsky';
+import { SubscribedAddressSnapshot, SubscriptionOption } from '../../subscriber/base';
+import { buildPolymarketTradesActivity, POLYMARKET_DEFAULT_SUBSCRIPTION } from '../../subscriber/external/goldsky';
 import { WatcherConfig } from '../../subscriber/watcher';
 import {
     Balance,
@@ -28,7 +24,7 @@ import {
     Trade,
     UnifiedEvent,
     UnifiedMarket,
-    UserTrade
+    UserTrade,
 } from '../../types';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { polymarketClobSpec } from './api-clob';
@@ -46,7 +42,7 @@ import { PolymarketWebSocket, PolymarketWebSocketConfig } from './websocket';
 
 // Re-export for external use
 export type { PolymarketWebSocketConfig, WatcherConfig };
-export { POLYMARKET_DEFAULT_SUBSCRIPTION, POLYMARKET_TRADES_SUBSCRIPTION, buildPolymarketTradesActivity };
+export { POLYMARKET_DEFAULT_SUBSCRIPTION, buildPolymarketTradesActivity };
 
 export interface PolymarketExchangeOptions {
     credentials?: ExchangeCredentials;
@@ -504,7 +500,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
             throw new AuthenticationError(
                 'API credentials not initialized. Either provide apiKey/apiSecret/passphrase ' +
                 'in credentials, or call initAuth() before using private implicit API endpoints.',
-                'Polymarket'
+                'Polymarket',
             );
         }
 
@@ -583,7 +579,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
             throw new AuthenticationError(
                 'Trading operations require authentication. ' +
                 'Initialize PolymarketExchange with credentials: new PolymarketExchange({ privateKey: "0x..." })',
-                'Polymarket'
+                'Polymarket',
             );
         }
         return this.auth;
@@ -592,6 +588,10 @@ export class PolymarketExchange extends PredictionMarketExchange {
     /** Fetch on-chain USDC balance on Polygon for any address without requiring credentials. */
     private async getAddressOnChainBalance(address: string): Promise<Balance[]> {
         const { ethers } = require('ethers');
+
+        if (!ethers.utils.isAddress(address)) {
+            throw new Error(`Invalid address: ${address}`);
+        }
         const provider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com');
         const usdcAddress = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC.e (Bridged)
         const usdcAbi = [
@@ -607,18 +607,18 @@ export class PolymarketExchange extends PredictionMarketExchange {
 
     private ensureWs(): PolymarketWebSocket {
         if (!this.ws) {
-            this.ws = new PolymarketWebSocket(
-                (addr, t) => this.fetchWatchedAddressActivity(addr, t),
-                this.wsConfig,
-            );
+            this.ws = new PolymarketWebSocket(this.callApi.bind(this), this.wsConfig);
         }
         return this.ws;
     }
 
-    private async fetchWatchedAddressActivity(
+    private async fetchWatchedAddressActivity(params: {
         address: string,
-        types: SubscriptionOption[],
-    ): Promise<SubscribedAddressSnapshot> {
+        types: SubscriptionOption[]
+    }): Promise<SubscribedAddressSnapshot> {
+        const address = params.address;
+        const types = params.types;
+
         const result: SubscribedAddressSnapshot = { address, timestamp: Date.now() };
         const fetches: Promise<void>[] = [];
 
