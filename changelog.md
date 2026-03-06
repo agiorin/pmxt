@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [2.19.4] - 2026-03-06
 
+### Added
+
+- **Python SDK Auto-Generation**: Added a reflection script (`sdks/python/scripts/generate-client-methods.js`) to automatically generate Python SDK client methods directly from the TypeScript `BaseExchange.ts` AST. This completely eliminates API structure drift between the TypeScript core and the Python client, ensuring new methods and parameter changes immediately reflect in Python. Added a CI guard (`python-client-check.yml`) to enforce synchronization on all Pull Requests.
+
 ### Fixed
 
 - **Compliance Tests: Resilient Exchange Availability Checks**: Compliance tests no longer fail when an exchange's API is temporarily unavailable (e.g., Myriad returning a Heroku 503 error page). Previously, any `ExchangeNotAvailable` or `NetworkError` exception would propagate as a test failure, making CI fragile against external service outages. A new `isSkippableError(error)` helper in `core/test/compliance/shared.ts` returns `true` for these error types (plus the existing "not implemented" and "not supported" string checks), and all 18 compliance test files now call it uniformly instead of ad-hoc string comparisons. Tests now log a skip message and return instead of failing.
