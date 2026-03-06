@@ -460,9 +460,11 @@ class Exchange(ABC):
 
     # BEGIN GENERATED METHODS
 
-    def fetch_markets(self, params: Optional[dict] = None) -> List[UnifiedMarket]:
+    def fetch_markets(self, params: Optional[dict] = None, **kwargs) -> List[UnifiedMarket]:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -479,9 +481,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_markets: {self._extract_api_error(e)}") from None
 
-    def fetch_markets_paginated(self, params: Optional[dict] = None) -> PaginatedMarketsResult:
+    def fetch_markets_paginated(self, params: Optional[dict] = None, **kwargs) -> PaginatedMarketsResult:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -502,9 +506,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_markets_paginated: {self._extract_api_error(e)}") from None
 
-    def fetch_events(self, params: Optional[dict] = None) -> List[UnifiedEvent]:
+    def fetch_events(self, params: Optional[dict] = None, **kwargs) -> List[UnifiedEvent]:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -521,9 +527,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_events: {self._extract_api_error(e)}") from None
 
-    def fetch_market(self, params: Optional[dict] = None) -> UnifiedMarket:
+    def fetch_market(self, params: Optional[dict] = None, **kwargs) -> UnifiedMarket:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -540,9 +548,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_market: {self._extract_api_error(e)}") from None
 
-    def fetch_event(self, params: Optional[dict] = None) -> UnifiedEvent:
+    def fetch_event(self, params: Optional[dict] = None, **kwargs) -> UnifiedEvent:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -632,9 +642,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_open_orders: {self._extract_api_error(e)}") from None
 
-    def fetch_my_trades(self, params: Optional[dict] = None) -> List[UserTrade]:
+    def fetch_my_trades(self, params: Optional[dict] = None, **kwargs) -> List[UserTrade]:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -651,9 +663,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_my_trades: {self._extract_api_error(e)}") from None
 
-    def fetch_closed_orders(self, params: Optional[dict] = None) -> List[Order]:
+    def fetch_closed_orders(self, params: Optional[dict] = None, **kwargs) -> List[Order]:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}
@@ -670,9 +684,11 @@ class Exchange(ABC):
         except Exception as e:
             raise Exception(f"Failed to fetch_closed_orders: {self._extract_api_error(e)}") from None
 
-    def fetch_all_orders(self, params: Optional[dict] = None) -> List[Order]:
+    def fetch_all_orders(self, params: Optional[dict] = None, **kwargs) -> List[Order]:
         try:
             args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
             if params is not None:
                 args.append(params)
             body: dict = {"args": args}

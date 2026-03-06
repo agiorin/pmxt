@@ -517,6 +517,28 @@ export abstract class Exchange {
         }
     }
 
+    async submitOrder(built: any): Promise<Order> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            args.push(built);
+            const response = await fetch(`${this.config.basePath}/api/${this.exchangeName}/submitOrder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            const data = this.handleResponse(json);
+            return convertOrder(data);
+        } catch (error) {
+            throw new Error(`Failed to submitOrder: ${error}`);
+        }
+    }
+
     async cancelOrder(orderId: string): Promise<Order> {
         await this.initPromise;
         try {

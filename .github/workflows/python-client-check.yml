@@ -2,10 +2,6 @@ name: Verify Python Client Methods
 
 on:
   pull_request:
-    paths:
-      - 'core/src/BaseExchange.ts'
-      - 'sdks/python/scripts/generate-client-methods.js'
-      - '.github/workflows/python-client-check.yml'
 
 jobs:
   verify:

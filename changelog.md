@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.19.6] - 2026-03-06
+
+### Added
+
+- **TypeScript SDK Auto-Generation**: Upgraded `sdks/typescript/scripts/generate-client-methods.js` to derive return types and patterns directly from the `BaseExchange.ts` AST, mirroring the Python generator. The manual `METHOD_RETURN_CONFIG` has been eliminated, permanently removing the risk of documentation and signature drift.
+
+### Fixed
+
+- **CI/CD: SDK Drift Guards**: Removed the `paths` filter from `python-client-check.yml` and `typescript-client-check.yml`. These drift guards now run on *every* pull request. Previously, manual edits to `client.py` or `client.ts` would bypass the check if the PR didn't also touch `BaseExchange.ts` or the generator scripts.
+
 ## [2.19.5] - 2026-03-06
 
 ### Fixed
