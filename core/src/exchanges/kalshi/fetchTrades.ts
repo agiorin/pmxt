@@ -3,6 +3,7 @@ import { HistoryFilterParams, TradesParams } from "../../BaseExchange";
 import { Trade } from "../../types";
 import { kalshiErrorMapper } from "./errors";
 import { getMarketsUrl } from "./config";
+import { fromKalshiCents } from "./price";
 
 export async function fetchTrades(
   baseUrl: string,
@@ -23,7 +24,7 @@ export async function fetchTrades(
     return trades.map((t: any) => ({
       id: t.trade_id,
       timestamp: new Date(t.created_time).getTime(),
-      price: t.yes_price / 100,
+      price: fromKalshiCents(t.yes_price),
       amount: t.count,
       side: t.taker_side === "yes" ? "buy" : "sell",
     }));

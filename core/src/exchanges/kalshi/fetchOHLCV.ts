@@ -3,6 +3,7 @@ import { PriceCandle } from "../../types";
 import { mapIntervalToKalshi } from "./utils";
 import { validateIdFormat } from "../../utils/validation";
 import { kalshiErrorMapper } from "./errors";
+import { fromKalshiCents } from "./price";
 
 export async function fetchOHLCV(
   id: string,
@@ -98,10 +99,10 @@ export async function fetchOHLCV(
 
       return {
         timestamp: c.end_period_ts * 1000,
-        open: getVal("open") / 100,
-        high: getVal("high") / 100,
-        low: getVal("low") / 100,
-        close: getVal("close") / 100,
+        open: fromKalshiCents(getVal("open")),
+        high: fromKalshiCents(getVal("high")),
+        low: fromKalshiCents(getVal("low")),
+        close: fromKalshiCents(getVal("close")),
         volume: c.volume || 0,
       };
     });

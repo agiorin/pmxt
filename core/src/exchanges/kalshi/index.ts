@@ -33,6 +33,7 @@ import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { kalshiApiSpec } from "./api";
 import { getKalshiConfig, KalshiApiConfig, KALSHI_PATHS } from "./config";
+import { fromKalshiCents, invertKalshiCents } from "./price";
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -181,20 +182,20 @@ export class KalshiExchange extends PredictionMarketExchange {
 
     if (isNoOutcome) {
       bids = (data.no || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0]),
         size: level[1],
       }));
       asks = (data.yes || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100,
+        price: invertKalshiCents(level[0]),
         size: level[1],
       }));
     } else {
       bids = (data.yes || []).map((level: number[]) => ({
-        price: level[0] / 100,
+        price: fromKalshiCents(level[0]),
         size: level[1],
       }));
       asks = (data.no || []).map((level: number[]) => ({
-        price: 1 - level[0] / 100,
+        price: invertKalshiCents(level[0]),
         size: level[1],
       }));
     }
@@ -224,7 +225,7 @@ export class KalshiExchange extends PredictionMarketExchange {
     return trades.map((t: any) => ({
       id: t.trade_id,
       timestamp: new Date(t.created_time).getTime(),
-      price: t.yes_price / 100,
+      price: fromKalshiCents(t.yes_price),
       amount: t.count,
       side: t.taker_side === "yes" ? "buy" : "sell",
     }));
@@ -342,7 +343,7 @@ export class KalshiExchange extends PredictionMarketExchange {
     return (data.fills || []).map((f: any) => ({
       id: f.fill_id,
       timestamp: new Date(f.created_time).getTime(),
-      price: f.yes_price / 100,
+      price: fromKalshiCents(f.yes_price),
       amount: f.count,
       side: f.side === "yes" ? ("buy" as const) : ("sell" as const),
       orderId: f.order_id,

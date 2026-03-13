@@ -11,6 +11,7 @@ import { AuthenticationError } from '../../errors';
 import { BASE_URL } from './utils';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { myriadApiSpec } from './api';
+import { resolveMyriadPrice } from './price';
 
 export class MyriadExchange extends PredictionMarketExchange {
     override readonly has = {
@@ -144,7 +145,7 @@ export class MyriadExchange extends PredictionMarketExchange {
         return filtered.map((t: any, index: number) => ({
             id: `${t.blockNumber || t.timestamp}-${index}`,
             timestamp: (t.timestamp || 0) * 1000,
-            price: t.shares > 0 ? Number(t.value) / Number(t.shares) : 0,
+            price: resolveMyriadPrice(t),
             amount: Number(t.shares || 0),
             side: t.action === 'buy' ? 'buy' as const : 'sell' as const,
         }));
@@ -173,7 +174,7 @@ export class MyriadExchange extends PredictionMarketExchange {
         return tradeEvents.map((t: any, i: number) => ({
             id: `${t.blockNumber || t.timestamp}-${i}`,
             timestamp: (t.timestamp || 0) * 1000,
-            price: t.shares > 0 ? Number(t.value) / Number(t.shares) : 0,
+            price: resolveMyriadPrice(t),
             amount: Number(t.shares || 0),
             side: t.action === 'buy' ? 'buy' as const : 'sell' as const,
         }));
@@ -260,7 +261,7 @@ export class MyriadExchange extends PredictionMarketExchange {
             outcomeLabel: pos.outcomeTitle || `Outcome ${pos.outcomeId}`,
             size: Number(pos.shares || 0),
             entryPrice: Number(pos.price || 0),
-            currentPrice: Number(pos.value || 0) / Math.max(Number(pos.shares || 1), 1),
+            currentPrice: resolveMyriadPrice(pos),
             unrealizedPnL: Number(pos.profit || 0),
         }));
     }
