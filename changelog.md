@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.20.3] - 2026-03-15
+
+### Fixed
+
+- **Kalshi API v2 Compatibility**: Handle renamed trade fields (`yes_price` → `yes_price_dollars`, `count` → `count_fp`). Normalizer now parses both old (cents int) and new (dollar string) formats, fixing `NaN` prices and `undefined` amounts in `fetchTrades` / `fetchMyTrades`.
+
+### Changed
+
+- **Compliance Test Hardening**: `fetchOHLCV` tries multiple resolutions (`1d`, `6h`, `1h`) coarsest-first across top markets by volume instead of giving up early. `watchTrades` filters for markets traded within the last 5 minutes and applies a 10-minute recency gate before attempting WebSocket watches.
+- **Broader Skip Conditions**: `isSkippableError` now handles `AuthenticationError`, `PermissionDenied`, missing credentials, and ESM import failures. Individual tests (`createOrder`, `fetchPositions`) cover additional expected rejection messages.
+- **KalshiDemoExchange Excluded**: Removed from compliance test matrix (redundant, no separate demo credentials).
+- **SDK Integration Tests**: Added server-availability guard so tests skip gracefully when the PMXT server is not running.
+
 ## [2.20.2] - 2026-03-14
 
 ### Fixed
