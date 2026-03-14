@@ -28,15 +28,13 @@ import {
     UserTrade,
 } from '../../types';
 import { parseOpenApiSpec } from '../../utils/openapi';
+import { FetcherContext } from '../interfaces';
 import { limitlessApiSpec } from './api';
 import { LimitlessAuth } from './auth';
 import { LimitlessClient } from './client';
 import { limitlessErrorMapper } from './errors';
-import { fetchEvents } from './fetchEvents';
-import { fetchMarkets } from './fetchMarkets';
-import { fetchOHLCV } from './fetchOHLCV';
-import { fetchOrderBook } from './fetchOrderBook';
-import { fetchTrades } from './fetchTrades';
+import { LimitlessFetcher } from './fetcher';
+import { LimitlessNormalizer } from './normalizer';
 import { LimitlessWebSocket, LimitlessWebSocketConfig } from './websocket';
 
 export type { LimitlessWebSocketConfig, WatcherConfig };
@@ -75,6 +73,8 @@ export class LimitlessExchange extends PredictionMarketExchange {
     private client?: LimitlessClient;
     private wsConfig?: LimitlessWebSocketConfig;
     private ws?: LimitlessWebSocket;
+    private readonly fetcher: LimitlessFetcher;
+    private readonly normalizer: LimitlessNormalizer;
 
     constructor(options?: ExchangeCredentials | LimitlessExchangeOptions) {
         // Support both old signature (credentials only) and new signature (options object)
@@ -118,6 +118,15 @@ export class LimitlessExchange extends PredictionMarketExchange {
         // Register implicit API for Limitless REST endpoints
         const apiDescriptor = parseOpenApiSpec(limitlessApiSpec);
         this.defineImplicitApi(apiDescriptor);
+
+        const ctx: FetcherContext = {
+            http: this.http,
+            callApi: this.callApi.bind(this),
+            getHeaders: () => this.getHeaders(),
+        };
+
+        this.fetcher = new LimitlessFetcher(ctx, this.http, this.auth?.getApiKey());
+        this.normalizer = new LimitlessNormalizer();
     }
 
 
@@ -125,28 +134,85 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return 'Limitless';
     }
 
-    // ----------------------------------------------------------------------------
-    // Implementation methods for CCXT-style API
-    // ----------------------------------------------------------------------------
+    private getHeaders(): Record<string, string> {
+        return { 'Content-Type': 'application/json' };
+    }
+
+    // ------------------------------------------------------------------------
+    // Market Data  (fetcher -> normalizer)
+    // ------------------------------------------------------------------------
+
+    protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
+        const rawMarkets = await this.fetcher.fetchRawMarkets(params);
+
+        // Handle outcomeId filtering (client-side)
+        if (params?.outcomeId) {
+            return rawMarkets
+                .map((raw) => this.normalizer.normalizeMarket(raw))
+                .filter((m): m is UnifiedMarket => m !== null && m.outcomes.length > 0)
+                .filter(m => m.outcomes.some(o => o.outcomeId === params.outcomeId));
+        }
+
+        // Handle search results -- filter and limit
+        if (params?.query) {
+            return rawMarkets
+                .map((raw) => this.normalizer.normalizeMarket(raw))
+                .filter((m): m is UnifiedMarket => m !== null && m.outcomes.length > 0)
+                .slice(0, params?.limit || 250000);
+        }
+
+        // Default fetch -- normalize, filter, sort, apply offset/limit
+        const unifiedMarkets = rawMarkets
+            .map((raw) => this.normalizer.normalizeMarket(raw))
+            .filter((m): m is UnifiedMarket => m !== null && m.outcomes.length > 0);
+
+        if (params?.sort === 'volume') {
+            unifiedMarkets.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
+        }
+
+        const offset = params?.offset || 0;
+        const limit = params?.limit || 250000;
+        const marketsAfterOffset = offset > 0 ? unifiedMarkets.slice(offset) : unifiedMarkets;
+        return marketsAfterOffset.slice(0, limit);
+    }
+
+    protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
+        const rawEvents = await this.fetcher.fetchRawEvents(params);
+        return rawEvents
+            .map((raw) => this.normalizer.normalizeEvent(raw))
+            .filter((e): e is UnifiedEvent => e !== null);
+    }
 
     async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
-        return fetchOHLCV(id, params, this.callApi.bind(this));
+        const rawPrices = await this.fetcher.fetchRawOHLCV!(id, params);
+        return this.normalizer.normalizeOHLCV!(rawPrices as any, params);
     }
 
     async fetchOrderBook(id: string): Promise<OrderBook> {
-        return fetchOrderBook(id, this.callApi.bind(this));
+        const rawOrderBook = await this.fetcher.fetchRawOrderBook!(id);
+        return this.normalizer.normalizeOrderBook!(rawOrderBook as any, id);
     }
 
     async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
-        // Deprecation warning
         if ('resolution' in params && params.resolution !== undefined) {
             console.warn(
                 '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        return fetchTrades(id, params, this.http);
+        const rawTrades = await this.fetcher.fetchRawTrades!(id, params);
+        return rawTrades.map((raw, i) => this.normalizer.normalizeTrade!(raw, i));
     }
+
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const auth = this.ensureAuth();
+        const rawTrades = await this.fetcher.fetchRawMyTrades!(params || {}, auth.getApiKey());
+        return rawTrades.map((raw, i) => this.normalizer.normalizeUserTrade!(raw, i));
+    }
+
+    // ------------------------------------------------------------------------
+    // Trading  (kept in SDK class -- uses LimitlessClient)
+    // ------------------------------------------------------------------------
 
     async createOrder(params: CreateOrderParams): Promise<Order> {
         const client = this.ensureClient();
@@ -194,10 +260,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
         }
     }
 
-    // ----------------------------------------------------------------------------
-    // Trading Methods
-    // ----------------------------------------------------------------------------
-
     async cancelOrder(orderId: string): Promise<Order> {
         const client = this.ensureClient();
 
@@ -222,9 +284,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
     }
 
     async fetchOrder(orderId: string): Promise<Order> {
-        // Limitless API does not support fetching a single order by ID directly without the market slug.
-        // We would need to scan all markets or maintain a local cache.
-        // For now, we throw specific error.
         throw new Error(
             'Limitless: fetchOrder(id) is not supported directly. Use fetchOpenOrders(marketSlug).'
         );
@@ -235,9 +294,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
 
         try {
             if (!marketId) {
-                // We cannot fetch ALL open orders globally efficiently on Limitless (no endpoint).
-                // We would need to fetch all active markets and query each.
-                // For this MVP, we return empty or throw. Returning empty to be "compliant" with interface but logging warning.
                 console.warn(
                     'Limitless: fetchOpenOrders requires marketId (slug) to be efficient. Returning [].'
                 );
@@ -258,26 +314,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 filled: 0,
                 remaining: parseFloat(o.quantity),
                 timestamp: Date.now(),
-            }));
-        } catch (error: any) {
-            throw limitlessErrorMapper.mapError(error);
-        }
-    }
-
-    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
-        const auth = this.ensureAuth();
-        try {
-            const response = await this.http.get('https://api.limitless.exchange/portfolio/trades', {
-                headers: { Authorization: `Bearer ${auth.getApiKey()}` },
-            });
-            const trades = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-            return trades.map((t: any) => ({
-                id: t.id || String(t.timestamp),
-                timestamp: t.createdAt ? new Date(t.createdAt).getTime() : (t.timestamp || 0),
-                price: parseFloat(t.price || '0'),
-                amount: parseFloat(t.quantity || t.amount || '0'),
-                side: (t.side || '').toLowerCase() === 'buy' ? 'buy' as const : 'sell' as const,
-                orderId: t.orderId,
             }));
         } catch (error: any) {
             throw limitlessErrorMapper.mapError(error);
@@ -328,26 +364,20 @@ export class LimitlessExchange extends PredictionMarketExchange {
         }));
     }
 
+    // ------------------------------------------------------------------------
+    // Positions & Balance  (fetcher -> normalizer)
+    // ------------------------------------------------------------------------
+
     async fetchPositions(address?: string): Promise<Position[]> {
-        // Public endpoint — no auth needed when an address is explicitly supplied.
+        // Public endpoint -- no auth needed when an address is explicitly supplied.
         const account = address ?? this.ensureAuth().getAddress();
-        const result = await this.callApi('PublicPortfolioController_getPositions', { account });
-        const data = result?.data || result || [];
-        return data.map((p: any) => ({
-            marketId: p.market?.slug || p.conditionId,
-            outcomeId: p.asset,
-            outcomeLabel: p.outcome || 'Unknown',
-            size: parseFloat(p.size || '0'),
-            entryPrice: parseFloat(p.avgPrice || '0'),
-            currentPrice: parseFloat(p.curPrice || '0'),
-            unrealizedPnL: parseFloat(p.cashPnl || '0'),
-            realizedPnL: parseFloat(p.realizedPnl || '0'),
-        }));
+        const rawItems = await this.fetcher.fetchRawPositions(account);
+        return rawItems.map((raw) => this.normalizer.normalizePosition!(raw));
     }
 
     async fetchBalance(address?: string): Promise<Balance[]> {
         try {
-            // When an external address is provided use on-chain RPC only — no auth required.
+            // When an external address is provided use on-chain RPC only -- no auth required.
             const targetAddress = address ?? this.ensureAuth().getAddress();
             return await this.getAddressOnChainBalance(targetAddress);
         } catch (error: any) {
@@ -355,10 +385,12 @@ export class LimitlessExchange extends PredictionMarketExchange {
         }
     }
 
+    // ------------------------------------------------------------------------
+    // WebSocket
+    // ------------------------------------------------------------------------
+
     async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
         const ws = this.ensureWs();
-        // Return the snapshot immediately (this allows the script to proceed)
-        // Future versions could implement a more sophisticated queueing system
         return ws.watchOrderBook(id);
     }
 
@@ -402,14 +434,10 @@ export class LimitlessExchange extends PredictionMarketExchange {
      * exchange.watch_user_positions(callback=lambda data: print('Position update:', data))
      */
     async watchUserPositions(callback: (data: any) => void): Promise<void> {
-        this.ensureAuth(); // Ensure API key is available
+        this.ensureAuth();
         const ws = this.ensureWs();
         return ws.watchUserPositions(callback);
     }
-
-    // ----------------------------------------------------------------------------
-    // WebSocket Methods
-    // ----------------------------------------------------------------------------
 
     /**
      * Watch user transactions in real-time (Limitless only).
@@ -426,7 +454,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
      * exchange.watch_user_transactions(callback=lambda data: print('Transaction:', data))
      */
     async watchUserTransactions(callback: (data: any) => void): Promise<void> {
-        this.ensureAuth(); // Ensure API key is available
+        this.ensureAuth();
         const ws = this.ensureWs();
         return ws.watchUserTransactions(callback);
     }
@@ -478,19 +506,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
         throw limitlessErrorMapper.mapError(error);
     }
 
-    // ----------------------------------------------------------------------------
-    // Implicit API Error Mapping
-    // ----------------------------------------------------------------------------
-
-    protected async fetchMarketsImpl(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
-        // Pass API key if available for authenticated requests
-        const apiKey = this.auth?.getApiKey();
-        return fetchMarkets(params, apiKey, this.callApi.bind(this));
-    }
-
-    protected async fetchEventsImpl(params: EventFetchParams): Promise<UnifiedEvent[]> {
-        return fetchEvents(params, this.callApi.bind(this), this.http);
-    }
+    // ------------------------------------------------------------------------
+    // Private helpers
+    // ------------------------------------------------------------------------
 
     private async getAddressOnChainBalance(targetAddress: string): Promise<Balance[]> {
         // Query USDC balance directly from Base chain
@@ -527,9 +545,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return this.client;
     }
 
-    /**
-     * Ensure authentication is initialized before trading operations.
-     */
     private ensureAuth(): LimitlessAuth {
         if (!this.auth) {
             throw new AuthenticationError(
@@ -541,9 +556,6 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return this.auth;
     }
 
-    /**
-     * Initialize WebSocket with API key if available.
-     */
     private ensureWs(): LimitlessWebSocket {
         if (!this.ws) {
             const wsConfig = {
