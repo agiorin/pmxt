@@ -33,7 +33,7 @@ import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { kalshiApiSpec } from "./api";
 import { getKalshiConfig, KalshiApiConfig, KALSHI_PATHS } from "./config";
-import { fromKalshiCents, invertKalshiCents } from "./price";
+import { fromKalshiCents } from "./price";
 
 // Re-export for external use
 export type { KalshiWebSocketConfig };
@@ -175,28 +175,28 @@ export class KalshiExchange extends PredictionMarketExchange {
     const isNoOutcome = id.endsWith("-NO");
     const ticker = id.replace(/-NO$/, "");
     const data = (await this.callApi("GetMarketOrderbook", { ticker }))
-      .orderbook;
+      .orderbook_fp;
 
     let bids: any[];
     let asks: any[];
 
     if (isNoOutcome) {
-      bids = (data.no || []).map((level: number[]) => ({
-        price: fromKalshiCents(level[0]),
-        size: level[1],
+      bids = (data.no_dollars || []).map((level: string[]) => ({
+        price: parseFloat(level[0]),
+        size: parseFloat(level[1]),
       }));
-      asks = (data.yes || []).map((level: number[]) => ({
-        price: invertKalshiCents(level[0]),
-        size: level[1],
+      asks = (data.yes_dollars || []).map((level: string[]) => ({
+        price: Math.round((1 - parseFloat(level[0])) * 10000) / 10000,
+        size: parseFloat(level[1]),
       }));
     } else {
-      bids = (data.yes || []).map((level: number[]) => ({
-        price: fromKalshiCents(level[0]),
-        size: level[1],
+      bids = (data.yes_dollars || []).map((level: string[]) => ({
+        price: parseFloat(level[0]),
+        size: parseFloat(level[1]),
       }));
-      asks = (data.no || []).map((level: number[]) => ({
-        price: invertKalshiCents(level[0]),
-        size: level[1],
+      asks = (data.no_dollars || []).map((level: string[]) => ({
+        price: Math.round((1 - parseFloat(level[0])) * 10000) / 10000,
+        size: parseFloat(level[1]),
       }));
     }
 

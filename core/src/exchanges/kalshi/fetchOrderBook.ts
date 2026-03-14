@@ -3,7 +3,6 @@ import { OrderBook } from "../../types";
 import { validateIdFormat } from "../../utils/validation";
 import { kalshiErrorMapper } from "./errors";
 import { getMarketsUrl } from "./config";
-import { fromKalshiCents, invertKalshiCents } from "./price";
 
 export async function fetchOrderBook(
   baseUrl: string,
@@ -17,41 +16,41 @@ export async function fetchOrderBook(
     const ticker = id.replace(/-NO$/, "");
     const url = getMarketsUrl(baseUrl, ticker, ["orderbook"]);
     const response = await axios.get(url);
-    const data = response.data.orderbook;
+    const data = response.data.orderbook_fp;
 
-    // Structure: { yes: [[price, qty], ...], no: [[price, qty], ...] }
-    // Kalshi returns bids at their actual prices (not inverted)
-    // - yes: bids for buying YES at price X
-    // - no: bids for buying NO at price X
+    // Structure: { yes_dollars: [["price", "qty"], ...], no_dollars: [["price", "qty"], ...] }
+    // Prices are dollar strings (e.g. "0.15"), quantities are fixed-point strings (e.g. "100.00")
+    // - yes_dollars: bids for buying YES at price X
+    // - no_dollars: bids for buying NO at price X
 
     let bids: any[];
     let asks: any[];
 
     if (isNoOutcome) {
       // NO outcome order book:
-      // - Bids: people buying NO (use data.no directly)
-      // - Asks: people selling NO = people buying YES (invert data.yes)
-      bids = (data.no || []).map((level: number[]) => ({
-        price: fromKalshiCents(level[0]),
-        size: level[1],
+      // - Bids: people buying NO (use data.no_dollars directly)
+      // - Asks: people selling NO = people buying YES (invert data.yes_dollars)
+      bids = (data.no_dollars || []).map((level: string[]) => ({
+        price: parseFloat(level[0]),
+        size: parseFloat(level[1]),
       }));
 
-      asks = (data.yes || []).map((level: number[]) => ({
-        price: invertKalshiCents(level[0]), // Invert YES price to get NO ask price
-        size: level[1],
+      asks = (data.yes_dollars || []).map((level: string[]) => ({
+        price: Math.round((1 - parseFloat(level[0])) * 10000) / 10000,
+        size: parseFloat(level[1]),
       }));
     } else {
       // YES outcome order book:
-      // - Bids: people buying YES (use data.yes directly)
-      // - Asks: people selling YES = people buying NO (invert data.no)
-      bids = (data.yes || []).map((level: number[]) => ({
-        price: fromKalshiCents(level[0]),
-        size: level[1],
+      // - Bids: people buying YES (use data.yes_dollars directly)
+      // - Asks: people selling YES = people buying NO (invert data.no_dollars)
+      bids = (data.yes_dollars || []).map((level: string[]) => ({
+        price: parseFloat(level[0]),
+        size: parseFloat(level[1]),
       }));
 
-      asks = (data.no || []).map((level: number[]) => ({
-        price: invertKalshiCents(level[0]), // Invert NO price to get YES ask price
-        size: level[1],
+      asks = (data.no_dollars || []).map((level: string[]) => ({
+        price: Math.round((1 - parseFloat(level[0])) * 10000) / 10000,
+        size: parseFloat(level[1]),
       }));
     }
 
