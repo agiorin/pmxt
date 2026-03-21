@@ -19,11 +19,18 @@ import {
     CreateOrderParams,
     BuiltOrder,
 } from '../../types';
-import {
-    OrderSide,
-    OrderType,
-    type PlaceOrderDataInput,
-} from '@opinion-labs/opinion-clob-sdk';
+// The @opinion-labs/opinion-clob-sdk is ESM-only. We use dynamic import()
+// to avoid breaking CJS consumers at require-time.
+type OpinionSdk = typeof import('@opinion-labs/opinion-clob-sdk');
+
+let sdkPromise: Promise<OpinionSdk> | undefined;
+
+function loadSdk(): Promise<OpinionSdk> {
+    if (!sdkPromise) {
+        sdkPromise = import('@opinion-labs/opinion-clob-sdk');
+    }
+    return sdkPromise;
+}
 import { OpinionAuth } from './auth';
 import { OpinionWebSocket, OpinionWebSocketConfig } from './websocket';
 import { opinionErrorMapper } from './errors';
@@ -285,16 +292,17 @@ export class OpinionExchange extends PredictionMarketExchange {
     async buildOrder(params: CreateOrderParams): Promise<BuiltOrder> {
         try {
             const auth = this.ensureTradeAuth();
-            auth.getClobClient(); // validate client can be created
+            await auth.getClobClient(); // validate client can be created
 
-            const side = params.side === 'buy' ? OrderSide.BUY : OrderSide.SELL;
+            const sdk = await loadSdk();
+            const side = params.side === 'buy' ? sdk.OrderSide.BUY : sdk.OrderSide.SELL;
             const orderType = params.type === 'market'
-                ? OrderType.MARKET_ORDER
-                : OrderType.LIMIT_ORDER;
+                ? sdk.OrderType.MARKET_ORDER
+                : sdk.OrderType.LIMIT_ORDER;
 
             const price = params.type === 'market' ? '0' : String(params.price ?? 0);
 
-            const orderData: PlaceOrderDataInput = {
+            const orderData: Record<string, any> = {
                 marketId: Number(params.marketId),
                 tokenId: params.outcomeId,
                 side,
@@ -302,7 +310,7 @@ export class OpinionExchange extends PredictionMarketExchange {
                 price,
             };
 
-            if (side === OrderSide.BUY) {
+            if (side === sdk.OrderSide.BUY) {
                 orderData.makerAmountInQuoteToken = String(params.amount);
             } else {
                 orderData.makerAmountInBaseToken = String(params.amount);
@@ -323,10 +331,8 @@ export class OpinionExchange extends PredictionMarketExchange {
             const auth = this.ensureTradeAuth();
             await auth.ensureTradingEnabled();
 
-            const client = auth.getClobClient();
-            const response = await client.placeOrder(
-                built.raw as PlaceOrderDataInput,
-            );
+            const client = await auth.getClobClient();
+            const response = await client.placeOrder(built.raw);
 
             if (response.errno !== 0) {
                 throw new Error(
@@ -364,7 +370,7 @@ export class OpinionExchange extends PredictionMarketExchange {
     async cancelOrder(orderId: string): Promise<Order> {
         try {
             const auth = this.ensureTradeAuth();
-            const client = auth.getClobClient();
+            const client = await auth.getClobClient();
 
             const response = await client.cancelOrder(orderId);
 

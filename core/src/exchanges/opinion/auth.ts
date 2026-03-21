@@ -1,13 +1,26 @@
-import { Client, type ClientConfig, DEFAULT_API_HOST } from '@opinion-labs/opinion-clob-sdk';
 import { ExchangeCredentials } from '../../BaseExchange';
 import { OPINION_CHAIN_ID, OPINION_DEFAULT_RPC_URL } from './config';
+
+// The @opinion-labs/opinion-clob-sdk is ESM-only. We use dynamic import()
+// to avoid breaking CJS consumers at require-time.
+type OpinionSdk = typeof import('@opinion-labs/opinion-clob-sdk');
+
+let sdkPromise: Promise<OpinionSdk> | undefined;
+
+function loadSdk(): Promise<OpinionSdk> {
+    if (!sdkPromise) {
+        sdkPromise = import('@opinion-labs/opinion-clob-sdk');
+    }
+    return sdkPromise;
+}
 
 export class OpinionAuth {
     private readonly apiKey: string;
     private readonly privateKey?: string;
     private readonly rpcUrl: string;
     private readonly multiSigAddress?: string;
-    private clobClient?: Client;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private clobClient?: any;
     private tradingEnabled = false;
 
     constructor(credentials: ExchangeCredentials) {
@@ -35,7 +48,7 @@ export class OpinionAuth {
         return !!this.privateKey;
     }
 
-    getClobClient(): Client {
+    async getClobClient(): Promise<any> {
         if (this.clobClient) {
             return this.clobClient;
         }
@@ -54,8 +67,10 @@ export class OpinionAuth {
             );
         }
 
-        const config: ClientConfig = {
-            host: DEFAULT_API_HOST,
+        const sdk = await loadSdk();
+
+        const config = {
+            host: sdk.DEFAULT_API_HOST,
             apiKey: this.apiKey,
             chainId: OPINION_CHAIN_ID as 56,
             rpcUrl: this.rpcUrl,
@@ -63,7 +78,7 @@ export class OpinionAuth {
             multiSigAddress: this.multiSigAddress as `0x${string}`,
         };
 
-        this.clobClient = new Client(config);
+        this.clobClient = new sdk.Client(config);
         return this.clobClient;
     }
 
@@ -71,7 +86,7 @@ export class OpinionAuth {
         if (this.tradingEnabled) {
             return;
         }
-        const client = this.getClobClient();
+        const client = await this.getClobClient();
         await client.enableTrading();
         this.tradingEnabled = true;
     }
