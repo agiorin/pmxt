@@ -170,7 +170,7 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
                 timestamp: data.timestamp,
             };
         } catch (error: any) {
-            return { bids: [], asks: [] };
+            throw limitlessErrorMapper.mapError(error);
         }
     }
 

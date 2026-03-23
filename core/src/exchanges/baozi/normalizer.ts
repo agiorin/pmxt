@@ -1,5 +1,6 @@
 import { MarketFetchParams } from '../../BaseExchange';
 import { UnifiedMarket, UnifiedEvent, PriceCandle, OrderBook, Trade, Position, Balance } from '../../types';
+import { NotFound } from '../../errors';
 import { IExchangeNormalizer } from '../interfaces';
 import {
     LAMPORTS_PER_SOL,
@@ -88,12 +89,12 @@ export class BaoziNormalizer implements IExchangeNormalizer<BaoziRawMarket, Baoz
 
     normalizeOrderBook(raw: BaoziRawMarket | null, outcomeId: string): OrderBook {
         if (!raw) {
-            throw new Error(`Market not found for outcome: ${outcomeId}`);
+            throw new NotFound(`Market not found for outcome: ${outcomeId}`, 'Baozi');
         }
 
         const market = this.normalizeMarket(raw);
         if (!market) {
-            throw new Error(`Could not parse market for outcome: ${outcomeId}`);
+            throw new NotFound(`Could not parse market for outcome: ${outcomeId}`, 'Baozi');
         }
 
         const outcome = market.outcomes.find(o => o.outcomeId === outcomeId);

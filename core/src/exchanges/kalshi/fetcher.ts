@@ -1,6 +1,7 @@
 import { MarketFilterParams, EventFetchParams, OHLCVParams, TradesParams, MyTradesParams } from '../../BaseExchange';
 import { IExchangeFetcher, FetcherContext } from '../interfaces';
 import { kalshiErrorMapper } from './errors';
+import { NotFound } from '../../errors';
 import { validateIdFormat } from '../../utils/validation';
 import { mapIntervalToKalshi } from './utils';
 
@@ -253,6 +254,10 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
         validateIdFormat(id, 'OrderBook');
         const ticker = id.replace(/-NO$/, '');
         const data = await this.ctx.callApi('GetMarketOrderbook', { ticker });
+        const book = data.orderbook_fp;
+        if (!book || (!book.yes_dollars?.length && !book.no_dollars?.length)) {
+            throw new NotFound(`Order book not found: ${id}`, 'Kalshi');
+        }
         return data;
     }
 
