@@ -1,6 +1,6 @@
 import { EventFetchParams } from "../../BaseExchange";
 import { UnifiedEvent } from "../../types";
-import { mapMarketToUnified } from "./utils";
+import { expandPost } from "./utils";
 import { metaculusErrorMapper } from "./errors";
 
 type CallApi = (
@@ -12,7 +12,7 @@ const BATCH_SIZE = 100;
 const MAX_PAGES = 200;
 
 /**
- * Map pmxt status values → Metaculus `statuses` array param.
+ * Map pmxt status values to Metaculus `statuses` array param.
  */
 function toApiStatuses(status?: string): string[] | undefined {
     if (!status || status === "all") return undefined;
@@ -55,19 +55,25 @@ async function fetchPostPages(
 
 /**
  * Wrap a single Metaculus Post as a UnifiedEvent.
- * On Metaculus, each post IS the event — markets contains just the one post.
+ *
+ * For single-question posts, the event contains one market.
+ * For group-of-questions posts, the event contains one market per sub-question
+ * (expanded via expandPost).
  */
 function postToEvent(post: any): UnifiedEvent | null {
-    const market = mapMarketToUnified(post);
-    if (!market) return null;
+    const markets = expandPost(post);
+    if (markets.length === 0) return null;
 
     const id = String(post.id);
     return {
         id,
         title: post.title ?? "",
-        description: post.question?.description ?? post.question?.resolution_criteria ?? "",
+        description: post.question?.description
+            ?? post.group_of_questions?.description
+            ?? post.question?.resolution_criteria
+            ?? "",
         slug: post.slug ?? post.url_title ?? id,
-        markets: [market],
+        markets,
         volume24h: 0,
         volume: 0,
         url: `https://www.metaculus.com/questions/${id}/`,
@@ -78,7 +84,7 @@ function postToEvent(post: any): UnifiedEvent | null {
                     ? post.projects.category[0]
                     : post.projects.category[0]?.name
                 : undefined,
-        tags: market.tags ?? [],
+        tags: markets[0]?.tags ?? [],
     };
 }
 
@@ -100,7 +106,8 @@ async function fetchEventByPostId(
 }
 
 /**
- * Look up an event by slug — try numeric ID first, then client-side slug match.
+ * Look up an event by slug -- try numeric ID first, then tournament slug,
+ * then client-side slug match.
  */
 async function fetchEventBySlug(
     slug: string,
@@ -110,7 +117,7 @@ async function fetchEventBySlug(
     const byId = await fetchEventByPostId(slug, callApi);
     if (byId.length > 0) return byId;
 
-    // Try as tournament-slug filter — fetch posts belonging to that tournament
+    // Try as tournament-slug filter -- fetch posts belonging to that tournament
     try {
         const posts = await fetchPostPages(
             callApi,
@@ -120,12 +127,8 @@ async function fetchEventBySlug(
 
         if (posts.length > 0) {
             // Represent the whole tournament as a single event whose markets
-            // are the individual posts
-            const markets = posts
-                .map((p: any) => mapMarketToUnified(p, slug))
-                .filter(Boolean) as ReturnType<typeof mapMarketToUnified>[];
-
-            const validMarkets = markets.filter((m): m is NonNullable<typeof m> => m !== null);
+            // are the individual posts (and their sub-questions, expanded)
+            const markets = posts.flatMap((p: any) => expandPost(p, slug));
 
             return [
                 {
@@ -133,7 +136,7 @@ async function fetchEventBySlug(
                     title: slug,
                     description: "",
                     slug,
-                    markets: validMarkets,
+                    markets,
                     volume24h: 0,
                     volume: 0,
                     url: `https://www.metaculus.com/tournament/${slug}/`,
@@ -187,7 +190,7 @@ export async function fetchEvents(
             return await fetchEventBySlug(params.eventId, callApi);
         }
 
-        // Default listing — wrap posts as standalone events
+        // Default listing -- wrap posts as standalone events
         const limit = params?.limit ?? 50;
         const offset = params?.offset ?? 0;
         const query = (params?.query ?? "").toLowerCase();

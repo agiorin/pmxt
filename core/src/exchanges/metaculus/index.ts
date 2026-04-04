@@ -4,29 +4,63 @@ import {
     EventFetchParams,
     ExchangeCredentials,
 } from "../../BaseExchange";
-import { UnifiedMarket, UnifiedEvent } from "../../types";
+import { UnifiedMarket, UnifiedEvent, CreateOrderParams, Order } from "../../types";
+import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { metaculusApiSpec } from "./api";
 import { metaculusErrorMapper } from "./errors";
 import { BASE_URL } from "./utils";
 import { fetchMarkets } from "./fetchMarkets";
 import { fetchEvents } from "./fetchEvents";
+import { createOrder, CreateOrderContext } from "./createOrder";
+import { cancelOrder, CancelOrderContext } from "./cancelOrder";
 
 /**
- * Read-only Metaculus integration (community forecasts, no CLOB).
- * The live API returns 403 for unauthenticated requests; pass `{ apiToken }`
- * from your Metaculus account (header `Authorization: Token …`).
+ * Metaculus exchange integration.
+ *
+ * Metaculus is a reputation-based forecasting platform. Unlike CLOB exchanges
+ * (Polymarket, Kalshi), there are no financial stakes -- users submit
+ * probability forecasts and earn reputation points scored on accuracy.
+ *
+ * ## Supported operations
+ *
+ * - **fetchMarkets / fetchEvents**: Browse questions, community predictions,
+ *   and tournament structures. Group-of-questions posts are automatically
+ *   expanded into individual sub-question markets.
+ *
+ * - **createOrder**: Submit a probability forecast on a question.
+ *   Maps `price` (0-1 exclusive) to `probability_yes`. The `side`, `type`,
+ *   and `amount` params are ignored since Metaculus forecasts are not
+ *   buy/sell orders. See {@link createOrder} for details.
+ *
+ * - **cancelOrder**: Withdraw a forecast from a question. Pass the Metaculus
+ *   question ID as the orderId.
+ *
+ * ## Authentication
+ *
+ * Pass `{ apiToken: "..." }` from your Metaculus account settings.
+ * All API operations require a token -- Metaculus no longer allows
+ * unauthenticated access to any endpoint.
+ *
+ * ## Question types
+ *
+ * | Type | fetchMarkets | createOrder |
+ * |------|-------------|-------------|
+ * | Binary | Yes (YES/NO outcomes) | Yes (`price` = probability_yes) |
+ * | Multiple-choice | Yes (one outcome per option) | Yes (redistributes other categories) |
+ * | Group-of-questions | Yes (expanded to sub-question markets) | Yes (per sub-question) |
+ * | Continuous/numeric/date | Yes (read-only HIGHER/LOWER) | No (requires 201-point CDF) |
  */
 export class MetaculusExchange extends PredictionMarketExchange {
     override readonly has = {
         fetchMarkets: true as const,
         fetchEvents: true as const,
-        // Metaculus is a read-only forecasting platform — no order book, no trading
+        createOrder: true as const,
+        cancelOrder: true as const,
+        // Metaculus is a forecasting platform -- no order book, no trading history
         fetchOHLCV: false as const,
         fetchOrderBook: false as const,
         fetchTrades: false as const,
-        createOrder: false as const,
-        cancelOrder: false as const,
         fetchOrder: false as const,
         fetchOpenOrders: false as const,
         fetchPositions: false as const,
@@ -67,7 +101,6 @@ export class MetaculusExchange extends PredictionMarketExchange {
     /**
      * Sign requests with an API token when one is provided.
      * Metaculus uses token-based auth: `Authorization: Token <token>`.
-     * Without a token the API still works for read-only endpoints (rate-limited).
      */
     protected override sign(
         _method: string,
@@ -78,6 +111,21 @@ export class MetaculusExchange extends PredictionMarketExchange {
             return { Authorization: `Token ${this.apiToken}` };
         }
         return {};
+    }
+
+    /**
+     * Get auth headers, throwing if no token is configured.
+     * Used by trading methods that require authentication.
+     */
+    private getAuthHeaders(): Record<string, string> {
+        if (!this.apiToken) {
+            throw new AuthenticationError(
+                'Metaculus API token required for this operation. '
+                + 'Pass { apiToken: "..." } when constructing MetaculusExchange.',
+                "Metaculus",
+            );
+        }
+        return { Authorization: `Token ${this.apiToken}` };
     }
 
     // -------------------------------------------------------------------------
@@ -94,5 +142,54 @@ export class MetaculusExchange extends PredictionMarketExchange {
         params: EventFetchParams,
     ): Promise<UnifiedEvent[]> {
         return fetchEvents(params, this.callApi.bind(this));
+    }
+
+    // -------------------------------------------------------------------------
+    // Trading (Forecasting)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Submit a probability forecast on a Metaculus question.
+     *
+     * Maps from the unified `createOrder` interface:
+     * - `price` -> the probability to forecast (0-1 exclusive)
+     * - `outcomeId` -> encodes the question ID and type
+     * - `side`, `type`, `amount` -> ignored (Metaculus forecasts are not orders)
+     *
+     * For binary questions, sets `probability_yes` directly.
+     * For multiple-choice, redistributes other categories proportionally.
+     * Continuous questions are not supported (throws InvalidOrder).
+     *
+     * @throws {AuthenticationError} If no API token is configured.
+     * @throws {InvalidOrder} If the question type is continuous or price is invalid.
+     */
+    override async createOrder(params: CreateOrderParams): Promise<Order> {
+        const ctx: CreateOrderContext = {
+            http: this.http,
+            getAuthHeaders: () => this.getAuthHeaders(),
+            fetchOutcomes: async (marketId: string) => {
+                const markets = await this.fetchMarkets({ marketId });
+                return markets.length > 0 ? markets[0].outcomes : [];
+            },
+        };
+        return createOrder(params, ctx);
+    }
+
+    /**
+     * Withdraw a forecast from a Metaculus question.
+     *
+     * The `orderId` should be the Metaculus question ID (numeric).
+     * If you used createOrder, extract the question ID from the
+     * outcomeId (the part before the hyphen).
+     *
+     * @throws {AuthenticationError} If no API token is configured.
+     * @throws {ValidationError} If orderId is not a valid question ID.
+     */
+    override async cancelOrder(orderId: string): Promise<Order> {
+        const ctx: CancelOrderContext = {
+            http: this.http,
+            getAuthHeaders: () => this.getAuthHeaders(),
+        };
+        return cancelOrder(orderId, ctx);
     }
 }

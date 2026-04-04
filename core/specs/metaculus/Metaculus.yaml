@@ -1792,6 +1792,7 @@ paths:
                 
   /questions/forecast/:
     post:
+      operationId: SubmitForecast
       summary: Submit forecasts for questions
       description: This endpoint supports multiple simultaneous predictions, so the base object is a list of foreacsts.
         Pass one forecast object for single questions and multiple forecast objects for group of questions or conditional forecasts.
@@ -1915,6 +1916,7 @@ paths:
           description: Invalid request format
   /questions/withdraw/:
     post:
+      operationId: WithdrawForecast
       summary: Withdraw current forecasts for questions
       description: This endpoint supports multiple simultaneous withdrawals, so the base object is a list of withdrawals.
         Pass one withdrawal object for single questions and multiple withdrawal objects for group of questions or conditional forecasts.

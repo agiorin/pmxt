@@ -1,11 +1,22 @@
 import { ErrorMapper } from '../../utils/error-mapper';
-import { NotFound, MarketNotFound } from '../../errors';
+import {
+    NotFound,
+    MarketNotFound,
+    AuthenticationError,
+    PermissionDenied,
+    BadRequest,
+    InvalidOrder,
+    BaseError,
+} from '../../errors';
 
 /**
  * Metaculus-specific error mapper.
  *
- * The Metaculus API uses standard HTTP status codes.
- * 404s can mean either a question or a tournament was not found.
+ * Extends the base error mapper with:
+ * - 404: question/market not-found detection
+ * - 401: actionable message pointing users to pass { apiToken }
+ * - 403: distinguishes missing auth (-> AuthenticationError) from insufficient permissions
+ * - 400: probability validation errors from the forecast API
  */
 export class MetaculusErrorMapper extends ErrorMapper {
     constructor() {
@@ -20,6 +31,58 @@ export class MetaculusErrorMapper extends ErrorMapper {
             return new MarketNotFound(id, this.exchangeName);
         }
         return new NotFound(message, this.exchangeName);
+    }
+
+    protected override mapBadRequestError(message: string, data: any): BadRequest {
+        const lower = message.toLowerCase();
+
+        // Probability validation errors from the forecast API
+        if (
+            lower.includes('probability') ||
+            lower.includes('continuous_cdf') ||
+            lower.includes('forecast')
+        ) {
+            return new InvalidOrder(
+                `Metaculus forecast rejected: ${message}`,
+                this.exchangeName,
+            );
+        }
+
+        return super.mapBadRequestError(message, data);
+    }
+
+    /**
+     * Override the top-level mapByStatusCode for Metaculus-specific auth messages.
+     */
+    protected override mapByStatusCode(
+        status: number,
+        message: string,
+        data: any,
+        response?: any,
+    ): BaseError {
+        if (status === 401) {
+            return new AuthenticationError(
+                'Metaculus API token required. Pass { apiToken: "..." } when constructing MetaculusExchange.',
+                this.exchangeName,
+            );
+        }
+        if (status === 403) {
+            const lower = message.toLowerCase();
+            // Metaculus returns 403 both for missing auth and insufficient permissions.
+            // Distinguish by checking if the message mentions authentication.
+            if (lower.includes('authenticated') || lower.includes('api token') || lower.includes('log in')) {
+                return new AuthenticationError(
+                    'Metaculus API token required. Pass { apiToken: "..." } when constructing MetaculusExchange.',
+                    this.exchangeName,
+                );
+            }
+            return new PermissionDenied(
+                'You do not have permission for this operation. '
+                + 'Check your Metaculus account permissions and API token scope.',
+                this.exchangeName,
+            );
+        }
+        return super.mapByStatusCode(status, message, data, response);
     }
 }
 

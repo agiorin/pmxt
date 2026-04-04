@@ -308,6 +308,7 @@ export const metaculusApiSpec = {
         },
         "/questions/forecast/": {
             "post": {
+                "operationId": "SubmitForecast",
                 "summary": "Submit forecasts for questions",
                 "tags": [
                     "Questions & Forecasts"
@@ -316,6 +317,7 @@ export const metaculusApiSpec = {
         },
         "/questions/withdraw/": {
             "post": {
+                "operationId": "WithdrawForecast",
                 "summary": "Withdraw current forecasts for questions",
                 "tags": [
                     "Questions & Forecasts"

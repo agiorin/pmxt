@@ -1,6 +1,6 @@
 import { MarketFetchParams } from "../../BaseExchange";
 import { UnifiedMarket } from "../../types";
-import { mapMarketToUnified } from "./utils";
+import { expandPost } from "./utils";
 import { metaculusErrorMapper } from "./errors";
 
 type CallApi = (
@@ -22,16 +22,20 @@ export function resetCache(): void {
 }
 
 /**
- * Map pmxt status values → Metaculus `statuses` array param.
+ * Map pmxt status values to Metaculus `statuses` array param.
  */
 function toApiStatuses(status?: string): string[] | undefined {
     if (!status || status === "all") return undefined;
     if (status === "closed" || status === "inactive") return ["closed", "resolved"];
-    return ["open"]; // "active" or anything else → open
+    return ["open"]; // "active" or anything else -> open
 }
 
 /**
  * Fetch pages of posts from /api/posts/ using offset-based pagination.
+ *
+ * Note: group-of-questions posts expand into multiple markets, so the
+ * actual number of markets may exceed the number of raw posts fetched.
+ * The targetCount is a rough guide, not exact.
  */
 async function fetchPostPages(
     callApi: CallApi,
@@ -66,7 +70,20 @@ async function fetchPostPages(
 }
 
 /**
- * Fetch a single post by numeric ID.
+ * Expand a list of raw posts into UnifiedMarket[], handling both
+ * single-question and group-of-questions posts.
+ */
+function expandPosts(posts: any[], eventId?: string): UnifiedMarket[] {
+    const markets: UnifiedMarket[] = [];
+    for (const p of posts) {
+        markets.push(...expandPost(p, eventId));
+    }
+    return markets;
+}
+
+/**
+ * Fetch a single post by numeric ID and expand it.
+ * A group post will return multiple markets (one per sub-question).
  */
 async function fetchMarketById(
     id: string,
@@ -78,14 +95,13 @@ async function fetchMarketById(
     const data = await callApi("GetPost", { postId: numericId });
     if (!data || !data.id) return [];
 
-    const market = mapMarketToUnified(data);
-    return market ? [market] : [];
+    return expandPost(data);
 }
 
 /**
- * Search posts by keyword — the new /api/posts/ has no server-side `search`
- * param, so we fetch a batch of recent open posts and filter client-side by
- * title/description match.
+ * Search posts by keyword -- the Metaculus /api/posts/ has no server-side
+ * `search` param, so we fetch a batch of recent open posts and filter
+ * client-side by title/description match.
  */
 async function searchMarkets(
     query: string,
@@ -110,13 +126,12 @@ async function searchMarkets(
         const title = (p.title ?? "").toLowerCase();
         const desc = (p.question?.description ?? "").toLowerCase();
         if (title.includes(lower) || desc.includes(lower)) {
-            const m = mapMarketToUnified(p);
-            if (m) markets.push(m);
+            markets.push(...expandPost(p));
         }
         if (markets.length >= limit) break;
     }
 
-    return markets;
+    return markets.slice(0, limit);
 }
 
 async function fetchMarketsDefault(
@@ -160,11 +175,7 @@ async function fetchMarketsDefault(
         }
     }
 
-    const markets: UnifiedMarket[] = [];
-    for (const p of posts) {
-        const m = mapMarketToUnified(p);
-        if (m) markets.push(m);
-    }
+    const markets = expandPosts(posts);
 
     if (params?.sort === "liquidity") {
         markets.sort((a, b) => b.liquidity - a.liquidity);
@@ -183,7 +194,7 @@ export async function fetchMarkets(
             return await fetchMarketById(params.marketId, callApi);
         }
 
-        // outcomeId pattern: "<postId>-YES" / "<postId>-NO" / "<postId>-<idx>"
+        // outcomeId pattern: "<questionId>-YES" / "<questionId>-NO" / "<questionId>-<idx>"
         if (params?.outcomeId) {
             const id = params.outcomeId.split("-")[0];
             return await fetchMarketById(id, callApi);
@@ -196,7 +207,6 @@ export async function fetchMarkets(
             if (byId.length > 0) return byId;
 
             // Fall back to slug-string match against post.slug / post.url_title
-            // by fetching recent posts and comparing
             const posts = await fetchPostPages(
                 callApi,
                 { with_cp: true, order_by: "-forecasts_count" },
@@ -208,14 +218,13 @@ export async function fetchMarkets(
                     (p.slug ?? "").toLowerCase() === lower ||
                     (p.url_title ?? "").toLowerCase() === lower
                 ) {
-                    const m = mapMarketToUnified(p);
-                    return m ? [m] : [];
+                    return expandPost(p);
                 }
             }
             return [];
         }
 
-        // eventId is a tournament slug — filter posts by that tournament
+        // eventId is a tournament slug -- filter posts by that tournament
         if (params?.eventId) {
             const apiParams: Record<string, any> = {
                 tournaments: [params.eventId],
@@ -229,15 +238,11 @@ export async function fetchMarkets(
                 params?.limit ?? 1000,
             );
 
-            const markets: UnifiedMarket[] = [];
-            for (const p of posts) {
-                const m = mapMarketToUnified(p, params.eventId);
-                if (m) markets.push(m);
-            }
+            const markets = expandPosts(posts);
             return markets.slice(0, params?.limit ?? markets.length);
         }
 
-        // Keyword search — client-side filter (no server-side search param)
+        // Keyword search -- client-side filter (no server-side search param)
         if (params?.query) {
             return await searchMarkets(params.query, params, callApi);
         }
