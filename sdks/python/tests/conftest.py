@@ -22,6 +22,13 @@ def _ensure_pmxt_internal_mock():
     if "pmxt_internal" in sys.modules:
         return  # already available (maybe the real one or a prior mock)
 
+    # If the real generated module is importable, prefer it over the mock.
+    try:
+        import pmxt_internal  # noqa: F401
+        return
+    except ImportError:
+        pass
+
     # Top-level package
     pkg = types.ModuleType("pmxt_internal")
     pkg.ApiClient = MagicMock
