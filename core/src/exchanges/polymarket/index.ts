@@ -424,45 +424,83 @@ export class PolymarketExchange extends PredictionMarketExchange {
             // Polymarket relies strictly on USDC (Polygon)
             const USDC_DECIMALS = 6;
 
-            // Try fetching from CLOB client first
+            // Try fetching from CLOB client first.
+            //
+            // Note on the bundled @polymarket/clob-client error model: its HTTP
+            // wrapper swallows axios errors and RETURNS an envelope shaped like
+            // { error, status } instead of throwing. We must therefore validate
+            // the shape of the result before using it, otherwise downstream
+            // parseFloat() yields NaN and the on-chain fallback never triggers.
             let total = 0;
+            let clobBalanceAvailable = false;
             try {
-                const balRes = await client.getBalanceAllowance({
+                const balRes: any = await client.getBalanceAllowance({
                     asset_type: AssetType.COLLATERAL,
                 });
-                const rawBalance = parseFloat(balRes.balance);
-                total = rawBalance / Math.pow(10, USDC_DECIMALS);
+                if (balRes && typeof balRes.balance === 'string') {
+                    const rawBalance = parseFloat(balRes.balance);
+                    if (Number.isFinite(rawBalance)) {
+                        total = rawBalance / Math.pow(10, USDC_DECIMALS);
+                        clobBalanceAvailable = true;
+                    }
+                }
+                // If balRes was an error envelope, fall through to on-chain.
             } catch (clobError) {
-                // If CLOB fails or returns 0 (suspiciously), we can try on-chain
-                // but let's assume we proceed to on-chain check if total is 0
-                // or just do on-chain check always for robustness if possible.
-                // For now, let's trust CLOB but add On-Chain fallback if CLOB returns 0.
+                // Network/transport error — fall through to on-chain.
             }
 
             // On-Chain Fallback/Check (Robustness)
-            // If CLOB reported 0, let's verify on-chain because sometimes CLOB is behind or confused about proxies
-            if (total === 0) {
+            // Trigger when CLOB couldn't tell us, or reported a true zero (CLOB
+            // can lag or be confused about proxies for newly funded wallets).
+            if (!clobBalanceAvailable || total === 0) {
                 try {
                     const targetAddress = await auth.getEffectiveFunderAddress();
                     const balances = await this.getAddressOnChainBalance(targetAddress);
-                    total = balances[0]?.total ?? 0;
+                    const onChain = balances[0]?.total ?? 0;
+                    if (onChain > 0) {
+                        total = onChain;
+                    }
                 } catch {
                 }
             }
 
-            // 2. Fetch open orders to calculate locked funds
-            // We only care about BUY orders for USDC balance locking
-            const openOrders = await client.getOpenOrders({});
-
+            // 2. Fetch open orders to calculate locked funds.
+            // We only care about BUY orders for USDC balance locking.
+            //
+            // The bundled @polymarket/clob-client throws "response.data is not
+            // iterable" from inside its getOpenOrders pagination loop whenever
+            // the CLOB API returns an HTTP error envelope (the library spreads
+            // response.data unconditionally). This is the root cause of #72:
+            // a wallet that has not completed Polymarket onboarding triggers an
+            // upstream auth/setup rejection that surfaces here as an opaque
+            // TypeError. Catch it and translate to a clear AuthenticationError.
             let locked = 0;
-            if (openOrders && Array.isArray(openOrders)) {
-                for (const order of openOrders) {
-                    if (order.side === Side.BUY) {
-                        const remainingSize = parseFloat(order.original_size) - parseFloat(order.size_matched);
-                        const price = parseFloat(order.price);
-                        locked += remainingSize * price;
+            try {
+                const openOrders = await client.getOpenOrders({});
+                if (Array.isArray(openOrders)) {
+                    for (const order of openOrders) {
+                        if (order.side === Side.BUY) {
+                            const remainingSize = parseFloat(order.original_size) - parseFloat(order.size_matched);
+                            const price = parseFloat(order.price);
+                            locked += remainingSize * price;
+                        }
                     }
                 }
+            } catch (ordersError: any) {
+                const msg = String(ordersError?.message ?? ordersError);
+                if (msg.includes('is not iterable')) {
+                    throw new AuthenticationError(
+                        'Polymarket CLOB rejected the request to list open orders. ' +
+                        'This usually means the wallet has not completed Polymarket ' +
+                        'onboarding (no proxy/safe exists for this signer), or that ' +
+                        'funderAddress / signatureType need to be passed explicitly. ' +
+                        'Visit https://polymarket.com to complete account setup, or ' +
+                        'pass funderAddress and signatureType in credentials.',
+                        'Polymarket',
+                    );
+                }
+                // Unexpected failure — surface through the standard mapper.
+                throw ordersError;
             }
 
             return [{

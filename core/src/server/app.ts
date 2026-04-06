@@ -171,8 +171,13 @@ function createExchange(name: string, credentials?: ExchangeCredentials) {
         apiSecret: credentials?.apiSecret || process.env.POLYMARKET_API_SECRET,
         passphrase:
           credentials?.passphrase || process.env.POLYMARKET_PASSPHRASE,
-        funderAddress: credentials?.funderAddress,
-        signatureType: credentials?.signatureType,
+        funderAddress:
+          credentials?.funderAddress ||
+          process.env.POLYMARKET_FUNDER_ADDRESS ||
+          process.env.POLYMARKET_PROXY_ADDRESS,
+        signatureType:
+          credentials?.signatureType ||
+          process.env.POLYMARKET_SIGNATURE_TYPE,
       });
     case "limitless":
       return new LimitlessExchange({

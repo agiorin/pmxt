@@ -176,25 +176,59 @@ export class PolymarketAuth {
             return this.clobClient;
         }
 
-        // 1. Determine proxy and signature type early
+        // 1. Determine proxy and signature type early.
+        //
+        // Important: if signatureType is not provided we MUST run discovery
+        // even when funderAddress is provided. Previously this branch was
+        // skipped whenever funderAddress was set, which silently defaulted
+        // signatureType to 0 (EOA). For wallets whose funds live on a Gnosis
+        // Safe (the modern Polymarket onboarding default) the CLOB then
+        // reports balance "0" instead of the real value, with no error.
+        const sigTypeProvided =
+            this.credentials.signatureType !== undefined && this.credentials.signatureType !== null;
         let proxyAddress = this.credentials.funderAddress || undefined;
-        let signatureType = this.mapSignatureType(this.credentials.signatureType);
+        let signatureType: number | undefined = sigTypeProvided
+            ? this.mapSignatureType(this.credentials.signatureType)
+            : undefined;
 
-        if (!proxyAddress) {
-            const discovered = await this.discoverProxy();
-            proxyAddress = discovered.proxyAddress;
-            if (this.credentials.signatureType === undefined || this.credentials.signatureType === null) {
-                signatureType = discovered.signatureType;
+        // Run discovery if either piece is missing. Note: discoverProxy()
+        // returns a synthetic { proxyAddress: signerEOA, signatureType: 0 }
+        // fallback when its HTTP call fails — that fallback should NOT be
+        // used to populate signatureType when funderAddress is already set,
+        // because it would silently assign EOA semantics to a Gnosis Safe.
+        let discoverySucceeded = false;
+        if (!proxyAddress || signatureType === undefined) {
+            try {
+                const discovered = await this.discoverProxy();
+                discoverySucceeded =
+                    !!this.discoveredProxyAddress &&
+                    this.discoveredSignatureType !== undefined;
+                if (!proxyAddress) {
+                    proxyAddress = discovered.proxyAddress;
+                }
+                if (signatureType === undefined && discoverySucceeded) {
+                    signatureType = discovered.signatureType;
+                }
+            } catch {
+                // Discovery failure is handled by the heuristic below.
             }
         }
 
         // Get API credentials (L1 auth)
-        // Pass signature type if we know it (some accounts need it for derivation?)
         const apiCreds = await this.getApiCredentials();
 
         // 3. Defaults
         const signerAddress = this.signer!.address;
         const finalProxyAddress: string = (proxyAddress || signerAddress) as string;
+        // If signature type is still unknown, infer from address relationship:
+        // when the funder differs from the signer EOA, the funder must be a
+        // proxy/safe — default to Gnosis Safe (2), which is what Polymarket
+        // has created for new accounts since 2023. Users on the legacy
+        // Polymarket Proxy (1) need to set signatureType explicitly.
+        if (signatureType === undefined) {
+            signatureType =
+                finalProxyAddress.toLowerCase() !== signerAddress.toLowerCase() ? 2 : 0;
+        }
         const finalSignatureType: number = signatureType;
 
         // Create L2-authenticated client
