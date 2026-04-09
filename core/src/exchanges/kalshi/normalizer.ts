@@ -294,10 +294,14 @@ export class KalshiNormalizer implements IExchangeNormalizer<KalshiRawEvent, Kal
             templates.set(templated, (templates.get(templated) ?? 0) + 1);
         }
 
+        // Only consider templates that actually contain the {x} placeholder so
+        // that a rule we failed to template (e.g. candidate name missing) can
+        // never win the vote and leak a specific name into the event description.
         if (templates.size > 0) {
             let bestTemplate: string | null = null;
             let bestCount = 0;
             for (const [template, count] of templates.entries()) {
+                if (!template.includes('{x}')) continue;
                 if (count > bestCount) {
                     bestTemplate = template;
                     bestCount = count;
