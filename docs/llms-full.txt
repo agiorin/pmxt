@@ -3312,6 +3312,7 @@ Place a new order on the exchange.
 | `fee` | number | No | Optional fee rate (e.g., 1000 for 0.1%) |
 | `tickSize` | number | No | Optional override for Limitless/Polymarket |
 | `negRisk` | boolean | No | Optional override to skip neg-risk lookup (Polymarket) |
+| `onBehalfOf` | number | No | Limitless delegated signing: profile ID to trade on behalf of |
 
 **Response:** `{ success: true, data: ... }`
 
@@ -3331,6 +3332,7 @@ result = exchange.create_order(
     fee=1,
     tick_size=1,
     neg_risk=True,
+    on_behalf_of=1,
 )
 ```
 
@@ -3350,6 +3352,7 @@ const result = await exchange.createOrder({
   fee: 1,
   tickSize: 1,
   negRisk: true,
+  onBehalfOf: 1,
 });
 ```
 
@@ -3373,6 +3376,7 @@ Build an order payload without submitting it to the exchange. Returns the exchan
 | `fee` | number | No | Optional fee rate (e.g., 1000 for 0.1%) |
 | `tickSize` | number | No | Optional override for Limitless/Polymarket |
 | `negRisk` | boolean | No | Optional override to skip neg-risk lookup (Polymarket) |
+| `onBehalfOf` | number | No | Limitless delegated signing: profile ID to trade on behalf of |
 
 **Response:** `{ success: true, data: ... }`
 
@@ -3392,6 +3396,7 @@ result = exchange.build_order(
     fee=1,
     tick_size=1,
     neg_risk=True,
+    on_behalf_of=1,
 )
 ```
 
@@ -3411,6 +3416,7 @@ const result = await exchange.buildOrder({
   fee: 1,
   tickSize: 1,
   negRisk: true,
+  onBehalfOf: 1,
 });
 ```
 
