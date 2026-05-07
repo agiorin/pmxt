@@ -2843,6 +2843,9 @@ components:
         negRisk:
           type: boolean
           description: Optional override to skip neg-risk lookup (Polymarket)
+        onBehalfOf:
+          type: number
+          description: 'Limitless delegated signing: profile ID to trade on behalf of'
       required:
         - marketId
         - outcomeId
@@ -3381,6 +3384,8 @@ components:
         funderAddress:
           type: string
           description: The address funding the trades (defaults to signer address)
+        walletAddress:
+          type: string
 x-sdk-constructors:
   polymarket:
     className: Polymarket
