@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.37.9] - 2026-05-07
+
+### Feat: Limitless HMAC authentication and smart wallet support
+
+- **SDK upgrade**: `@limitless-exchange/sdk` upgraded from 1.0.2 to 1.0.5,
+  adding HMAC request signing (`lmts-api-key`, `lmts-timestamp`,
+  `lmts-signature` headers). New API tokens generated from the Limitless
+  dashboard require HMAC auth; the legacy `X-API-Key` header is no longer
+  accepted for these tokens.
+
+- **HMAC auth**: When `apiSecret` is provided in credentials, the
+  `LimitlessAuth` HTTP client uses HMAC-signed requests instead of the
+  legacy API key header. Existing users who pass only `apiKey` (no
+  `apiSecret`) are unaffected — the legacy path is unchanged.
+
+- **Smart wallet signing**: Added `walletAddress` credential field. When
+  set, orders use `maker = walletAddress` (the smart wallet) and
+  `signer = privateKey address` (the EOA), enabling EIP-712 signing for
+  accounts that trade through a smart wallet. Without `walletAddress`,
+  the standard `maker = signer = wallet.address` flow is used (backwards
+  compatible).
+
+- **ethers v5/v6 compatibility**: Applied `signTypedData` shim
+  (`wallet._signTypedData → wallet.signTypedData`) in all code paths
+  that pass a wallet to the SDK's `OrderClient` or `OrderSigner`. This
+  fixes `TypeError: this.wallet.signTypedData is not a function` when
+  pmxt-core's ethers v5 wallet is used with the SDK's v6 internals.
+
+- **Delegated signing support**: When `apiSecret` is provided without
+  `privateKey`, the client initializes in delegated mode — orders are
+  submitted unsigned via HMAC-authenticated HTTP, and the Limitless
+  server signs on behalf of the account. Requires `delegated_signing`
+  scope on the API token (partner access).
+
+- **`onBehalfOf` in `CreateOrderParams`**: Added optional field for
+  Limitless delegated signing, specifying the profile ID to trade on
+  behalf of. Auto-resolved from the wallet address when not provided.
+
+### Migration
+
+No breaking changes. Existing credentials (`apiKey` + `privateKey`)
+continue to work exactly as before. To use HMAC auth, add `apiSecret`
+to credentials. To use smart wallet signing, add both `apiSecret` and
+`walletAddress`.
+
 ## [2.37.8] - 2026-05-05
 
 ### Fix: Opinion child market titles now include parent event context

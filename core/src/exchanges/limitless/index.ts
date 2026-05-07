@@ -86,10 +86,30 @@ export class LimitlessExchange extends PredictionMarketExchange {
             try {
                 this.auth = new LimitlessAuth(credentials);
 
-                // Initialize client only if we have both privateKey and apiKey
                 if (credentials.privateKey) {
-                    const apiKey = this.auth.getApiKey();
-                    this.client = new LimitlessClient(credentials.privateKey, apiKey);
+                    // Signing mode: use the private key for EIP-712 signatures.
+                    // When apiSecret is also present, use HMAC-authenticated HTTP
+                    // (new-style tokens); otherwise legacy X-API-Key header.
+                    if (credentials.apiSecret) {
+                        let pk = credentials.privateKey;
+                        if (!pk.startsWith('0x')) pk = '0x' + pk;
+                        const wallet = new (require('ethers').Wallet)(pk);
+                        this.client = new LimitlessClient({
+                            httpClient: this.auth.getHttpClient(),
+                            wallet,
+                            walletAddress: credentials.walletAddress,
+                        });
+                    } else {
+                        const apiKey = this.auth.getApiKey();
+                        this.client = new LimitlessClient(credentials.privateKey, apiKey);
+                    }
+                } else if (this.auth.isDelegatedSigning()) {
+                    // Delegated mode: HMAC auth, no private key, server signs
+                    this.client = new LimitlessClient({
+                        httpClient: this.auth.getHttpClient(),
+                        isDelegated: true,
+                        walletAddress: credentials.walletAddress,
+                    });
                 }
             } catch (error) {
                 // If auth initialization fails, continue without it
@@ -261,6 +281,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
                 price: price,
                 amount: params.amount,
                 type: params.type,
+                onBehalfOf: params.onBehalfOf,
             });
 
             // Map response to Order object

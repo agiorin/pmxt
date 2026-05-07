@@ -4,33 +4,49 @@ import { ExchangeCredentials } from '../../BaseExchange';
 
 const LIMITLESS_HOST = 'https://api.limitless.exchange';
 
+export interface HMACCredentials {
+    tokenId: string;
+    secret: string;
+}
+
 /**
- * Manages Limitless authentication using API keys.
- * Simplified from cookie-based to API key authentication.
+ * Manages Limitless authentication.
+ *
+ * Supports two modes:
+ *  1. API key + private key (individual signer — EIP-712 order signing)
+ *  2. HMAC credentials (partner/delegated signing — no private key needed)
  */
 export class LimitlessAuth {
     private credentials: ExchangeCredentials;
     private signer?: Wallet;
     private httpClient?: HttpClient;
     private apiKey?: string;
+    private hmacCreds?: HMACCredentials;
 
     constructor(credentials: ExchangeCredentials) {
         this.credentials = credentials;
 
-        // API key is required for authenticated endpoints
-        // Can come from credentials or environment variable
+        // HMAC credentials for delegated signing (partner mode).
+        // apiSecret is the base64-encoded HMAC secret from the Limitless dashboard.
+        if (credentials.apiKey && credentials.apiSecret) {
+            this.hmacCreds = {
+                tokenId: credentials.apiKey,
+                secret: credentials.apiSecret,
+            };
+        }
+
+        // API key for legacy X-API-Key header auth.
         this.apiKey = credentials.apiKey || process.env.LIMITLESS_API_KEY;
 
-        if (!this.apiKey) {
+        if (!this.apiKey && !this.hmacCreds) {
             throw new Error(
                 'Limitless requires an API key. Set LIMITLESS_API_KEY environment variable or provide apiKey in credentials.'
             );
         }
 
-        // Initialize signer if private key is provided (needed for order signing)
+        // Initialize signer if private key is provided (needed for EIP-712 order signing).
         if (credentials.privateKey) {
             let privateKey = credentials.privateKey;
-            // Fix for common .env issue where newlines are escaped
             if (privateKey.includes('\\n')) {
                 privateKey = privateKey.replace(/\\n/g, '\n');
             }
@@ -38,35 +54,35 @@ export class LimitlessAuth {
         }
     }
 
-    /**
-     * Get the API key being used for authentication.
-     */
     getApiKey(): string {
         return this.apiKey!;
     }
 
     /**
-     * Get or create the HTTP client with API key authentication.
-     * This client automatically includes the X-API-Key header in all requests.
+     * Get or create the HTTP client.
+     * Uses HMAC auth when credentials are available (delegated signing),
+     * otherwise falls back to the legacy X-API-Key header.
      */
     getHttpClient(): HttpClient {
         if (this.httpClient) {
             return this.httpClient;
         }
 
-        this.httpClient = new HttpClient({
+        const config: Record<string, unknown> = {
             baseURL: LIMITLESS_HOST,
-            apiKey: this.apiKey,
             timeout: 30000,
-        });
+        };
 
+        if (this.hmacCreds) {
+            config.hmacCredentials = this.hmacCreds;
+        } else if (this.apiKey) {
+            config.apiKey = this.apiKey;
+        }
+
+        this.httpClient = new HttpClient(config as any);
         return this.httpClient;
     }
 
-    /**
-     * Get the signer (wallet) for signing orders.
-     * Required for placing orders via EIP-712 signatures.
-     */
     getSigner(): Wallet {
         if (!this.signer) {
             throw new Error(
@@ -76,9 +92,6 @@ export class LimitlessAuth {
         return this.signer;
     }
 
-    /**
-     * Get the signer's address.
-     */
     getAddress(): string {
         if (!this.signer) {
             throw new Error('Signer not initialized. Provide privateKey in credentials.');
@@ -86,16 +99,15 @@ export class LimitlessAuth {
         return this.signer.address;
     }
 
-    /**
-     * Check if the auth has a signer available.
-     */
     hasSigner(): boolean {
         return !!this.signer;
     }
 
-    /**
-     * Reset cached client (useful for testing or credential rotation).
-     */
+    /** True when HMAC credentials are present and no private key — delegated signing mode. */
+    isDelegatedSigning(): boolean {
+        return !!this.hmacCreds && !this.signer;
+    }
+
     reset(): void {
         this.httpClient = undefined;
     }

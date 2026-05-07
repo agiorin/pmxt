@@ -239,6 +239,7 @@ export interface CreateOrderParams {
     fee?: number;   // Optional fee rate (e.g., 1000 for 0.1%)
     tickSize?: number; // Optional override for Limitless/Polymarket
     negRisk?: boolean; // Optional override to skip neg-risk lookup (Polymarket)
+    onBehalfOf?: number; // Limitless delegated signing: profile ID to trade on behalf of
 }
 
 export interface BuiltOrder {
