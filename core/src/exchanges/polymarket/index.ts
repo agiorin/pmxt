@@ -38,10 +38,13 @@ import { PolymarketAuth } from './auth';
 import { polymarketErrorMapper } from './errors';
 import { PolymarketFetcher } from './fetcher';
 import { PolymarketNormalizer } from './normalizer';
-import { PolymarketWebSocket, PolymarketWebSocketConfig } from './websocket';
+import {
+    PolymarketWebSocket, PolymarketWebSocketConfig,
+    UserChannelCallback, UserChannelEvent, PolymarketUserChannelCreds,
+} from './websocket';
 
 // Re-export for external use
-export type { PolymarketWebSocketConfig, WatcherConfig };
+export type { PolymarketWebSocketConfig, WatcherConfig, UserChannelCallback, UserChannelEvent, PolymarketUserChannelCreds };
 export { POLYMARKET_DEFAULT_SUBSCRIPTION, buildPolymarketTradesActivity };
 
 export interface PolymarketExchangeOptions {

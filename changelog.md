@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.1] - 2026-05-08
+
+### Feat: Polymarket authenticated user channel WebSocket
+
+- Added `watchUserFills(conditionIds, callback)` to `PolymarketWebSocket`
+  for real-time fill and order event notifications via Polymarket's native
+  authenticated user channel (`wss://ws-subscriptions-clob.polymarket.com/ws/user`).
+
+- Supports two event types:
+  - **Trade events**: fired when orders fill (status: MATCHED → CONFIRMED/FAILED)
+  - **Order events**: fired on placement, partial fill (UPDATE), cancellation
+
+- Requires `userChannelCreds` (apiKey, secret, passphrase) in
+  `PolymarketWebSocketConfig`. These are the same L2 API credentials
+  derived by `PolymarketAuth`.
+
+- Auto-reconnects on disconnect (5s delay), pings every 10s to keep
+  the connection alive.
+
+- New exported types: `UserChannelCallback`, `UserChannelEvent`,
+  `UserTradeEvent`, `UserOrderEvent`, `PolymarketUserChannelCreds`.
+
+### Migration
+
+No breaking changes. The `userChannelCreds` config field is optional.
+Existing WebSocket usage (order book, trades) is unaffected.
+
 ## [2.39.0] - 2026-05-08
 
 ### DX: SDK type safety, passthrough converters, and outcome ID consistency

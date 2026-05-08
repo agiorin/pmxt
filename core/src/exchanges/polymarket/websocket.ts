@@ -17,6 +17,38 @@ import { OrderBook, OrderLevel, QueuedPromise, Trade } from '../../types';
 import { DEFAULT_WATCH_TIMEOUT_MS, withWatchTimeout } from '../../utils/watch-timeout';
 
 
+export interface PolymarketUserChannelCreds {
+    apiKey: string;
+    secret: string;
+    passphrase: string;
+}
+
+export interface UserTradeEvent {
+    asset_id: string;
+    event_type: 'trade';
+    price: string;
+    size: string;
+    side: string;
+    status: string; // MATCHED, MINED, CONFIRMED, RETRYING, FAILED
+    maker_orders?: any[];
+    timestamp?: string;
+}
+
+export interface UserOrderEvent {
+    asset_id: string;
+    event_type: 'order';
+    order_id: string;
+    price: string;
+    original_size: string;
+    matched_size?: string;
+    side: string;
+    type: string; // PLACEMENT, UPDATE, CANCELLATION
+    timestamp?: string;
+}
+
+export type UserChannelEvent = UserTradeEvent | UserOrderEvent;
+export type UserChannelCallback = (event: UserChannelEvent) => void;
+
 export interface PolymarketWebSocketConfig {
     /** Reconnection check interval in milliseconds (default: 5000) */
     reconnectIntervalMs?: number;
@@ -26,6 +58,8 @@ export interface PolymarketWebSocketConfig {
     watcherConfig?: WatcherConfig;
     /** Timeout in ms for watch methods to receive data (default: 30000). 0 = no timeout. */
     watchTimeoutMs?: number;
+    /** API credentials for the authenticated user channel (fills/orders). */
+    userChannelCreds?: PolymarketUserChannelCreds;
 }
 
 /**
@@ -140,10 +174,134 @@ export class PolymarketWebSocket {
         return this.watcher.unwatch(address);
     }
 
+    // -----------------------------------------------------------------
+    // Authenticated User Channel (fills + order updates)
+    // -----------------------------------------------------------------
+
+    private userWs: any = null;
+    private userCallbacks: UserChannelCallback[] = [];
+    private userPingInterval: ReturnType<typeof setInterval> | null = null;
+    private userReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private userConditionIds: string[] = [];
+
+    /**
+     * Subscribe to authenticated fill/order events via Polymarket's user channel.
+     * Requires `userChannelCreds` in the config.
+     *
+     * @param conditionIds - Market condition IDs to monitor
+     * @param callback     - Called for each trade or order event
+     */
+    async watchUserFills(conditionIds: string[], callback: UserChannelCallback): Promise<void> {
+        const creds = this.config.userChannelCreds;
+        if (!creds) {
+            throw new Error(
+                'User channel requires API credentials. Pass userChannelCreds in PolymarketWebSocketConfig.',
+            );
+        }
+        this.userCallbacks.push(callback);
+        this.userConditionIds = [...new Set([...this.userConditionIds, ...conditionIds])];
+
+        if (this.userWs) {
+            // Already connected — just re-subscribe with updated condition IDs.
+            this.sendUserSubscription(creds);
+            return;
+        }
+
+        await this.connectUserChannel(creds);
+    }
+
+    /**
+     * Stop watching user fills and close the user channel WebSocket.
+     */
+    async unwatchUserFills(): Promise<void> {
+        this.userCallbacks = [];
+        this.userConditionIds = [];
+        this.closeUserChannel();
+    }
+
+    private async connectUserChannel(creds: PolymarketUserChannelCreds): Promise<void> {
+        const WebSocket = (await import('ws')).default;
+        const url = 'wss://ws-subscriptions-clob.polymarket.com/ws/user';
+
+        this.userWs = new WebSocket(url);
+
+        this.userWs.on('open', () => {
+            console.log('[polymarket-ws] user channel connected');
+            this.sendUserSubscription(creds);
+
+            // Ping every 10 seconds to keep the connection alive.
+            if (this.userPingInterval) clearInterval(this.userPingInterval);
+            this.userPingInterval = setInterval(() => {
+                if (this.userWs?.readyState === WebSocket.OPEN) {
+                    this.userWs.ping();
+                }
+            }, 10_000);
+        });
+
+        this.userWs.on('message', (raw: Buffer) => {
+            try {
+                const events: UserChannelEvent[] = JSON.parse(raw.toString());
+                const arr = Array.isArray(events) ? events : [events];
+                for (const event of arr) {
+                    for (const cb of this.userCallbacks) {
+                        try { cb(event); } catch (e) {
+                            console.error('[polymarket-ws] user callback error:', e);
+                        }
+                    }
+                }
+            } catch {
+                // Non-JSON control message (pong, etc.) — ignore.
+            }
+        });
+
+        this.userWs.on('close', () => {
+            console.warn('[polymarket-ws] user channel disconnected, reconnecting in 5s');
+            this.scheduleUserReconnect(creds);
+        });
+
+        this.userWs.on('error', (err: Error) => {
+            console.error('[polymarket-ws] user channel error:', err.message);
+        });
+    }
+
+    private sendUserSubscription(creds: PolymarketUserChannelCreds): void {
+        if (!this.userWs || this.userWs.readyState !== 1) return;
+        const msg = JSON.stringify({
+            auth: {
+                apiKey: creds.apiKey,
+                secret: creds.secret,
+                passphrase: creds.passphrase,
+            },
+            markets: this.userConditionIds,
+            type: 'user',
+        });
+        this.userWs.send(msg);
+    }
+
+    private scheduleUserReconnect(creds: PolymarketUserChannelCreds): void {
+        if (this.userReconnectTimer) return;
+        this.userReconnectTimer = setTimeout(async () => {
+            this.userReconnectTimer = null;
+            if (this.userCallbacks.length > 0) {
+                try { await this.connectUserChannel(creds); } catch (e: any) {
+                    console.error('[polymarket-ws] reconnect failed:', e.message);
+                    this.scheduleUserReconnect(creds);
+                }
+            }
+        }, 5000);
+    }
+
+    private closeUserChannel(): void {
+        if (this.userPingInterval) { clearInterval(this.userPingInterval); this.userPingInterval = null; }
+        if (this.userReconnectTimer) { clearTimeout(this.userReconnectTimer); this.userReconnectTimer = null; }
+        if (this.userWs) { this.userWs.close(); this.userWs = null; }
+    }
+
     async close() {
         if (this.manager) {
             await this.manager.clearState();
         }
+        this.closeUserChannel();
         this.watcher.close();
     }
 
