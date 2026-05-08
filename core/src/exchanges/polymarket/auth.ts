@@ -5,7 +5,7 @@ import axios from 'axios';
 import { ExchangeCredentials } from '../../BaseExchange';
 import { polymarketErrorMapper } from './errors';
 
-const POLYMARKET_HOST = 'https://clob.polymarket.com';
+const DEFAULT_POLYMARKET_HOST = process.env.POLYMARKET_CLOB_URL || 'https://clob.polymarket.com';
 const POLYGON_CHAIN_ID = 137;
 
 // Polymarket CLOB signature types — determines how the CLOB API
@@ -25,9 +25,11 @@ export class PolymarketAuth {
     private apiCreds?: ApiKeyCreds;
     private discoveredProxyAddress?: string;
     private discoveredSignatureType?: number;
+    readonly host: string;
 
     constructor(credentials: ExchangeCredentials) {
         this.credentials = credentials;
+        this.host = credentials.baseUrl || DEFAULT_POLYMARKET_HOST;
 
         if (!credentials.privateKey) {
             throw new Error('Polymarket requires a privateKey for authentication');
@@ -78,7 +80,7 @@ export class PolymarketAuth {
 
         // Otherwise, derive/create them using L1 auth
         const l1Client = new ClobClient({
-            host: POLYMARKET_HOST,
+            host: this.host,
             chain: POLYGON_CHAIN_ID,
             signer: this.signer,
         });
@@ -131,7 +133,8 @@ export class PolymarketAuth {
         try {
             // Polymarket Data API / Profiles endpoint
             // Path-based: https://data-api.polymarket.com/profiles/0x...
-            const response = await axios.get(`https://data-api.polymarket.com/profiles/${address}`, {
+            const dataApiUrl = process.env.POLYMARKET_DATA_URL || 'https://data-api.polymarket.com';
+            const response = await axios.get(`${dataApiUrl}/profiles/${address}`, {
                 headers: { 'User-Agent': 'pmxt (https://github.com/pmxt-dev/pmxt)' }
             });
             const profile = response.data;
@@ -248,7 +251,7 @@ export class PolymarketAuth {
         // console.log(`[PolymarketAuth] Initializing ClobClient | Signer: ${signerAddress} | Funder: ${finalProxyAddress} | SigType: ${finalSignatureType}`);
 
         this.clobClient = new ClobClient({
-            host: POLYMARKET_HOST,
+            host: this.host,
             chain: POLYGON_CHAIN_ID,
             signer: this.signer,
             creds: apiCreds,

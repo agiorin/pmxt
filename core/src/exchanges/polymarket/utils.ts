@@ -1,10 +1,10 @@
 import { UnifiedMarket, MarketOutcome, CandleInterval } from '../../types';
 import { addBinaryOutcomes } from '../../utils/market-utils';
 
-export const GAMMA_API_URL = 'https://gamma-api.polymarket.com/events';
-export const GAMMA_SEARCH_URL = 'https://gamma-api.polymarket.com/public-search';
-export const CLOB_API_URL = 'https://clob.polymarket.com';
-export const DATA_API_URL = 'https://data-api.polymarket.com';
+export const GAMMA_API_URL = process.env.POLYMARKET_GAMMA_URL || 'https://gamma-api.polymarket.com/events';
+export const GAMMA_SEARCH_URL = process.env.POLYMARKET_GAMMA_SEARCH_URL || 'https://gamma-api.polymarket.com/public-search';
+export const CLOB_API_URL = process.env.POLYMARKET_CLOB_URL || 'https://clob.polymarket.com';
+export const DATA_API_URL = process.env.POLYMARKET_DATA_URL || 'https://data-api.polymarket.com';
 
 export function mapMarketToUnified(event: any, market: any, options: { useQuestionAsCandidateFallback?: boolean } = {}): UnifiedMarket | null {
     if (!market) return null;

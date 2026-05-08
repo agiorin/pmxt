@@ -7,7 +7,8 @@ import { addBinaryOutcomes } from "../../utils/market-utils";
  * so this constant must match exactly -- do NOT add a trailing slash or path suffix.
  * Paths in the spec (/posts/, /posts/{postId}/) are appended directly by BaseExchange.
  */
-export const BASE_URL = "https://www.metaculus.com/api";
+export const DEFAULT_BASE_URL = "https://www.metaculus.com/api";
+export const BASE_URL = process.env.METACULUS_BASE_URL || DEFAULT_BASE_URL;
 
 /**
  * Map a Metaculus post `status` to pmxt unified status.

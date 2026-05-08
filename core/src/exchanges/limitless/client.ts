@@ -1,7 +1,7 @@
 import { HttpClient, OrderClient, OrderBuilder, OrderSigner, MarketFetcher, Side, OrderType } from '@limitless-exchange/sdk';
 import { Wallet, providers, Contract, utils } from 'ethers';
 
-const LIMITLESS_API_URL = 'https://api.limitless.exchange';
+const DEFAULT_LIMITLESS_API_URL = process.env.LIMITLESS_BASE_URL || 'https://api.limitless.exchange';
 
 export interface LimitlessOrderParams {
     marketSlug: string;
@@ -39,9 +39,9 @@ export class LimitlessClient {
     private marketCache: Record<string, any> = {};
 
     /** @deprecated Use the config-object constructor instead. */
-    constructor(privateKey: string, apiKey: string);
+    constructor(privateKey: string, apiKey: string, baseUrl?: string);
     constructor(config: LimitlessClientConfig);
-    constructor(configOrKey: string | LimitlessClientConfig, apiKey?: string) {
+    constructor(configOrKey: string | LimitlessClientConfig, apiKey?: string, baseUrl?: string) {
         if (typeof configOrKey === 'string') {
             // Legacy positional constructor: (privateKey, apiKey)
             let privateKey = configOrKey;
@@ -52,7 +52,7 @@ export class LimitlessClient {
             this.isDelegated = false;
 
             this.httpClient = new HttpClient({
-                baseURL: LIMITLESS_API_URL,
+                baseURL: baseUrl || DEFAULT_LIMITLESS_API_URL,
                 apiKey: apiKey,
                 timeout: 30000,
             });

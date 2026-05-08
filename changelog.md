@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.37.11] - 2026-05-08
+
+### Feat: Configurable API base URLs for all exchanges
+
+Every exchange's API base URL is now overridable via environment variable,
+enabling proxy setups for geo-restricted venues. No code changes needed —
+just set the env var and all API calls route through the proxy.
+
+| Exchange | Env var | Default |
+|----------|---------|---------|
+| Polymarket CLOB | `POLYMARKET_CLOB_URL` | `https://clob.polymarket.com` |
+| Polymarket Gamma | `POLYMARKET_GAMMA_URL` | `https://gamma-api.polymarket.com/events` |
+| Polymarket Gamma Markets | `POLYMARKET_GAMMA_MARKETS_URL` | `https://gamma-api.polymarket.com/markets` |
+| Polymarket Gamma Search | `POLYMARKET_GAMMA_SEARCH_URL` | `https://gamma-api.polymarket.com/public-search` |
+| Polymarket Data | `POLYMARKET_DATA_URL` | `https://data-api.polymarket.com` |
+| Polymarket US API | `POLYMARKET_US_BASE_URL` | `https://api.polymarket.us` |
+| Polymarket US Gateway | `POLYMARKET_US_GATEWAY_URL` | `https://gateway.polymarket.us` |
+| Kalshi | `KALSHI_BASE_URL` | `https://api.elections.kalshi.com` |
+| Kalshi Demo | `KALSHI_DEMO_BASE_URL` | `https://demo-api.kalshi.co` |
+| Limitless | `LIMITLESS_BASE_URL` | `https://api.limitless.exchange` |
+| Opinion | `OPINION_BASE_URL` | `https://openapi.opinion.trade/openapi` |
+| Smarkets | `SMARKETS_BASE_URL` | `https://api.smarkets.com` |
+| Probable | `PROBABLE_BASE_URL` | `https://market-api.probable.markets` |
+| Myriad | `MYRIAD_BASE_URL` | `https://api-v2.myriadprotocol.com` |
+| Metaculus | `METACULUS_BASE_URL` | `https://www.metaculus.com/api` |
+
+Backwards compatible — when no env var is set, the default URL is used.
+
 ## [2.37.10] - 2026-05-08
 
 ### Fix: Router-only methods now fail clearly instead of silently

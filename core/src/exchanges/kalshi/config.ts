@@ -17,8 +17,8 @@
 
 // ── Base URL constants ────────────────────────────────────────────────────────
 
-export const KALSHI_PROD_API_URL = "https://api.elections.kalshi.com";
-export const KALSHI_DEMO_API_URL = "https://demo-api.kalshi.co";
+export const KALSHI_PROD_API_URL = process.env.KALSHI_BASE_URL || "https://api.elections.kalshi.com";
+export const KALSHI_DEMO_API_URL = process.env.KALSHI_DEMO_BASE_URL || "https://demo-api.kalshi.co";
 
 export const KALSHI_PROD_WS_URL =
   "wss://api.elections.kalshi.com/trade-api/ws/v2";
@@ -60,9 +60,9 @@ export interface KalshiApiConfig {
  * // config.apiUrl === "https://demo-api.elections.kalshi.com"
  * ```
  */
-export function getKalshiConfig(demoMode = false): KalshiApiConfig {
+export function getKalshiConfig(demoMode = false, baseUrlOverride?: string): KalshiApiConfig {
   return {
-    apiUrl: demoMode ? KALSHI_DEMO_API_URL : KALSHI_PROD_API_URL,
+    apiUrl: baseUrlOverride || (demoMode ? KALSHI_DEMO_API_URL : KALSHI_PROD_API_URL),
     wsUrl: demoMode ? KALSHI_DEMO_WS_URL : KALSHI_PROD_WS_URL,
     demoMode,
   };

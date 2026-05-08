@@ -1,4 +1,5 @@
-export const OPINION_API_URL = "https://openapi.opinion.trade/openapi";
+export const DEFAULT_OPINION_API_URL = "https://openapi.opinion.trade/openapi";
+export const OPINION_API_URL = process.env.OPINION_BASE_URL || DEFAULT_OPINION_API_URL;
 export const OPINION_WS_URL = "wss://ws.opinion.trade";
 export const OPINION_MAX_PAGE_SIZE = 20;
 

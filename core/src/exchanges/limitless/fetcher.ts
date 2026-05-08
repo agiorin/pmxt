@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios';
 import { MarketFetchParams, EventFetchParams, OHLCVParams, TradesParams, MyTradesParams } from '../../BaseExchange';
 import { IExchangeFetcher, FetcherContext } from '../interfaces';
-import { LIMITLESS_API_URL, paginateLimitlessMarkets } from './utils';
+import { DEFAULT_LIMITLESS_API_URL, paginateLimitlessMarkets } from './utils';
 import { limitlessErrorMapper } from './errors';
 import { validateIdFormat } from '../../utils/validation';
 
@@ -82,11 +82,13 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
     private readonly ctx: FetcherContext;
     private readonly http: AxiosInstance;
     private readonly apiKey?: string;
+    private readonly apiUrl: string;
 
-    constructor(ctx: FetcherContext, http: AxiosInstance, apiKey?: string) {
+    constructor(ctx: FetcherContext, http: AxiosInstance, apiKey?: string, apiUrl?: string) {
         this.ctx = ctx;
         this.http = http;
         this.apiKey = apiKey;
+        this.apiUrl = apiUrl || DEFAULT_LIMITLESS_API_URL;
     }
 
     async fetchRawMarkets(params?: MarketFetchParams): Promise<LimitlessRawMarket[]> {
@@ -98,7 +100,7 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
 
         try {
             const httpClient = new HttpClient({
-                baseURL: LIMITLESS_API_URL,
+                baseURL: this.apiUrl,
                 apiKey: this.apiKey,
             });
             const marketFetcher = new MarketFetcher(httpClient);
@@ -182,7 +184,8 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
 
     async fetchRawMyTrades(_params: MyTradesParams, apiKey: string): Promise<LimitlessRawTrade[]> {
         try {
-            const response = await this.http.get('https://api.limitless.exchange/portfolio/trades', {
+            const baseUrl = process.env.LIMITLESS_BASE_URL || 'https://api.limitless.exchange';
+            const response = await this.http.get(`${baseUrl}/portfolio/trades`, {
                 headers: { Authorization: `Bearer ${apiKey}` },
             });
             const trades = Array.isArray(response.data) ? response.data : (response.data?.data || []);
@@ -250,7 +253,7 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
 
     private async fetchRawEventBySlug(slug: string): Promise<LimitlessRawEvent[]> {
         const { HttpClient, MarketFetcher } = await import('@limitless-exchange/sdk');
-        const httpClient = new HttpClient({ baseURL: LIMITLESS_API_URL });
+        const httpClient = new HttpClient({ baseURL: this.apiUrl });
         const marketFetcher = new MarketFetcher(httpClient);
 
         const market = await marketFetcher.getMarket(slug);
@@ -286,7 +289,7 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
         const allGroups: LimitlessRawEvent[] = [];
 
         while (allGroups.length < limit && page <= MAX_PAGES) {
-            const response = await this.http.get(`${LIMITLESS_API_URL}/markets/active`, {
+            const response = await this.http.get(`${this.apiUrl}/markets/active`, {
                 params: {
                     page,
                     limit: pageSize,

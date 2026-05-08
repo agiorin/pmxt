@@ -1,7 +1,8 @@
 import { UnifiedMarket, MarketOutcome, CandleInterval } from '../../types';
 import { addBinaryOutcomes } from '../../utils/market-utils';
 
-export const LIMITLESS_API_URL = 'https://api.limitless.exchange';
+export const DEFAULT_LIMITLESS_API_URL = 'https://api.limitless.exchange';
+export const LIMITLESS_API_URL = process.env.LIMITLESS_BASE_URL || DEFAULT_LIMITLESS_API_URL;
 
 export function mapMarketToUnified(market: any): UnifiedMarket | null {
     if (!market) return null;

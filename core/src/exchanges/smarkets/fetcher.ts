@@ -212,7 +212,8 @@ export class SmarketsFetcher implements IExchangeFetcher<SmarketsRawEventWithMar
 
         // get_quotes is marked as private in the spec but works without auth
         // (returns delayed data). Use a direct HTTP call so it works without credentials.
-        const url = `https://api.smarkets.com/v3/markets/${encodeURIComponent(id)}/quotes/`;
+        const smarketsBase = process.env.SMARKETS_BASE_URL || 'https://api.smarkets.com';
+        const url = `${smarketsBase}/v3/markets/${encodeURIComponent(id)}/quotes/`;
         const headers: Record<string, string> = {
             ...this.ctx.getHeaders(),
         };

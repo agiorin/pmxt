@@ -2,7 +2,7 @@ import { HttpClient } from '@limitless-exchange/sdk';
 import { Wallet } from 'ethers';
 import { ExchangeCredentials } from '../../BaseExchange';
 
-const LIMITLESS_HOST = 'https://api.limitless.exchange';
+const DEFAULT_LIMITLESS_HOST = process.env.LIMITLESS_BASE_URL || 'https://api.limitless.exchange';
 
 export interface HMACCredentials {
     tokenId: string;
@@ -22,9 +22,11 @@ export class LimitlessAuth {
     private httpClient?: HttpClient;
     private apiKey?: string;
     private hmacCreds?: HMACCredentials;
+    readonly host: string;
 
     constructor(credentials: ExchangeCredentials) {
         this.credentials = credentials;
+        this.host = credentials.baseUrl || DEFAULT_LIMITLESS_HOST;
 
         // HMAC credentials for delegated signing (partner mode).
         // apiSecret is the base64-encoded HMAC secret from the Limitless dashboard.
@@ -69,7 +71,7 @@ export class LimitlessAuth {
         }
 
         const config: Record<string, unknown> = {
-            baseURL: LIMITLESS_HOST,
+            baseURL: this.host,
             timeout: 30000,
         };
 

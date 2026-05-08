@@ -1,7 +1,8 @@
 import { UnifiedMarket, UnifiedEvent, MarketOutcome } from '../../types';
 import { addBinaryOutcomes } from '../../utils/market-utils';
 
-export const BASE_URL = 'https://api-v2.myriadprotocol.com';
+export const DEFAULT_BASE_URL = 'https://api-v2.myriadprotocol.com';
+export const BASE_URL = process.env.MYRIAD_BASE_URL || DEFAULT_BASE_URL;
 
 // Mainnet network IDs
 export const NETWORKS = {

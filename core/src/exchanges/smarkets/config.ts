@@ -13,7 +13,8 @@
 
 // -- Base URL constant --------------------------------------------------------
 
-export const SMARKETS_BASE_URL = "https://api.smarkets.com";
+export const DEFAULT_SMARKETS_BASE_URL = "https://api.smarkets.com";
+export const SMARKETS_BASE_URL = process.env.SMARKETS_BASE_URL || DEFAULT_SMARKETS_BASE_URL;
 
 // -- Path constants -----------------------------------------------------------
 
@@ -50,8 +51,8 @@ export interface SmarketsApiConfig {
 /**
  * Return a typed config object for the Smarkets API.
  */
-export function getSmarketsConfig(): SmarketsApiConfig {
+export function getSmarketsConfig(baseUrlOverride?: string): SmarketsApiConfig {
   return {
-    apiUrl: SMARKETS_BASE_URL,
+    apiUrl: baseUrlOverride || DEFAULT_SMARKETS_BASE_URL,
   };
 }

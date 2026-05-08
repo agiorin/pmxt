@@ -109,7 +109,7 @@ export interface PolymarketRawPosition {
     realizedPnl?: string;
 }
 
-const GAMMA_MARKETS_URL = 'https://gamma-api.polymarket.com/markets';
+const GAMMA_MARKETS_URL = process.env.POLYMARKET_GAMMA_MARKETS_URL || 'https://gamma-api.polymarket.com/markets';
 
 export class PolymarketFetcher implements IExchangeFetcher<PolymarketRawEvent, PolymarketRawEvent> {
     private readonly ctx: FetcherContext;

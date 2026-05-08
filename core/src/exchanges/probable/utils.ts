@@ -1,7 +1,8 @@
 import { UnifiedMarket, UnifiedEvent, MarketOutcome } from '../../types';
 import { addBinaryOutcomes } from '../../utils/market-utils';
 
-export const BASE_URL = 'https://market-api.probable.markets';
+export const DEFAULT_BASE_URL = 'https://market-api.probable.markets';
+export const BASE_URL = process.env.PROBABLE_BASE_URL || DEFAULT_BASE_URL;
 export const SEARCH_PATH = '/public/api/v1/public-search/';
 export const EVENTS_PATH = '/public/api/v1/events/';
 export const MARKETS_PATH = '/public/api/v1/markets/';

@@ -7,8 +7,8 @@
 
 // -- Base URL constants -------------------------------------------------------
 
-export const POLYMARKET_US_API_BASE_URL = "https://api.polymarket.us";
-export const POLYMARKET_US_GATEWAY_BASE_URL = "https://gateway.polymarket.us";
+export const POLYMARKET_US_API_BASE_URL = process.env.POLYMARKET_US_BASE_URL || "https://api.polymarket.us";
+export const POLYMARKET_US_GATEWAY_BASE_URL = process.env.POLYMARKET_US_GATEWAY_URL || "https://gateway.polymarket.us";
 
 // -- Config interface & factory -----------------------------------------------
 
@@ -22,9 +22,9 @@ export interface PolymarketUSConfig {
 /**
  * Return a typed config object for the Polymarket US API.
  */
-export function getPolymarketUSConfig(): PolymarketUSConfig {
+export function getPolymarketUSConfig(baseUrlOverride?: string): PolymarketUSConfig {
     return {
-        apiUrl: POLYMARKET_US_API_BASE_URL,
+        apiUrl: baseUrlOverride || POLYMARKET_US_API_BASE_URL,
         gatewayUrl: POLYMARKET_US_GATEWAY_BASE_URL,
     };
 }
