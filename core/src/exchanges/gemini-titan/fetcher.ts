@@ -1,0 +1,216 @@
+import { MarketFilterParams, EventFetchParams } from '../../BaseExchange';
+import { IExchangeFetcher, FetcherContext } from '../interfaces';
+import { geminiErrorMapper } from './errors';
+import { GeminiAuth } from './auth';
+import {
+    GeminiRawEvent,
+    GeminiRawEventsResponse,
+    GeminiRawOrder,
+    GeminiRawActiveOrdersResponse,
+    GeminiRawPosition,
+    GeminiRawPositionsResponse,
+    GeminiRawOrderBook,
+    GeminiRawOrderBookLevel,
+} from './types';
+
+// ----------------------------------------------------------------------------
+// Fetcher
+// ----------------------------------------------------------------------------
+
+export class GeminiFetcher implements IExchangeFetcher<GeminiRawEvent, GeminiRawEvent> {
+    private readonly ctx: FetcherContext;
+    private readonly baseUrl: string;
+    private readonly auth: GeminiAuth | undefined;
+
+    // Index mapping instrumentSymbol -> eventTicker, built during fetchRawEvents
+    private symbolToEventTicker: Map<string, string> = new Map();
+
+    constructor(ctx: FetcherContext, baseUrl: string, auth?: GeminiAuth) {
+        this.ctx = ctx;
+        this.baseUrl = baseUrl;
+        this.auth = auth;
+    }
+
+    // -- Public data -----------------------------------------------------------
+
+    async fetchRawMarkets(params?: MarketFilterParams): Promise<GeminiRawEvent[]> {
+        return this.fetchRawEvents(params ?? {});
+    }
+
+    async fetchRawEvents(params: EventFetchParams): Promise<GeminiRawEvent[]> {
+        const allEvents: GeminiRawEvent[] = [];
+        const pageSize = 500;
+        let offset = params.offset ?? 0;
+        const maxResults = params.limit ?? 250000;
+
+        while (allEvents.length < maxResults) {
+            const queryParams: Record<string, string> = {
+                limit: String(Math.min(pageSize, maxResults - allEvents.length)),
+                offset: String(offset),
+            };
+
+            if (params.status && params.status !== 'all') {
+                queryParams.status = params.status === 'active' ? 'active' : params.status;
+            } else if (!params.status) {
+                queryParams.status = 'active';
+            }
+
+            if (params.category) {
+                queryParams.category = params.category;
+            }
+
+            if (params.query) {
+                queryParams.search = params.query;
+            }
+
+            const response = await this.get<GeminiRawEventsResponse>(
+                '/v1/prediction-markets/events',
+                queryParams,
+            );
+
+            const events = response.data;
+            if (events.length === 0) break;
+
+            // Build the instrumentSymbol -> eventTicker index
+            for (const event of events) {
+                for (const contract of event.contracts) {
+                    this.symbolToEventTicker.set(contract.instrumentSymbol, event.ticker);
+                }
+            }
+
+            allEvents.push(...events);
+
+            // Check if we've fetched all available
+            if (allEvents.length >= response.pagination.total) break;
+            offset += events.length;
+        }
+
+        return allEvents;
+    }
+
+    async fetchRawSingleEvent(eventTicker: string): Promise<GeminiRawEvent> {
+        return this.get<GeminiRawEvent>(
+            `/v1/prediction-markets/events/${encodeURIComponent(eventTicker)}`,
+        );
+    }
+
+    async fetchRawOrderBook(instrumentSymbol: string): Promise<GeminiRawOrderBook | undefined> {
+        const eventTicker = this.getEventTickerForSymbol(instrumentSymbol);
+        if (!eventTicker) {
+            throw new Error(
+                `Cannot fetch order book: no event ticker found for ${instrumentSymbol}. ` +
+                'Call fetchMarkets first to build the symbol index.',
+            );
+        }
+
+        const event = await this.fetchRawSingleEvent(eventTicker);
+
+        // The REST API does not expose a full order book — construct a
+        // single-level book from the contract's best bid/ask prices.
+        // Full depth is only available via the WebSocket @depth streams.
+        const contract = event.contracts.find(c => c.instrumentSymbol === instrumentSymbol);
+        if (!contract?.prices) return undefined;
+
+        const { bestBid, bestAsk } = contract.prices;
+        const bids: GeminiRawOrderBookLevel[] = bestBid
+            ? [{ price: bestBid, size: '0' }]
+            : [];
+        const asks: GeminiRawOrderBookLevel[] = bestAsk
+            ? [{ price: bestAsk, size: '0' }]
+            : [];
+
+        return { bids, asks, timestamp: Date.now() };
+    }
+
+    getEventTickerForSymbol(instrumentSymbol: string): string | undefined {
+        return this.symbolToEventTicker.get(instrumentSymbol);
+    }
+
+    // -- Authenticated endpoints -----------------------------------------------
+
+    async submitRawOrder(payload: Record<string, unknown>): Promise<GeminiRawOrder> {
+        return this.postAuthenticated<GeminiRawOrder>(
+            '/v1/prediction-markets/order',
+            payload,
+        );
+    }
+
+    async cancelRawOrder(orderId: number): Promise<{ result: string; message: string }> {
+        return this.postAuthenticated<{ result: string; message: string }>(
+            '/v1/prediction-markets/order/cancel',
+            { orderId },
+        );
+    }
+
+    async fetchRawActiveOrders(symbol?: string): Promise<GeminiRawOrder[]> {
+        const extra: Record<string, unknown> = {};
+        if (symbol) extra.symbol = symbol;
+
+        const response = await this.postAuthenticated<GeminiRawActiveOrdersResponse>(
+            '/v1/prediction-markets/orders/active',
+            extra,
+        );
+        return response.orders;
+    }
+
+    async fetchRawOrderHistory(): Promise<GeminiRawOrder[]> {
+        const response = await this.postAuthenticated<GeminiRawOrder[]>(
+            '/v1/prediction-markets/orders/history',
+            {},
+        );
+        return Array.isArray(response) ? response : [];
+    }
+
+    async fetchRawPositions(): Promise<GeminiRawPosition[]> {
+        const response = await this.postAuthenticated<GeminiRawPositionsResponse>(
+            '/v1/prediction-markets/positions',
+            {},
+        );
+        return response.positions;
+    }
+
+    // -- HTTP helpers ----------------------------------------------------------
+
+    private async get<T>(path: string, params?: Record<string, string>): Promise<T> {
+        try {
+            const url = new URL(path, this.baseUrl);
+            if (params) {
+                for (const [key, value] of Object.entries(params)) {
+                    url.searchParams.set(key, value);
+                }
+            }
+            const response = await this.ctx.http.get(url.toString());
+            return response.data as T;
+        } catch (error: any) {
+            throw geminiErrorMapper.mapError(error);
+        }
+    }
+
+    private async postAuthenticated<T>(
+        path: string,
+        extraFields: Record<string, unknown>,
+    ): Promise<T> {
+        if (!this.auth) {
+            throw new Error('Authentication required. Provide apiKey and apiSecret.');
+        }
+
+        const payload: Record<string, unknown> = {
+            request: path,
+            nonce: this.auth.nonce(),
+            ...extraFields,
+        };
+
+        const headers = this.auth.buildHeaders(payload);
+
+        try {
+            const response = await this.ctx.http.post(
+                `${this.baseUrl}${path}`,
+                {},
+                { headers },
+            );
+            return response.data as T;
+        } catch (error: any) {
+            throw geminiErrorMapper.mapError(error);
+        }
+    }
+}
