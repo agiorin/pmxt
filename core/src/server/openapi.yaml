@@ -3684,6 +3684,28 @@ x-sdk-constructors:
         tsName: privateKey
         type: string
         description: Private key for authentication
+  gemini-titan:
+    className: GeminiTitan
+    params:
+      - name: pmxt_api_key
+        tsName: pmxtApiKey
+        type: string
+        description: PMXT API key for hosted access
+      - name: api_key
+        tsName: apiKey
+        type: string
+        description: API key for authentication
+      - name: api_secret
+        tsName: apiSecret
+        type: string
+        description: API secret for authentication
+  mock:
+    className: Mock
+    params:
+      - name: pmxt_api_key
+        tsName: pmxtApiKey
+        type: string
+        description: PMXT API key for hosted access
   router:
     className: Router
     params:
