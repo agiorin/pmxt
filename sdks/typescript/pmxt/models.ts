@@ -358,8 +358,32 @@ export interface MarketFilterParams {
     /** Sort order */
     sort?: SortOption;
 
+    /** Filter by market status (default: 'active') */
+    status?: 'active' | 'inactive' | 'closed' | 'all';
+
     /** Where to search (for filterMarkets) */
     searchIn?: SearchIn;
+
+    /** Keyword search query */
+    query?: string;
+
+    /** Slug/ticker lookup */
+    slug?: string;
+
+    /** Direct lookup by market ID */
+    marketId?: string;
+
+    /** Reverse lookup -- find market containing this outcome */
+    outcomeId?: string;
+
+    /** Find markets belonging to an event */
+    eventId?: string;
+
+    /** Pagination page (used by Limitless) */
+    page?: number;
+
+    /** Semantic search threshold (used by Limitless) */
+    similarityThreshold?: number;
 
     /** Filter by market category (e.g. "sports", "politics", "crypto") */
     category?: string;
@@ -450,6 +474,69 @@ export interface CreateOrderParams {
 
     /** Optional fee rate (e.g., 1000 for 0.1%) */
     fee?: number;
+}
+
+/** Alias matching the core MarketFetchParams name. */
+export type MarketFetchParams = MarketFilterParams;
+
+/**
+ * Parameters for fetching OHLCV candle data.
+ */
+export interface OHLCVParams {
+    /** Candle resolution (e.g. '1m', '5m', '1h', '1d') */
+    resolution: CandleInterval;
+    /** Start of the time range */
+    start?: Date;
+    /** End of the time range */
+    end?: Date;
+    /** Maximum number of candles */
+    limit?: number;
+}
+
+/**
+ * Parameters for fetching public trades.
+ */
+export interface TradesParams {
+    /** Start of the time range */
+    start?: Date;
+    /** End of the time range */
+    end?: Date;
+    /** Maximum number of results */
+    limit?: number;
+}
+
+/**
+ * Parameters for fetching the authenticated user's trade history.
+ */
+export interface MyTradesParams {
+    /** Filter by outcome ID */
+    outcomeId?: string;
+    /** Filter by market ID */
+    marketId?: string;
+    /** Only return records after this date */
+    since?: Date;
+    /** Only return records before this date */
+    until?: Date;
+    /** Maximum number of results */
+    limit?: number;
+    /** Cursor for pagination */
+    cursor?: string;
+}
+
+/**
+ * Parameters for fetching closed/all order history.
+ */
+export interface OrderHistoryParams {
+    /** Filter by market ID */
+    marketId?: string;
+    /** Only return records after this date */
+    since?: Date;
+    /** Only return records before this date */
+    until?: Date;
+    /** Maximum number of results */
+    limit?: number;
+    /** Cursor for pagination */
+    cursor?: string;
 }
 
 /**

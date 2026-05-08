@@ -813,7 +813,7 @@ export abstract class PredictionMarketExchange {
     /**
      * Fetch historical OHLCV (candlestick) price data for a specific market outcome.
      *
-     * @param id - The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
+     * @param outcomeId - The Outcome ID (outcomeId). Use outcome.outcomeId, NOT market.marketId
      * @param params - OHLCV parameters including resolution (required)
      * @returns Array of price candles
      *
@@ -821,7 +821,7 @@ export abstract class PredictionMarketExchange {
      * @notes Polymarket: outcomeId is the CLOB Token ID. Kalshi: outcomeId is the Market Ticker.
      * @notes Common resolutions: '1m' | '5m' | '15m' | '1h' | '6h' | '1d'. Arbitrary intervals (e.g. '30s', '120s', '3h') accepted by venues that support them.
      */
-    async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(outcomeId: string, params: OHLCVParams): Promise<PriceCandle[]> {
         throw new Error("Method fetchOHLCV not implemented.");
     }
 
@@ -829,27 +829,27 @@ export abstract class PredictionMarketExchange {
      * Fetch the current order book (bids/asks) for a specific outcome.
      * Essential for calculating spread, depth, and execution prices.
      *
-     * @param id - The Outcome ID (outcomeId) or market slug
+     * @param outcomeId - The Outcome ID (outcomeId) or market slug
      * @param side - Optional 'yes' or 'no' to explicitly indicate the
      *   outcome side. Required for exchanges where the API returns a
      *   single orderbook per market (e.g. Limitless) and the caller
      *   passes a slug instead of a token ID.
      * @returns Current order book with bids and asks
      */
-    async fetchOrderBook(id: string, side?: 'yes' | 'no'): Promise<OrderBook> {
+    async fetchOrderBook(outcomeId: string, side?: 'yes' | 'no'): Promise<OrderBook> {
         throw new Error("Method fetchOrderBook not implemented.");
     }
 
     /**
      * Fetch raw trade history for a specific outcome.
      *
-     * @param id - The Outcome ID (outcomeId)
+     * @param outcomeId - The Outcome ID (outcomeId)
      * @param params - Trade filter parameters
      * @returns Array of recent trades
      *
      * @notes Polymarket requires an API key for trade history. Use fetchOHLCV for public historical data.
      */
-    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         // Deprecation warning for resolution parameter
         if ('resolution' in params && params.resolution !== undefined) {
             console.warn(
@@ -1246,11 +1246,11 @@ export abstract class PredictionMarketExchange {
      * Watch order book updates in real-time via WebSocket.
      * Returns a promise that resolves with the next order book update. Call repeatedly in a loop to stream updates (CCXT Pro pattern).
      *
-     * @param id - The Outcome ID to watch
+     * @param outcomeId - The Outcome ID to watch
      * @param limit - Optional limit for orderbook depth
      * @returns Promise that resolves with the current orderbook state
      */
-    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook> {
         throw new Error(`watchOrderBook() is not supported by ${this.name}`);
     }
 
@@ -1260,23 +1260,23 @@ export abstract class PredictionMarketExchange {
      * Exchanges with native batch support (e.g. Kalshi) send a single subscribe message
      * for all tickers; others fall back to individual watchOrderBook calls.
      *
-     * @param ids - Array of Outcome IDs to watch
+     * @param outcomeIds - Array of Outcome IDs to watch
      * @param limit - Optional limit for orderbook depth
      * @returns Promise that resolves with order books keyed by ID
      */
-    async watchOrderBooks(ids: string[], limit?: number): Promise<Record<string, OrderBook>> {
+    async watchOrderBooks(outcomeIds: string[], limit?: number): Promise<Record<string, OrderBook>> {
         // Default implementation: subscribe to each ID individually.
         // Exchanges with native batch support (e.g. Kalshi) override this
         // to send a single subscribe message for all tickers.
         const entries = await Promise.all(
-            ids.map(async (id): Promise<[string, OrderBook]> => {
-                const book = await this.watchOrderBook(id, limit);
-                return [id, book];
+            outcomeIds.map(async (oid): Promise<[string, OrderBook]> => {
+                const book = await this.watchOrderBook(oid, limit);
+                return [oid, book];
             }),
         );
         const result: Record<string, OrderBook> = {};
-        for (const [id, book] of entries) {
-            result[id] = book;
+        for (const [oid, book] of entries) {
+            result[oid] = book;
         }
         return result;
     }
@@ -1284,9 +1284,9 @@ export abstract class PredictionMarketExchange {
     /**
      * Unsubscribe from a previously watched order book stream.
      *
-     * @param id - The Outcome ID to stop watching
+     * @param outcomeId - The Outcome ID to stop watching
      */
-    async unwatchOrderBook(id: string): Promise<void> {
+    async unwatchOrderBook(outcomeId: string): Promise<void> {
         throw new Error(`unwatchOrderBook() is not supported by ${this.name}`);
     }
 
@@ -1298,13 +1298,13 @@ export abstract class PredictionMarketExchange {
      * Watch trade executions in real-time via WebSocket.
      * Returns a promise that resolves with the next trade(s). Call repeatedly in a loop to stream updates (CCXT Pro pattern).
      *
-     * @param id - The Outcome ID to watch
+     * @param outcomeId - The Outcome ID to watch
      * @param address - Public wallet address
      * @param since - Optional timestamp to filter trades from
      * @param limit - Optional limit for number of trades
      * @returns Promise that resolves with recent trades
      */
-    async watchTrades(id: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
+    async watchTrades(outcomeId: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
         throw new Error(`watchTrades() is not supported by ${this.name}`);
     }
 

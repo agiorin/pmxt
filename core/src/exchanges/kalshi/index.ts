@@ -186,21 +186,21 @@ export class KalshiExchange extends PredictionMarketExchange {
   }
 
   async fetchOHLCV(
-    id: string,
+    outcomeId: string,
     params: OHLCVParams,
   ): Promise<PriceCandle[]> {
-    const rawCandles = await this.fetcher.fetchRawOHLCV(id, params);
+    const rawCandles = await this.fetcher.fetchRawOHLCV(outcomeId, params);
     return this.normalizer.normalizeOHLCV(rawCandles, params);
   }
 
-  async fetchOrderBook(id: string): Promise<OrderBook> {
-    validateIdFormat(id, "OrderBook");
-    const raw = await this.fetcher.fetchRawOrderBook(id);
-    return this.normalizer.normalizeOrderBook(raw, id);
+  async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+    validateIdFormat(outcomeId, "OrderBook");
+    const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
+    return this.normalizer.normalizeOrderBook(raw, outcomeId);
   }
 
   async fetchTrades(
-    id: string,
+    outcomeId: string,
     params: TradesParams | HistoryFilterParams,
   ): Promise<Trade[]> {
     if ("resolution" in params && params.resolution !== undefined) {
@@ -209,7 +209,7 @@ export class KalshiExchange extends PredictionMarketExchange {
         "It will be removed in v3.0.0. Please remove it from your code.",
       );
     }
-    const rawTrades = await this.fetcher.fetchRawTrades(id, params);
+    const rawTrades = await this.fetcher.fetchRawTrades(outcomeId, params);
     return rawTrades.map((raw, i) => this.normalizer.normalizeTrade(raw, i));
   }
 
@@ -341,7 +341,7 @@ export class KalshiExchange extends PredictionMarketExchange {
 
   private ws?: KalshiWebSocket;
 
-  async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+  async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook> {
     const auth = this.ensureAuth();
     if (!this.ws) {
       const wsConfigWithUrl: KalshiWebSocketConfig = {
@@ -350,11 +350,11 @@ export class KalshiExchange extends PredictionMarketExchange {
       };
       this.ws = new KalshiWebSocket(auth, wsConfigWithUrl);
     }
-    const marketTicker = id.replace(/-NO$/, "");
+    const marketTicker = outcomeId.replace(/-NO$/, "");
     return this.ws.watchOrderBook(marketTicker);
   }
 
-  async watchOrderBooks(ids: string[], limit?: number): Promise<Record<string, OrderBook>> {
+  async watchOrderBooks(outcomeIds: string[], limit?: number): Promise<Record<string, OrderBook>> {
     const auth = this.ensureAuth();
     if (!this.ws) {
       const wsConfigWithUrl: KalshiWebSocketConfig = {
@@ -363,12 +363,12 @@ export class KalshiExchange extends PredictionMarketExchange {
       };
       this.ws = new KalshiWebSocket(auth, wsConfigWithUrl);
     }
-    const marketTickers = ids.map((id) => id.replace(/-NO$/, ""));
+    const marketTickers = outcomeIds.map((oid) => oid.replace(/-NO$/, ""));
     return this.ws.watchOrderBooks(marketTickers);
   }
 
   async watchTrades(
-    id: string,
+    outcomeId: string,
     address?: string,
     since?: number,
     limit?: number,
@@ -381,7 +381,7 @@ export class KalshiExchange extends PredictionMarketExchange {
       };
       this.ws = new KalshiWebSocket(auth, wsConfigWithUrl);
     }
-    const marketTicker = id.replace(/-NO$/, "");
+    const marketTicker = outcomeId.replace(/-NO$/, "");
     return this.ws.watchTrades(marketTicker);
   }
 

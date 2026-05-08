@@ -29,32 +29,32 @@ export class MyriadWebSocket {
         this.pollInterval = pollInterval || DEFAULT_POLL_INTERVAL;
     }
 
-    async watchOrderBook(id: string): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string): Promise<OrderBook> {
         if (this.closed) throw new Error('WebSocket connection is closed');
 
         return new Promise<OrderBook>((resolve) => {
-            if (!this.orderBookResolvers.has(id)) {
-                this.orderBookResolvers.set(id, []);
+            if (!this.orderBookResolvers.has(outcomeId)) {
+                this.orderBookResolvers.set(outcomeId, []);
             }
-            this.orderBookResolvers.get(id)!.push(resolve);
+            this.orderBookResolvers.get(outcomeId)!.push(resolve);
 
-            if (!this.orderBookTimers.has(id)) {
-                this.startOrderBookPolling(id);
+            if (!this.orderBookTimers.has(outcomeId)) {
+                this.startOrderBookPolling(outcomeId);
             }
         });
     }
 
-    async watchTrades(id: string): Promise<Trade[]> {
+    async watchTrades(outcomeId: string): Promise<Trade[]> {
         if (this.closed) throw new Error('WebSocket connection is closed');
 
         return new Promise<Trade[]>((resolve) => {
-            if (!this.tradeResolvers.has(id)) {
-                this.tradeResolvers.set(id, []);
+            if (!this.tradeResolvers.has(outcomeId)) {
+                this.tradeResolvers.set(outcomeId, []);
             }
-            this.tradeResolvers.get(id)!.push(resolve);
+            this.tradeResolvers.get(outcomeId)!.push(resolve);
 
-            if (!this.tradeTimers.has(id)) {
-                this.startTradePolling(id);
+            if (!this.tradeTimers.has(outcomeId)) {
+                this.startTradePolling(outcomeId);
             }
         });
     }

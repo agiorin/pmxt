@@ -194,21 +194,21 @@ export class LimitlessExchange extends PredictionMarketExchange {
             .filter((e): e is UnifiedEvent => e !== null);
     }
 
-    async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
-        const slug = await this.resolveSlug(id);
+    async fetchOHLCV(outcomeId: string, params: OHLCVParams): Promise<PriceCandle[]> {
+        const slug = await this.resolveSlug(outcomeId);
         const rawPrices = await this.fetcher.fetchRawOHLCV!(slug, params);
         return this.normalizer.normalizeOHLCV!(rawPrices as any, params);
     }
 
-    async fetchOrderBook(id: string, side?: 'yes' | 'no'): Promise<OrderBook> {
-        const slug = await this.resolveSlug(id);
+    async fetchOrderBook(outcomeId: string, side?: 'yes' | 'no'): Promise<OrderBook> {
+        const slug = await this.resolveSlug(outcomeId);
         const rawOrderBook = await this.fetcher.fetchRawOrderBook!(slug);
-        const orderBook = this.normalizer.normalizeOrderBook!(rawOrderBook as any, id);
+        const orderBook = this.normalizer.normalizeOrderBook!(rawOrderBook as any, outcomeId);
 
         // The Limitless API always returns the Yes-side order book regardless
         // of which token is queried. If the caller asked for the No token,
         // flip: noBid = 1 - yesAsk, noAsk = 1 - yesBid.
-        const isNoToken = side === 'no' || (!side && await this.isNoOutcome(id, slug));
+        const isNoToken = side === 'no' || (!side && await this.isNoOutcome(outcomeId, slug));
         if (isNoToken) {
             return {
                 bids: orderBook.asks.map((level) => ({ price: 1 - level.price, size: level.size }))
@@ -238,14 +238,15 @@ export class LimitlessExchange extends PredictionMarketExchange {
         return false;
     }
 
-    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         if ('resolution' in params && params.resolution !== undefined) {
             console.warn(
                 '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
                 'It will be removed in v3.0.0. Please remove it from your code.'
             );
         }
-        const rawTrades = await this.fetcher.fetchRawTrades!(id, params);
+        const slug = await this.resolveSlug(outcomeId);
+        const rawTrades = await this.fetcher.fetchRawTrades!(slug, params);
         return rawTrades.map((raw, i) => this.normalizer.normalizeTrade!(raw, i));
     }
 
@@ -435,14 +436,16 @@ export class LimitlessExchange extends PredictionMarketExchange {
     // WebSocket
     // ------------------------------------------------------------------------
 
-    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook> {
+        const slug = await this.resolveSlug(outcomeId);
         const ws = this.ensureWs();
-        return ws.watchOrderBook(id);
+        return ws.watchOrderBook(slug);
     }
 
-    async watchTrades(id: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
+    async watchTrades(outcomeId: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
+        const slug = await this.resolveSlug(outcomeId);
         const ws = this.ensureWs();
-        return ws.watchTrades(id, address);
+        return ws.watchTrades(slug, address);
     }
 
     /**

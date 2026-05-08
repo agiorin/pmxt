@@ -51,6 +51,70 @@ from .constants import LOCAL_URL, resolve_pmxt_base_url
 from .errors import PmxtError, from_server_error
 from .server_manager import ServerManager
 
+import dataclasses as _dc
+
+
+# Irregular camelCase -> snake_case mappings where the simple algorithm fails.
+# Most fields (e.g. market_id -> marketId) convert correctly via the algorithm
+# in _snake_to_camel; only genuinely irregular names need to be listed here.
+_SNAKE_TO_CAMEL = {
+    'volume_24h': 'volume24h',
+    'price_change_24h': 'priceChange24h',
+    'unrealized_pnl': 'unrealizedPnL',
+    'realized_pnl': 'realizedPnL',
+}
+
+
+def _snake_to_camel(name: str) -> str:
+    """Convert snake_case field name to camelCase JSON key."""
+    if name in _SNAKE_TO_CAMEL:
+        return _SNAKE_TO_CAMEL[name]
+    parts = name.split('_')
+    return parts[0] + ''.join(p.title() for p in parts[1:])
+
+
+def _auto_convert(cls, raw: Dict[str, Any], **overrides):
+    """Auto-map camelCase raw dict to snake_case dataclass fields.
+
+    Iterates over the dataclass fields, looks up the camelCase key in ``raw``,
+    and constructs the instance.  Explicit *overrides* take precedence so
+    callers can inject pre-processed values (e.g. nested converters, defaults).
+    """
+    kwargs: Dict[str, Any] = {}
+    for f in _dc.fields(cls):
+        if f.name in overrides:
+            kwargs[f.name] = overrides[f.name]
+        else:
+            camel_key = _snake_to_camel(f.name)
+            if camel_key in raw:
+                kwargs[f.name] = raw[camel_key]
+            elif f.name in raw:
+                # Covers keys that are already snake_case or single-word
+                kwargs[f.name] = raw[f.name]
+    return cls(**kwargs)
+
+
+_UNSET = object()
+
+
+def _compat_id(outcome_id, compat_kwargs):
+    """Backwards compat: accept ``id=`` as alias for ``outcome_id=`` with deprecation warning."""
+    if outcome_id is not _UNSET and outcome_id is not None:
+        if 'id' in compat_kwargs:
+            raise TypeError("Cannot pass both 'outcome_id' and 'id'")
+        return outcome_id
+    if 'id' in compat_kwargs:
+        import warnings
+        warnings.warn(
+            "Parameter 'id' is deprecated, use 'outcome_id' instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return compat_kwargs.pop('id')
+    if outcome_id is _UNSET:
+        raise TypeError("Missing required argument: 'outcome_id'")
+    return outcome_id
+
 
 def _resolve_outcome_id(value: Union[str, "MarketOutcome"]) -> str:
     """Extract outcome_id string from a MarketOutcome or pass through a string."""
@@ -75,13 +139,8 @@ def _convert_outcome(raw: Dict[str, Any]) -> MarketOutcome:
     best_bid = raw.get("bestBid")
     best_ask = raw.get("bestAsk")
     last_price = raw.get("price")
-    return MarketOutcome(
-        outcome_id=raw.get("outcomeId"),
-        label=raw.get("label"),
+    return _auto_convert(MarketOutcome, raw,
         price=_display_price(last_price, best_bid, best_ask),
-        price_change_24h=raw.get("priceChange24h"),
-        metadata=raw.get("metadata"),
-        market_id=raw.get("marketId"),
         best_bid=best_bid,
         best_ask=best_ask,
     )
@@ -94,35 +153,20 @@ def _convert_market(raw: Dict[str, Any]) -> UnifiedMarket:
     # Handle resolution date (could be str or datetime)
     res_date_raw = raw.get("resolutionDate")
     res_date = None
-
     if res_date_raw:
         if isinstance(res_date_raw, str):
             try:
                 res_date = datetime.fromisoformat(res_date_raw.replace("Z", "+00:00"))
             except ValueError:
-                pass # Keep as None if parsing fails
+                pass
         elif isinstance(res_date_raw, datetime):
             res_date = res_date_raw
 
-    return UnifiedMarket(
-        market_id=raw.get("marketId"),
-        title=raw.get("title"),
+    return _auto_convert(UnifiedMarket, raw,
         outcomes=outcomes,
+        resolution_date=res_date,
         volume_24h=raw.get("volume24h", 0),
         liquidity=raw.get("liquidity", 0),
-        url=raw.get("url"),
-        description=raw.get("description"),
-        resolution_date=res_date,
-        volume=raw.get("volume"),
-        open_interest=raw.get("openInterest"),
-        image=raw.get("image"),
-        category=raw.get("category"),
-        tags=raw.get("tags"),
-        slug=raw.get("slug"),
-        tick_size=raw.get("tickSize"),
-        status=raw.get("status"),
-        contract_address=raw.get("contractAddress"),
-        source_exchange=raw.get("sourceExchange"),
         yes=_convert_outcome(raw["yes"]) if raw.get("yes") else None,
         no=_convert_outcome(raw["no"]) if raw.get("no") else None,
         up=_convert_outcome(raw["up"]) if raw.get("up") else None,
@@ -133,126 +177,57 @@ def _convert_market(raw: Dict[str, Any]) -> UnifiedMarket:
 def _convert_event(raw: Dict[str, Any]) -> UnifiedEvent:
     """Convert raw API response to UnifiedEvent."""
     markets = MarketList(_convert_market(m) for m in raw.get("markets", []))
-
-    return UnifiedEvent(
-        id=raw.get("id"),
-        title=raw.get("title"),
-        description=raw.get("description"),
-        slug=raw.get("slug"),
-        markets=markets,
-        url=raw.get("url"),
-        image=raw.get("image"),
-        category=raw.get("category"),
-        tags=raw.get("tags"),
-        volume_24h=raw.get("volume24h"),
-        volume=raw.get("volume"),
-        source_exchange=raw.get("sourceExchange"),
-    )
+    return _auto_convert(UnifiedEvent, raw, markets=markets)
 
 
 def _convert_candle(raw: Dict[str, Any]) -> PriceCandle:
     """Convert raw API response to PriceCandle."""
-    return PriceCandle(
-        timestamp=raw.get("timestamp"),
-        open=raw.get("open"),
-        high=raw.get("high"),
-        low=raw.get("low"),
-        close=raw.get("close"),
-        volume=raw.get("volume"),
-    )
+    return _auto_convert(PriceCandle, raw)
 
 
 def _convert_order_book(raw: Dict[str, Any]) -> OrderBook:
     """Convert raw API response to OrderBook."""
-    bids = [OrderLevel(price=b.get("price"), size=b.get("size")) for b in raw.get("bids", [])]
-    asks = [OrderLevel(price=a.get("price"), size=a.get("size")) for a in raw.get("asks", [])]
-
-    return OrderBook(
-        bids=bids,
-        asks=asks,
-        timestamp=raw.get("timestamp"),
-    )
+    bids = [_auto_convert(OrderLevel, b) for b in raw.get("bids", [])]
+    asks = [_auto_convert(OrderLevel, a) for a in raw.get("asks", [])]
+    return _auto_convert(OrderBook, raw, bids=bids, asks=asks)
 
 
 def _convert_trade(raw: Dict[str, Any]) -> Trade:
     """Convert raw API response to Trade."""
-    return Trade(
-        id=raw.get("id"),
-        timestamp=raw.get("timestamp"),
-        price=raw.get("price"),
-        amount=raw.get("amount"),
-        side=raw.get("side", "unknown"),
-    )
+    return _auto_convert(Trade, raw, side=raw.get("side", "unknown"))
 
 
 def _convert_user_trade(raw: Dict[str, Any]) -> UserTrade:
     """Convert raw API response to UserTrade."""
-    return UserTrade(
-        id=raw.get("id"),
-        timestamp=raw.get("timestamp"),
-        price=raw.get("price"),
-        amount=raw.get("amount"),
-        side=raw.get("side", "unknown"),
-        order_id=raw.get("orderId"),
-    )
+    return _auto_convert(UserTrade, raw, side=raw.get("side", "unknown"))
 
 
 def _convert_order(raw: Dict[str, Any]) -> Order:
     """Convert raw API response to Order."""
-    return Order(
-        id=raw.get("id"),
-        market_id=raw.get("marketId"),
-        outcome_id=raw.get("outcomeId"),
-        side=raw.get("side"),
-        type=raw.get("type"),
-        amount=raw.get("amount"),
-        status=raw.get("status"),
-        filled=raw.get("filled"),
-        remaining=raw.get("remaining"),
-        timestamp=raw.get("timestamp"),
-        price=raw.get("price"),
-        fee=raw.get("fee"),
-    )
+    return _auto_convert(Order, raw)
 
 
 def _convert_built_order(raw: Dict[str, Any]) -> BuiltOrder:
     """Convert raw API response to BuiltOrder."""
-    return BuiltOrder(
+    return _auto_convert(BuiltOrder, raw,
         exchange=raw.get("exchange", ""),
         params=raw.get("params", {}),
-        raw=raw.get("raw"),
-        signed_order=raw.get("signedOrder"),
-        tx=raw.get("tx"),
     )
 
 
 def _convert_position(raw: Dict[str, Any]) -> Position:
     """Convert raw API response to Position."""
-    return Position(
-        market_id=raw.get("marketId"),
-        outcome_id=raw.get("outcomeId"),
-        outcome_label=raw.get("outcomeLabel"),
-        size=raw.get("size"),
-        entry_price=raw.get("entryPrice"),
-        current_price=raw.get("currentPrice"),
-        unrealized_pnl=raw.get("unrealizedPnL"),
-        realized_pnl=raw.get("realizedPnL"),
-    )
+    return _auto_convert(Position, raw)
 
 
 def _convert_balance(raw: Dict[str, Any]) -> Balance:
     """Convert raw API response to Balance."""
-    return Balance(
-        currency=raw.get("currency"),
-        total=raw.get("total"),
-        available=raw.get("available"),
-        locked=raw.get("locked"),
-    )
+    return _auto_convert(Balance, raw)
 
 
 def _convert_execution_result(raw: Dict[str, Any]) -> ExecutionPriceResult:
     """Convert raw API response to ExecutionPriceResult."""
-    return ExecutionPriceResult(
+    return _auto_convert(ExecutionPriceResult, raw,
         price=raw.get("price", 0),
         filled_amount=raw.get("filledAmount", 0),
         fully_filled=raw.get("fullyFilled", False),
@@ -264,12 +239,10 @@ def _convert_subscription_snapshot(raw: Dict[str, Any]) -> SubscribedAddressSnap
     raw_trades = raw.get("trades")
     raw_positions = raw.get("positions")
     raw_balances = raw.get("balances")
-    return SubscribedAddressSnapshot(
-        address=raw.get("address"),
+    return _auto_convert(SubscribedAddressSnapshot, raw,
         trades=[_convert_trade(t) for t in raw_trades] if raw_trades else None,
         positions=[_convert_position(p) for p in raw_positions] if raw_positions else None,
         balances=[_convert_balance(b) for b in raw_balances] if raw_balances else None,
-        timestamp=raw.get("timestamp"),
     )
 
 
@@ -832,33 +805,6 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_events_paginated(self, params: Optional[dict] = None, **kwargs) -> PaginatedEventsResult:
-        try:
-            args = []
-            if kwargs:
-                params = {**(params or {}), **kwargs}
-            if params is not None:
-                args.append(params)
-            body: dict = {"args": args}
-            creds = self._get_credentials_dict()
-            if creds:
-                body["credentials"] = creds
-            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/fetchEventsPaginated"
-            headers = {"Content-Type": "application/json", "Accept": "application/json"}
-            headers.update(self._get_auth_headers())
-            response = self._fetch_with_retry(
-                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
-            )
-            response.read()
-            data = self._handle_response(json.loads(response.data))
-            return PaginatedEventsResult(
-                data=[_convert_event(m) for m in data.get("data", [])],
-                total=data.get("total", 0),
-                next_cursor=data.get("nextCursor"),
-            )
-        except ApiException as e:
-            raise self._parse_api_exception(e) from None
-
     def fetch_market(self, params: Optional[dict] = None, **kwargs) -> UnifiedMarket:
         try:
             args = []
@@ -905,10 +851,13 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_order_book(self, id: str) -> OrderBook:
+    def fetch_order_book(self, outcome_id: Union[str, "MarketOutcome"] = _UNSET, side: Optional[Any] = None, **_compat_kwargs) -> OrderBook:
         try:
             args = []
-            args.append(id)
+            outcome_id = _compat_id(outcome_id, _compat_kwargs)
+            args.append(_resolve_outcome_id(outcome_id))
+            if side is not None:
+                args.append(side)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -926,12 +875,6 @@ class Exchange(ABC):
             raise self._parse_api_exception(e) from None
 
     def cancel_order(self, order_id: str) -> Order:
-        if self.is_hosted:
-            raise PmxtError(
-                "Trade execution is not available through the hosted API. "
-                "Use the local PMXT SDK with your venue credentials instead. "
-                "See https://pmxt.dev/docs/quickstart for setup instructions."
-            )
         try:
             args = []
             args.append(order_id)
@@ -1103,10 +1046,11 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def unwatch_order_book(self, id: str) -> None:
+    def unwatch_order_book(self, outcome_id: Union[str, "MarketOutcome"] = _UNSET, **_compat_kwargs) -> None:
         try:
             args = []
-            args.append(id)
+            outcome_id = _compat_id(outcome_id, _compat_kwargs)
+            args.append(_resolve_outcome_id(outcome_id))
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -1141,6 +1085,27 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
+    def test_dummy_method(self, param: Optional[str] = None) -> str:
+        try:
+            args = []
+            if param is not None:
+                args.append(param)
+            body: dict = {"args": args}
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/testDummyMethod"
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._get_auth_headers())
+            response = self._fetch_with_retry(
+                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
+            )
+            response.read()
+            data = self._handle_response(json.loads(response.data))
+            return data
+        except ApiException as e:
+            raise self._parse_api_exception(e) from None
+
     def close(self) -> None:
         try:
             args = []
@@ -1159,12 +1124,13 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_market_matches(self, params: dict, **kwargs) -> List[Any]:
+    def fetch_market_matches(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
                 params = {**(params or {}), **kwargs}
-            args.append(params)
+            if params is not None:
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -1203,12 +1169,13 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_event_matches(self, params: dict, **kwargs) -> List[Any]:
+    def fetch_event_matches(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
                 params = {**(params or {}), **kwargs}
-            args.append(params)
+            if params is not None:
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -1236,6 +1203,74 @@ class Exchange(ABC):
             if creds:
                 body["credentials"] = creds
             url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/compareMarketPrices"
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._get_auth_headers())
+            response = self._fetch_with_retry(
+                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
+            )
+            response.read()
+            data = self._handle_response(json.loads(response.data))
+            return data
+        except ApiException as e:
+            raise self._parse_api_exception(e) from None
+
+    def fetch_related_markets(self, params: dict, **kwargs) -> List[Any]:
+        try:
+            args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
+            args.append(params)
+            body: dict = {"args": args}
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/fetchRelatedMarkets"
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._get_auth_headers())
+            response = self._fetch_with_retry(
+                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
+            )
+            response.read()
+            data = self._handle_response(json.loads(response.data))
+            return data
+        except ApiException as e:
+            raise self._parse_api_exception(e) from None
+
+    def fetch_matched_markets(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
+        try:
+            args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
+            if params is not None:
+                args.append(params)
+            body: dict = {"args": args}
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/fetchMatchedMarkets"
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            headers.update(self._get_auth_headers())
+            response = self._fetch_with_retry(
+                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
+            )
+            response.read()
+            data = self._handle_response(json.loads(response.data))
+            return data
+        except ApiException as e:
+            raise self._parse_api_exception(e) from None
+
+    def fetch_matched_prices(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
+        try:
+            args = []
+            if kwargs:
+                params = {**(params or {}), **kwargs}
+            if params is not None:
+                args.append(params)
+            body: dict = {"args": args}
+            creds = self._get_credentials_dict()
+            if creds:
+                body["credentials"] = creds
+            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/fetchMatchedPrices"
             headers = {"Content-Type": "application/json", "Accept": "application/json"}
             headers.update(self._get_auth_headers())
             response = self._fetch_with_retry(
@@ -1512,7 +1547,7 @@ class Exchange(ABC):
 
     def fetch_ohlcv(
         self,
-        outcome_id: Union[str, "MarketOutcome"],
+        outcome_id: Union[str, "MarketOutcome"] = _UNSET,
         resolution: Optional[str] = None,
         limit: Optional[int] = None,
         start: Optional[datetime] = None,
@@ -1547,6 +1582,7 @@ class Exchange(ABC):
             ... )
         """
         try:
+            outcome_id = _compat_id(outcome_id, kwargs)
             outcome_id = _resolve_outcome_id(outcome_id)
             params_dict = {}
             if resolution:
@@ -1574,7 +1610,7 @@ class Exchange(ABC):
 
     def fetch_trades(
         self,
-        outcome_id: Union[str, "MarketOutcome"],
+        outcome_id: Union[str, "MarketOutcome"] = _UNSET,
         limit: Optional[int] = None,
         since: Optional[int] = None,
         start: Optional[Union[str, int]] = None,
@@ -1602,6 +1638,7 @@ class Exchange(ABC):
             >>> trades = exchange.fetch_trades(outcome_id, start="2025-01-01T00:00:00Z", end="2025-01-31T00:00:00Z")
         """
         try:
+            outcome_id = _compat_id(outcome_id, kwargs)
             outcome_id = _resolve_outcome_id(outcome_id)
             params_dict = {}
             if limit:
@@ -1693,7 +1730,7 @@ class Exchange(ABC):
             # WS failed -- fall back to HTTP
             return None
 
-    def watch_order_book(self, outcome_id: Union[str, "MarketOutcome"], limit: Optional[int] = None) -> OrderBook:
+    def watch_order_book(self, outcome_id: Union[str, "MarketOutcome"] = _UNSET, limit: Optional[int] = None, **_compat_kwargs) -> OrderBook:
         """
         Watch real-time order book updates via WebSocket.
 
@@ -1717,6 +1754,7 @@ class Exchange(ABC):
             ...     print(f"Best bid: {order_book.bids[0].price}")
             ...     print(f"Best ask: {order_book.asks[0].price}")
         """
+        outcome_id = _compat_id(outcome_id, _compat_kwargs)
         outcome_id = _resolve_outcome_id(outcome_id)
         args: List[Any] = [outcome_id]
         if limit is not None:
@@ -1790,8 +1828,9 @@ class Exchange(ABC):
 
     def watch_order_books(
         self,
-        outcome_ids: List[Union[str, "MarketOutcome"]],
+        outcome_ids: List[Union[str, "MarketOutcome"]] = _UNSET,
         limit: Optional[int] = None,
+        **_compat_kwargs,
     ) -> Dict[str, OrderBook]:
         """
         Watch real-time order book updates for multiple outcomes at once.
@@ -1819,6 +1858,17 @@ class Exchange(ABC):
             ...     for ticker, ob in books.items():
             ...         print(f"{ticker}: bid={ob.bids[0].price}")
         """
+        if outcome_ids is _UNSET:
+            if 'ids' in _compat_kwargs:
+                import warnings
+                warnings.warn(
+                    "Parameter 'ids' is deprecated, use 'outcome_ids' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                outcome_ids = _compat_kwargs.pop('ids')
+            else:
+                raise TypeError("Missing required argument: 'outcome_ids'")
         resolved_ids = [_resolve_outcome_id(oid) for oid in outcome_ids]
         args: List[Any] = [resolved_ids]
         if limit is not None:
@@ -1874,10 +1924,11 @@ class Exchange(ABC):
 
     def watch_trades(
         self,
-        outcome_id: Union[str, "MarketOutcome"],
+        outcome_id: Union[str, "MarketOutcome"] = _UNSET,
         address: Optional[str] = None,
         since: Optional[int] = None,
         limit: Optional[int] = None,
+        **_compat_kwargs,
     ) -> List[Trade]:
         """
         Watch real-time trade updates via WebSocket.
@@ -1902,6 +1953,7 @@ class Exchange(ABC):
             ...         print(f"Trade: {trade.price} @ {trade.amount}")
         """
         try:
+            outcome_id = _compat_id(outcome_id, _compat_kwargs)
             outcome_id = _resolve_outcome_id(outcome_id)
             args: List[Any] = [outcome_id]
             if address is not None:

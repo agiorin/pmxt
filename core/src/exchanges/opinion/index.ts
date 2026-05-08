@@ -200,16 +200,16 @@ export class OpinionExchange extends PredictionMarketExchange {
     }
 
     async fetchOHLCV(
-        id: string,
+        outcomeId: string,
         params: OHLCVParams,
     ): Promise<PriceCandle[]> {
-        const rawPoints = await this.fetcher.fetchRawOHLCV(id, params);
+        const rawPoints = await this.fetcher.fetchRawOHLCV(outcomeId, params);
         return this.normalizer.normalizeOHLCV({ history: rawPoints }, params);
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        const raw = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(raw, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(raw, outcomeId);
     }
 
     // -------------------------------------------------------------------------
@@ -387,15 +387,15 @@ export class OpinionExchange extends PredictionMarketExchange {
     // WebSocket
     // -------------------------------------------------------------------------
 
-    async watchOrderBook(id: string): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string): Promise<OrderBook> {
         const ws = this.ensureWebSocket();
-        const marketId = this.resolveMarketId(id);
+        const marketId = this.resolveMarketId(outcomeId);
         return ws.watchOrderBook(marketId);
     }
 
-    async watchTrades(id: string): Promise<Trade[]> {
+    async watchTrades(outcomeId: string): Promise<Trade[]> {
         const ws = this.ensureWebSocket();
-        const marketId = this.resolveMarketId(id);
+        const marketId = this.resolveMarketId(outcomeId);
         return ws.watchTrades(marketId);
     }
 

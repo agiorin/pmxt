@@ -176,16 +176,16 @@ export class ProbableExchange extends PredictionMarketExchange {
         return event;
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        const raw = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(raw, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(raw, outcomeId);
     }
 
-    async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(outcomeId: string, params: OHLCVParams): Promise<PriceCandle[]> {
         if (!params.resolution) {
             throw new Error('fetchOHLCV requires a resolution parameter.');
         }
-        const rawPoints = await this.fetcher.fetchRawOHLCV(id, params);
+        const rawPoints = await this.fetcher.fetchRawOHLCV(outcomeId, params);
         return this.normalizer.normalizeOHLCV(rawPoints, params);
     }
 
@@ -196,12 +196,12 @@ export class ProbableExchange extends PredictionMarketExchange {
         return rawTrades.map((raw, i) => this.normalizer.normalizeUserTrade(raw, i));
     }
 
-    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         const auth = this.ensureAuth();
         const client = auth.getClobClient();
 
         // Use CLOB client directly for trades (legacy behaviour preserved)
-        const queryParams: any = { tokenId: id };
+        const queryParams: any = { tokenId: outcomeId };
         if (params.limit) queryParams.limit = params.limit;
 
         const response = await client.getTrades(queryParams);
@@ -454,11 +454,11 @@ export class ProbableExchange extends PredictionMarketExchange {
     // WebSocket Streaming (public, no auth needed)
     // --------------------------------------------------------------------------
 
-    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook> {
         if (!this.ws) {
             this.ws = new ProbableWebSocket(this.wsConfig);
         }
-        return this.ws.watchOrderBook(id);
+        return this.ws.watchOrderBook(outcomeId);
     }
 
     async close(): Promise<void> {

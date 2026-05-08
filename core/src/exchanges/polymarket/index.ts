@@ -146,33 +146,33 @@ export class PolymarketExchange extends PredictionMarketExchange {
         this.cachedAddress = auth.getFunderAddress();
     }
 
-    async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
-        validateIdFormat(id, 'OHLCV');
-        validateOutcomeId(id, 'OHLCV');
+    async fetchOHLCV(outcomeId: string, params: OHLCVParams): Promise<PriceCandle[]> {
+        validateIdFormat(outcomeId, 'OHLCV');
+        validateOutcomeId(outcomeId, 'OHLCV');
         if (!params.resolution) {
             throw new Error('fetchOHLCV requires a resolution parameter. Use OHLCVParams with resolution specified.');
         }
-        const raw = await this.fetcher.fetchRawOHLCV(id, params);
+        const raw = await this.fetcher.fetchRawOHLCV(outcomeId, params);
         return this.normalizer.normalizeOHLCV(raw, params);
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        validateIdFormat(id, 'OrderBook');
-        validateOutcomeId(id, 'OrderBook');
-        const raw = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(raw, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        validateIdFormat(outcomeId, 'OrderBook');
+        validateOutcomeId(outcomeId, 'OrderBook');
+        const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(raw, outcomeId);
     }
 
-    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
-        validateIdFormat(id, 'Trades');
-        validateOutcomeId(id, 'Trades');
+    async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        validateIdFormat(outcomeId, 'Trades');
+        validateOutcomeId(outcomeId, 'Trades');
         if ('resolution' in params && params.resolution !== undefined) {
             console.warn(
                 '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
                 'It will be removed in v3.0.0. Please remove it from your code.',
             );
         }
-        const rawTrades = await this.fetcher.fetchRawTrades(id, params);
+        const rawTrades = await this.fetcher.fetchRawTrades(outcomeId, params);
         const mappedTrades = rawTrades.map((raw: any, i: number) => this.normalizer.normalizeTrade(raw, i));
         if (params.limit && mappedTrades.length > params.limit) {
             return mappedTrades.slice(0, params.limit);
@@ -483,16 +483,16 @@ export class PolymarketExchange extends PredictionMarketExchange {
     // ----------------------------------------------------------------------------
 
 
-    async watchOrderBook(id: string, limit?: number): Promise<OrderBook> {
-        return this.ensureWs().watchOrderBook(id);
+    async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook> {
+        return this.ensureWs().watchOrderBook(outcomeId);
     }
 
-    async unwatchOrderBook(id: string): Promise<void> {
-        return this.ensureWs().unwatchOrderBook(id);
+    async unwatchOrderBook(outcomeId: string): Promise<void> {
+        return this.ensureWs().unwatchOrderBook(outcomeId);
     }
 
-    async watchTrades(id: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
-        return this.ensureWs().watchTrades(id, address);
+    async watchTrades(outcomeId: string, address?: string, since?: number, limit?: number): Promise<Trade[]> {
+        return this.ensureWs().watchTrades(outcomeId, address);
     }
 
     async watchAddress(

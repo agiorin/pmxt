@@ -71,6 +71,13 @@ const TYPE_MAP = {
     PaginatedMarketsResult: { pyType: 'PaginatedMarketsResult', converter: null, pattern: 'paginated' },
 };
 
+// Parameter names that represent outcome IDs and should accept MarketOutcome.
+// The generator widens `str` to `Union[str, "MarketOutcome"]` in signatures
+// and wraps the value with `_resolve_outcome_id()` before appending to args.
+const OUTCOME_ID_PARAM_NAMES = new Set(['id', 'outcomeId']);
+// Plural variant (array of outcome IDs)
+const OUTCOME_IDS_PARAM_NAMES = new Set(['ids', 'outcomeIds']);
+
 // ---------------------------------------------------------------------------
 // TypeScript AST helpers
 // ---------------------------------------------------------------------------
@@ -279,7 +286,14 @@ function buildPySignatureParams(params, sf) {
         const tsName = p.name.getText(sf);
         const snakeName = camelToSnake(tsName);
         const isOptional = !!p.questionToken;
-        const typeStr = p.type ? typeNodeToPy(p.type, sf) : 'Any';
+        let typeStr = p.type ? typeNodeToPy(p.type, sf) : 'Any';
+        // Widen outcome-ID parameters to also accept MarketOutcome objects.
+        // Use _UNSET default so callers can still pass the old `id=` keyword.
+        if (OUTCOME_ID_PARAM_NAMES.has(tsName) && typeStr === 'str') {
+            return `${snakeName}: Union[str, "MarketOutcome"] = _UNSET`;
+        } else if (OUTCOME_IDS_PARAM_NAMES.has(tsName) && typeStr === 'str') {
+            typeStr = 'List[Union[str, "MarketOutcome"]]';
+        }
         if (isOptional) return `${snakeName}: Optional[${typeStr}] = None`;
         return `${snakeName}: ${typeStr}`;
     }).join(', ');
@@ -290,11 +304,24 @@ function buildPyArgsLines(params, sf) {
     for (const p of params) {
         const tsName = p.name.getText(sf);
         const snakeName = camelToSnake(tsName);
+        const typeStr = p.type ? typeNodeToPy(p.type, sf) : 'Any';
+        // Resolve MarketOutcome -> str for outcome ID parameters
+        const isOutcomeId = OUTCOME_ID_PARAM_NAMES.has(tsName) && typeStr === 'str';
+        const isOutcomeIds = OUTCOME_IDS_PARAM_NAMES.has(tsName) && typeStr === 'str';
+        // Backwards-compat: resolve old `id=` keyword before resolving MarketOutcome
+        if (isOutcomeId) {
+            lines.push(`            ${snakeName} = _compat_id(${snakeName}, _compat_kwargs)`);
+        }
+        const value = isOutcomeId
+            ? `_resolve_outcome_id(${snakeName})`
+            : isOutcomeIds
+                ? `[_resolve_outcome_id(x) for x in ${snakeName}]`
+                : snakeName;
         if (p.questionToken) {
             lines.push(`            if ${snakeName} is not None:`);
-            lines.push(`                args.append(${snakeName})`);
+            lines.push(`                args.append(${value})`);
         } else {
-            lines.push(`            args.append(${snakeName})`);
+            lines.push(`            args.append(${value})`);
         }
     }
     return lines.join('\n');
@@ -334,10 +361,22 @@ function generatePyMethod(name, params, config, sf) {
     const snakeName = camelToSnake(name);
     const paramSig = buildPySignatureParams(params, sf);
     const hasParams = params.some(p => camelToSnake(p.name.getText(sf)) === 'params');
+    const hasOutcomeId = params.some(p => {
+        const tsName = p.name.getText(sf);
+        const typeStr = p.type ? typeNodeToPy(p.type, sf) : 'Any';
+        return OUTCOME_ID_PARAM_NAMES.has(tsName) && typeStr === 'str';
+    });
     const selfSigParams = paramSig ? `, ${paramSig}` : '';
-    // Methods with a 'params' dict also accept **kwargs so callers can pass
-    // individual fields (e.g. fetch_events(limit=5) instead of fetch_events({'limit': 5}))
-    const selfSig = hasParams ? `${selfSigParams}, **kwargs` : selfSigParams;
+    // Methods with a 'params' dict accept **kwargs for individual fields.
+    // Methods with outcome-ID params accept **_compat_kwargs for old `id=` keyword.
+    let selfSig;
+    if (hasParams) {
+        selfSig = `${selfSigParams}, **kwargs`;
+    } else if (hasOutcomeId) {
+        selfSig = `${selfSigParams}, **_compat_kwargs`;
+    } else {
+        selfSig = selfSigParams;
+    }
     const { returnPy } = config;
     const argsLines = buildPyArgsLines(params, sf);
 

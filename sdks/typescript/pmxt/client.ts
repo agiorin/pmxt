@@ -18,15 +18,19 @@ import {
     Balance,
     BuiltOrder,
     CreateOrderParams,
+    EventFetchParams,
     EventFilterCriteria,
     EventFilterFunction,
     ExecutionPriceResult,
+    MarketFetchParams,
     MarketFilterCriteria,
     MarketFilterFunction,
     MarketList,
     MarketOutcome,
+    MyTradesParams,
     Order,
     OrderBook,
+    OrderHistoryParams,
     OrderLevel,
     PaginatedMarketsResult,
     PaginatedEventsResult,
@@ -98,178 +102,63 @@ function queryHasNestedObject(query: Record<string, unknown>): boolean {
 
 // Converter functions
 function convertMarket(raw: any): UnifiedMarket {
-    const outcomes: MarketOutcome[] = (raw.outcomes || []).map((o: any) => ({
-        outcomeId: o.outcomeId,
-        marketId: o.marketId,
-        label: o.label,
-        price: o.price,
-        priceChange24h: o.priceChange24h,
-        metadata: o.metadata,
-    }));
-
-    const convertOutcome = (o: any) => o ? ({
-        outcomeId: o.outcomeId,
-        marketId: o.marketId,
-        label: o.label,
-        price: o.price,
-        priceChange24h: o.priceChange24h,
-        metadata: o.metadata,
-    }) : undefined;
-
     return {
-        marketId: raw.marketId,
-        title: raw.title,
-        slug: raw.slug,
-        outcomes,
-        volume24h: raw.volume24h || 0,
-        liquidity: raw.liquidity || 0,
-        url: raw.url,
-        description: raw.description,
+        ...raw,
         resolutionDate: raw.resolutionDate ? new Date(raw.resolutionDate) : undefined,
-        volume: raw.volume,
-        openInterest: raw.openInterest,
-        image: raw.image,
-        category: raw.category,
-        tags: raw.tags,
-        tickSize: raw.tickSize,
-        status: raw.status,
-        contractAddress: raw.contractAddress,
-        sourceExchange: raw.sourceExchange,
-        eventId: raw.eventId,
-        yes: convertOutcome(raw.yes),
-        no: convertOutcome(raw.no),
-        up: convertOutcome(raw.up),
-        down: convertOutcome(raw.down),
+        outcomes: (raw.outcomes || []).map((o: any) => ({ ...o })),
+        yes: raw.yes ? { ...raw.yes } : undefined,
+        no: raw.no ? { ...raw.no } : undefined,
+        up: raw.up ? { ...raw.up } : undefined,
+        down: raw.down ? { ...raw.down } : undefined,
     };
 }
 
 
 function convertCandle(raw: any): PriceCandle {
-    return {
-        timestamp: raw.timestamp,
-        open: raw.open,
-        high: raw.high,
-        low: raw.low,
-        close: raw.close,
-        volume: raw.volume,
-    };
+    return { ...raw };
 }
 
 function convertOrderBook(raw: any): OrderBook {
-    const bids: OrderLevel[] = (raw.bids || []).map((b: any) => ({
-        price: b.price,
-        size: b.size,
-    }));
-
-    const asks: OrderLevel[] = (raw.asks || []).map((a: any) => ({
-        price: a.price,
-        size: a.size,
-    }));
-
     return {
-        bids,
-        asks,
-        timestamp: raw.timestamp,
+        ...raw,
+        bids: (raw.bids || []).map((b: any) => ({ ...b })),
+        asks: (raw.asks || []).map((a: any) => ({ ...a })),
     };
 }
 
 function convertTrade(raw: any): Trade {
-    return {
-        id: raw.id,
-        timestamp: raw.timestamp,
-        price: raw.price,
-        amount: raw.amount,
-        side: raw.side || "unknown",
-    };
+    return { ...raw, side: raw.side || "unknown" };
 }
 
 function convertOrder(raw: any): Order {
-    return {
-        id: raw.id,
-        marketId: raw.marketId,
-        outcomeId: raw.outcomeId,
-        side: raw.side,
-        type: raw.type,
-        amount: raw.amount,
-        status: raw.status,
-        filled: raw.filled,
-        remaining: raw.remaining,
-        timestamp: raw.timestamp,
-        price: raw.price,
-        fee: raw.fee,
-    };
+    return { ...raw };
 }
 
 function convertPosition(raw: any): Position {
-    return {
-        marketId: raw.marketId,
-        outcomeId: raw.outcomeId,
-        outcomeLabel: raw.outcomeLabel,
-        size: raw.size,
-        entryPrice: raw.entryPrice,
-        currentPrice: raw.currentPrice,
-        unrealizedPnL: raw.unrealizedPnL,
-        realizedPnL: raw.realizedPnL,
-    };
+    return { ...raw };
 }
 
 function convertBalance(raw: any): Balance {
-    return {
-        currency: raw.currency,
-        total: raw.total,
-        available: raw.available,
-        locked: raw.locked,
-    };
+    return { ...raw };
 }
 
 function convertUserTrade(raw: any): UserTrade {
-    return {
-        id: raw.id,
-        price: raw.price,
-        amount: raw.amount,
-        side: raw.side || "unknown",
-        timestamp: raw.timestamp,
-        orderId: raw.orderId,
-        outcomeId: raw.outcomeId,
-        marketId: raw.marketId,
-    };
+    return { ...raw, side: raw.side || "unknown" };
 }
 
 function convertEvent(raw: any): UnifiedEvent {
     const markets = MarketList.from((raw.markets || []).map(convertMarket)) as MarketList;
-
-    const event: UnifiedEvent = {
-        id: raw.id,
-        title: raw.title,
-        description: raw.description,
-        slug: raw.slug,
-        markets,
-        volume24h: raw.volume24h,
-        volume: raw.volume,
-        url: raw.url,
-        image: raw.image,
-        category: raw.category,
-        tags: raw.tags,
-        sourceExchange: raw.sourceExchange,
-    };
-
-    return event;
+    return { ...raw, markets };
 }
 
 
 function convertSubscriptionSnapshot(raw: any): SubscribedAddressSnapshot {
-    const trades = (raw.trades?? []).map(convertTrade);
-    const balances = (raw.balances?? []).map(convertBalance);
-    const positions = (raw.positions?? []).map(convertPosition);
-
-    const snapShot: SubscribedAddressSnapshot = {
-      address: raw.address,
-      trades,
-      balances,
-      positions,
-      timestamp: raw.timestamp,
+    return {
+        ...raw,
+        trades: (raw.trades ?? []).map(convertTrade),
+        balances: (raw.balances ?? []).map(convertBalance),
+        positions: (raw.positions ?? []).map(convertPosition),
     };
-    return snapShot;
 }
 
 /**
@@ -729,7 +618,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchMarkets(params?: any): Promise<UnifiedMarket[]> {
+    async fetchMarkets(params?: MarketFetchParams): Promise<UnifiedMarket[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -785,7 +674,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchEvents(params?: any): Promise<UnifiedEvent[]> {
+    async fetchEvents(params?: EventFetchParams): Promise<UnifiedEvent[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -811,37 +700,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchEventsPaginated(params?: any): Promise<PaginatedEventsResult> {
-        await this.initPromise;
-        try {
-            const args: any[] = [];
-            if (params !== undefined) args.push(params);
-            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchEventsPaginated`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
-                body: JSON.stringify({ args, credentials: this.getCredentials() }),
-            });
-            if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                if (body.error && typeof body.error === "object") {
-                    throw fromServerError(body.error);
-                }
-                throw new PmxtError(body.error?.message || response.statusText);
-            }
-            const json = await response.json();
-            const data = this.handleResponse(json);
-            return {
-                data: (data.data || []).map(convertEvent),
-                total: data.total,
-                nextCursor: data.nextCursor,
-            };
-        } catch (error) {
-            if (error instanceof PmxtError) throw error;
-            throw new PmxtError(`Failed to fetchEventsPaginated: ${error}`);
-        }
-    }
-
-    async fetchMarket(params?: any): Promise<UnifiedMarket> {
+    async fetchMarket(params?: MarketFetchParams): Promise<UnifiedMarket> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -867,7 +726,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchEvent(params?: any): Promise<UnifiedEvent> {
+    async fetchEvent(params?: EventFetchParams): Promise<UnifiedEvent> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -893,11 +752,12 @@ export abstract class Exchange {
         }
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
+    async fetchOrderBook(outcomeId: string | MarketOutcome, side?: any): Promise<OrderBook> {
         await this.initPromise;
         try {
             const args: any[] = [];
-            args.push(id);
+            args.push(resolveOutcomeId(outcomeId));
+            if (side !== undefined) args.push(side);
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -920,13 +780,6 @@ export abstract class Exchange {
     }
 
     async submitOrder(built: BuiltOrder): Promise<Order> {
-        if (this.isHosted) {
-            throw new PmxtError(
-                "Trade execution is not available through the hosted API. " +
-                "Use the local PMXT SDK with your venue credentials instead. " +
-                "See https://pmxt.dev/docs/quickstart for setup instructions."
-            );
-        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -953,13 +806,6 @@ export abstract class Exchange {
     }
 
     async cancelOrder(orderId: string): Promise<Order> {
-        if (this.isHosted) {
-            throw new PmxtError(
-                "Trade execution is not available through the hosted API. " +
-                "Use the local PMXT SDK with your venue credentials instead. " +
-                "See https://pmxt.dev/docs/quickstart for setup instructions."
-            );
-        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1037,7 +883,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchMyTrades(params?: any): Promise<UserTrade[]> {
+    async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1063,7 +909,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchClosedOrders(params?: any): Promise<Order[]> {
+    async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1089,7 +935,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchAllOrders(params?: any): Promise<Order[]> {
+    async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1167,11 +1013,11 @@ export abstract class Exchange {
         }
     }
 
-    async unwatchOrderBook(id: string): Promise<void> {
+    async unwatchOrderBook(outcomeId: string | MarketOutcome): Promise<void> {
         await this.initPromise;
         try {
             const args: any[] = [];
-            args.push(id);
+            args.push(resolveOutcomeId(outcomeId));
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/unwatchOrderBook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -1217,6 +1063,31 @@ export abstract class Exchange {
         }
     }
 
+    async testDummyMethod(param?: string): Promise<string> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            if (param !== undefined) args.push(param);
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/testDummyMethod`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            return this.handleResponse(json);
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to testDummyMethod: ${error}`);
+        }
+    }
+
     async close(): Promise<void> {
         await this.initPromise;
         try {
@@ -1241,11 +1112,11 @@ export abstract class Exchange {
         }
     }
 
-    async fetchMarketMatches(params: any): Promise<any[]> {
+    async fetchMarketMatches(params?: any): Promise<any[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
-            args.push(params);
+            if (params !== undefined) args.push(params);
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchMarketMatches`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -1291,11 +1162,11 @@ export abstract class Exchange {
         }
     }
 
-    async fetchEventMatches(params: any): Promise<any[]> {
+    async fetchEventMatches(params?: any): Promise<any[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
-            args.push(params);
+            if (params !== undefined) args.push(params);
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchEventMatches`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -1338,6 +1209,81 @@ export abstract class Exchange {
         } catch (error) {
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to compareMarketPrices: ${error}`);
+        }
+    }
+
+    async fetchRelatedMarkets(params: any): Promise<any[]> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            args.push(params);
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchRelatedMarkets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            return this.handleResponse(json);
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to fetchRelatedMarkets: ${error}`);
+        }
+    }
+
+    async fetchMatchedMarkets(params?: any): Promise<any[]> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            if (params !== undefined) args.push(params);
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchMatchedMarkets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            return this.handleResponse(json);
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to fetchMatchedMarkets: ${error}`);
+        }
+    }
+
+    async fetchMatchedPrices(params?: any): Promise<any[]> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            if (params !== undefined) args.push(params);
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchMatchedPrices`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            return this.handleResponse(json);
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to fetchMatchedPrices: ${error}`);
         }
     }
 

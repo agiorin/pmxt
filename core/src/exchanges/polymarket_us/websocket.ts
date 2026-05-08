@@ -70,8 +70,8 @@ export class PolymarketUSWebSocket {
         this.config = config;
     }
 
-    async watchOrderBook(id: string): Promise<OrderBook> {
-        const slug = slugFromId(id);
+    async watchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const slug = slugFromId(outcomeId);
         await this.ensureInitialized();
 
         if (!this.bookSubscriptions.has(slug)) {
@@ -88,12 +88,12 @@ export class PolymarketUSWebSocket {
         return withWatchTimeout(
             dataPromise,
             this.config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS,
-            `watchOrderBook('${id}')`,
+            `watchOrderBook('${outcomeId}')`,
         );
     }
 
-    async watchTrades(id: string): Promise<Trade[]> {
-        const slug = slugFromId(id);
+    async watchTrades(outcomeId: string): Promise<Trade[]> {
+        const slug = slugFromId(outcomeId);
         await this.ensureInitialized();
 
         if (!this.tradeSubscriptions.has(slug)) {
@@ -110,7 +110,7 @@ export class PolymarketUSWebSocket {
         return withWatchTimeout(
             dataPromise,
             this.config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS,
-            `watchTrades('${id}')`,
+            `watchTrades('${outcomeId}')`,
         );
     }
 

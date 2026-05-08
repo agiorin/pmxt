@@ -123,9 +123,9 @@ export class BaoziExchange extends PredictionMarketExchange {
         return [];
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        const rawMarket = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(rawMarket, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const rawMarket = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(rawMarket, outcomeId);
     }
 
     async fetchTrades(): Promise<Trade[]> {
@@ -403,11 +403,11 @@ export class BaoziExchange extends PredictionMarketExchange {
     // WebSocket
     // -----------------------------------------------------------------------
 
-    async watchOrderBook(id: string): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string): Promise<OrderBook> {
         if (!this.ws) {
             this.ws = new BaoziWebSocket();
         }
-        return this.ws.watchOrderBook(this.connection, id);
+        return this.ws.watchOrderBook(this.connection, outcomeId);
     }
 
     async watchTrades(): Promise<Trade[]> {

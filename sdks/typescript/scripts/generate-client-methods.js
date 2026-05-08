@@ -70,7 +70,20 @@ const SDK_PARAM_TYPES = new Set([
     'UnifiedMarket', 'UnifiedEvent', 'OrderBook', 'Order', 'Trade',
     'UserTrade', 'Position', 'Balance', 'PriceCandle', 'PaginatedMarketsResult',
     'BuiltOrder',
+    // Parameter types
+    'MarketFilterParams', 'MarketFetchParams', 'EventFetchParams',
+    'OHLCVParams', 'TradesParams', 'HistoryFilterParams',
+    'MyTradesParams', 'OrderHistoryParams', 'CreateOrderParams',
+    'MarketFilterCriteria', 'EventFilterCriteria',
+    'SubscriptionOption',
 ]);
+
+// Parameter names that represent outcome IDs and should accept MarketOutcome.
+// The generator widens `string` to `string | MarketOutcome` in signatures
+// and wraps the value with `resolveOutcomeId()` in the args array.
+const OUTCOME_ID_PARAM_NAMES = new Set(['id', 'outcomeId']);
+// Plural variant (array of outcome IDs)
+const OUTCOME_IDS_PARAM_NAMES = new Set(['ids', 'outcomeIds']);
 
 // ---------------------------------------------------------------------------
 // TypeScript AST helpers
@@ -296,7 +309,13 @@ function buildSignatureParams(params, sf) {
         const name = p.name.getText(sf);
         const isOptional = !!p.questionToken;
         const hasDefault = !!p.initializer;
-        const typeStr = p.type ? typeNodeToTS(p.type, sf) : 'any';
+        let typeStr = p.type ? typeNodeToTS(p.type, sf) : 'any';
+        // Widen outcome-ID parameters to also accept MarketOutcome objects
+        if (OUTCOME_ID_PARAM_NAMES.has(name) && typeStr === 'string') {
+            typeStr = 'string | MarketOutcome';
+        } else if (OUTCOME_IDS_PARAM_NAMES.has(name) && typeStr === 'string') {
+            typeStr = '(string | MarketOutcome)[]';
+        }
         if (isOptional) return `${name}?: ${typeStr}`;
         if (hasDefault) return `${name}: ${typeStr} = ${p.initializer.getText(sf)}`;
         return `${name}: ${typeStr}`;
@@ -307,12 +326,21 @@ function buildArgsLines(params, sf) {
     const lines = ['const args: any[] = [];'];
     for (const p of params) {
         const name = p.name.getText(sf);
+        const typeStr = p.type ? typeNodeToTS(p.type, sf) : 'any';
+        // Resolve MarketOutcome -> string for outcome ID parameters
+        const isOutcomeId = OUTCOME_ID_PARAM_NAMES.has(name) && typeStr === 'string';
+        const isOutcomeIds = OUTCOME_IDS_PARAM_NAMES.has(name) && typeStr === 'string';
+        const value = isOutcomeId
+            ? `resolveOutcomeId(${name})`
+            : isOutcomeIds
+                ? `${name}.map(resolveOutcomeId)`
+                : name;
         if (p.initializer) {
-            lines.push(`args.push(${name});`);
+            lines.push(`args.push(${value});`);
         } else if (p.questionToken) {
-            lines.push(`if (${name} !== undefined) args.push(${name});`);
+            lines.push(`if (${name} !== undefined) args.push(${value});`);
         } else {
-            lines.push(`args.push(${name});`);
+            lines.push(`args.push(${value});`);
         }
     }
     return lines.join('\n            ');

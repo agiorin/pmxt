@@ -57,78 +57,78 @@ export class PolymarketWebSocket {
         );
     }
 
-    async watchOrderBook(id: string): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string): Promise<OrderBook> {
         await this.ensureInitialized();
 
         // Subscribe to the asset if not already subscribed
         const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(id)) {
-            await this.manager.addSubscriptions([id]);
+        if (!currentAssets.includes(outcomeId)) {
+            await this.manager.addSubscriptions([outcomeId]);
         }
 
         // Return a promise that resolves on the next orderbook update
         const dataPromise = new Promise<OrderBook>((resolve, reject) => {
-            if (!this.orderBookResolvers.has(id)) {
-                this.orderBookResolvers.set(id, []);
+            if (!this.orderBookResolvers.has(outcomeId)) {
+                this.orderBookResolvers.set(outcomeId, []);
             }
-            this.orderBookResolvers.get(id)!.push({ resolve, reject });
+            this.orderBookResolvers.get(outcomeId)!.push({ resolve, reject });
         });
 
         return withWatchTimeout(
             dataPromise,
             this.config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS,
-            `watchOrderBook('${id}')`,
+            `watchOrderBook('${outcomeId}')`,
         );
     }
 
-    async unwatchOrderBook(id: string): Promise<void> {
+    async unwatchOrderBook(outcomeId: string): Promise<void> {
         if (!this.manager) {
             return;
         }
 
-        await this.manager.removeSubscriptions([id]);
+        await this.manager.removeSubscriptions([outcomeId]);
 
         // Clear any pending resolvers for this asset
-        const resolvers = this.orderBookResolvers.get(id);
+        const resolvers = this.orderBookResolvers.get(outcomeId);
         if (resolvers) {
             this.orderBookResolvers = new Map(
-                [...this.orderBookResolvers].filter(([key]) => key !== id),
+                [...this.orderBookResolvers].filter(([key]) => key !== outcomeId),
             );
         }
 
         // Remove the cached orderbook for this asset
-        if (this.orderBooks.has(id)) {
+        if (this.orderBooks.has(outcomeId)) {
             this.orderBooks = new Map(
-                [...this.orderBooks].filter(([key]) => key !== id),
+                [...this.orderBooks].filter(([key]) => key !== outcomeId),
             );
         }
     }
 
-    async watchTrades(id: string, address?: string): Promise<Trade[]> {
+    async watchTrades(outcomeId: string, address?: string): Promise<Trade[]> {
         if (address) {
-            return this.watcher.watch(address, ['trades'], id);
+            return this.watcher.watch(address, ['trades'], outcomeId);
         }
 
         await this.ensureInitialized();
 
         // Subscribe to the asset if not already subscribed
         const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(id)) {
-            await this.manager.addSubscriptions([id]);
+        if (!currentAssets.includes(outcomeId)) {
+            await this.manager.addSubscriptions([outcomeId]);
         }
 
         // Return a promise that resolves on the next trade
         const dataPromise = new Promise<Trade[]>((resolve, reject) => {
-            if (!this.tradeResolvers.has(id)) {
-                this.tradeResolvers.set(id, []);
+            if (!this.tradeResolvers.has(outcomeId)) {
+                this.tradeResolvers.set(outcomeId, []);
             }
-            this.tradeResolvers.get(id)!.push({ resolve, reject });
+            this.tradeResolvers.get(outcomeId)!.push({ resolve, reject });
         });
 
         return withWatchTimeout(
             dataPromise,
             this.config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS,
-            `watchTrades('${id}')`,
+            `watchTrades('${outcomeId}')`,
         );
     }
 

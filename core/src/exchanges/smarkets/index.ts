@@ -228,13 +228,13 @@ export class SmarketsExchange extends PredictionMarketExchange {
             .slice(0, limit);
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        const raw = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(raw, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(raw, outcomeId);
     }
 
     async fetchTrades(
-        id: string,
+        outcomeId: string,
         params: TradesParams | HistoryFilterParams,
     ): Promise<Trade[]> {
         if ('resolution' in params && params.resolution !== undefined) {
@@ -243,7 +243,7 @@ export class SmarketsExchange extends PredictionMarketExchange {
                 'It will be removed in v3.0.0. Please remove it from your code.',
             );
         }
-        const rawActivity = await this.fetcher.fetchRawTradeActivity(id, params);
+        const rawActivity = await this.fetcher.fetchRawTradeActivity(outcomeId, params);
         return rawActivity.map((raw, i) => this.normalizer.normalizeActivityTrade(raw, i));
     }
 

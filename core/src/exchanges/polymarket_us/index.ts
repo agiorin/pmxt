@@ -207,11 +207,11 @@ export class PolymarketUSExchange extends PredictionMarketExchange {
         });
     }
 
-    override async fetchOrderBook(id: string): Promise<OrderBook> {
+    override async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
         return this.run(async () => {
-            const slug = this.slugFromId(id);
+            const slug = this.slugFromId(outcomeId);
             const book = await this.client.markets.book(slug);
-            return this.normalizer.normalizeOrderBook(book, id);
+            return this.normalizer.normalizeOrderBook(book, outcomeId);
         });
     }
 
@@ -381,17 +381,17 @@ export class PolymarketUSExchange extends PredictionMarketExchange {
         return this.wsWrapper;
     }
 
-    override async watchOrderBook(id: string, _limit?: number): Promise<OrderBook> {
-        return this.run(() => this.ensureWs().watchOrderBook(id));
+    override async watchOrderBook(outcomeId: string, _limit?: number): Promise<OrderBook> {
+        return this.run(() => this.ensureWs().watchOrderBook(outcomeId));
     }
 
     override async watchTrades(
-        id: string,
+        outcomeId: string,
         _address?: string,
         _since?: number,
         _limit?: number,
     ): Promise<Trade[]> {
-        return this.run(() => this.ensureWs().watchTrades(id));
+        return this.run(() => this.ensureWs().watchTrades(outcomeId));
     }
 
     // -------------------------------------------------------------------------

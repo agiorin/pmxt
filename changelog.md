@@ -2,6 +2,67 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.39.0] - 2026-05-08
+
+### DX: SDK type safety, passthrough converters, and outcome ID consistency
+
+A developer experience overhaul across core, TypeScript SDK, and Python SDK.
+
+**Typed SDK params** -- Generated SDK methods now have real parameter types
+instead of `any`. `fetchMarkets(params?: MarketFilterParams)` replaces
+`fetchMarkets(params?: any)`, giving consumers full IDE autocomplete and
+compile-time validation. Affected params: `MarketFilterParams`,
+`EventFetchParams`, `MyTradesParams`, `OrderHistoryParams`, `OHLCVParams`,
+`TradesParams`.
+
+**Passthrough converters** -- SDK converter functions (`convertMarket`,
+`convertEvent`, etc.) no longer enumerate fields explicitly. TypeScript
+uses spread (`{ ...raw }`) and Python uses a new `_auto_convert()` helper
+that iterates dataclass fields. New fields added to `types.ts` now flow
+through to both SDKs automatically instead of being silently dropped.
+
+**Outcome ID consistency** -- All methods that accept an outcome identifier
+now use `outcomeId` (TS) / `outcome_id` (Python) instead of the ambiguous
+`id`. Renamed in: `fetchOHLCV`, `fetchOrderBook`, `fetchTrades`,
+`watchOrderBook`, `watchOrderBooks`, `unwatchOrderBook`, `watchTrades`.
+
+**MarketOutcome acceptance** -- All outcome-accepting methods now accept
+`string | MarketOutcome` (TS) / `Union[str, MarketOutcome]` (Python), so
+you can pass `market.yes` directly instead of `market.yes.outcomeId`. The
+SDK generators auto-apply this to future methods.
+
+**Limitless bug fix** -- `fetchTrades` was missing `resolveSlug()`, so
+numeric outcome IDs that worked in `fetchOrderBook` failed silently.
+Added `resolveSlug` to `fetchTrades`, `watchOrderBook`, and `watchTrades`.
+
+### Migration
+
+No breaking changes. Python callers using the old `id=` keyword argument
+will see a `DeprecationWarning` but the call still works:
+
+```python
+# Old (deprecated, still works)
+ex.fetch_order_book(id="token123")
+
+# New (preferred)
+ex.fetch_order_book(outcome_id="token123")
+ex.fetch_order_book(market.yes)  # MarketOutcome object
+```
+
+TypeScript is fully backwards compatible -- parameter names are positional
+in JS/TS so the rename has no runtime impact.
+
+### Files
+
+- `core/src/BaseExchange.ts` -- param renames
+- `core/src/exchanges/*/index.ts` -- param renames (15 exchange files)
+- `core/src/exchanges/limitless/index.ts` -- resolveSlug bug fix
+- `sdks/typescript/pmxt/client.ts` -- passthrough converters, new imports
+- `sdks/typescript/pmxt/models.ts` -- added param types, fixed missing fields
+- `sdks/typescript/scripts/generate-client-methods.js` -- typed params, MarketOutcome widening
+- `sdks/python/pmxt/client.py` -- _auto_convert helper, compat shim, MarketOutcome widening
+- `sdks/python/scripts/generate-client-methods.js` -- typed params, compat shim generation
+
 ## [2.38.0] - 2026-05-08
 
 ### Feat: Hyperliquid prediction market (HIP-4 Outcome Markets)

@@ -96,23 +96,23 @@ export class MyriadExchange extends PredictionMarketExchange {
             .filter((e): e is UnifiedEvent => e !== null);
     }
 
-    async fetchOHLCV(id: string, params: OHLCVParams): Promise<PriceCandle[]> {
+    async fetchOHLCV(outcomeId: string, params: OHLCVParams): Promise<PriceCandle[]> {
         if (!params.resolution) {
             throw new Error('fetchOHLCV requires a resolution parameter.');
         }
-        const parts = id.split(':');
-        const outcomeId = parts.length >= 3 ? parts[2] : undefined;
+        const parts = outcomeId.split(':');
+        const parsedOutcomeId = parts.length >= 3 ? parts[2] : undefined;
 
-        const rawMarket = await this.fetcher.fetchRawOHLCV(id, params);
-        return this.normalizer.normalizeOHLCV(rawMarket, params, outcomeId);
+        const rawMarket = await this.fetcher.fetchRawOHLCV(outcomeId, params);
+        return this.normalizer.normalizeOHLCV(rawMarket, params, parsedOutcomeId);
     }
 
-    async fetchOrderBook(id: string): Promise<OrderBook> {
-        const rawMarket = await this.fetcher.fetchRawOrderBook(id);
-        return this.normalizer.normalizeOrderBook(rawMarket, id);
+    async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const rawMarket = await this.fetcher.fetchRawOrderBook(outcomeId);
+        return this.normalizer.normalizeOrderBook(rawMarket, outcomeId);
     }
 
-    async fetchTrades(id: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+    async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         if ('resolution' in params && params.resolution !== undefined) {
             console.warn(
                 '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
@@ -120,7 +120,7 @@ export class MyriadExchange extends PredictionMarketExchange {
             );
         }
 
-        const rawTrades = await this.fetcher.fetchRawTrades(id, params);
+        const rawTrades = await this.fetcher.fetchRawTrades(outcomeId, params);
         return rawTrades.map((raw, i) => this.normalizer.normalizeTrade(raw, i));
     }
 
@@ -228,7 +228,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     // WebSocket (poll-based)
     // ------------------------------------------------------------------------
 
-    async watchOrderBook(id: string, _limit?: number): Promise<OrderBook> {
+    async watchOrderBook(outcomeId: string, _limit?: number): Promise<OrderBook> {
         this.ensureAuth();
         if (!this.ws) {
             this.ws = new MyriadWebSocket(
@@ -236,10 +236,10 @@ export class MyriadExchange extends PredictionMarketExchange {
                 (id: string) => this.fetchOrderBook(id),
             );
         }
-        return this.ws.watchOrderBook(id);
+        return this.ws.watchOrderBook(outcomeId);
     }
 
-    async watchTrades(id: string, address?: string, _since?: number, _limit?: number): Promise<Trade[]> {
+    async watchTrades(outcomeId: string, address?: string, _since?: number, _limit?: number): Promise<Trade[]> {
         this.ensureAuth();
         if (!this.ws) {
             this.ws = new MyriadWebSocket(
@@ -247,7 +247,7 @@ export class MyriadExchange extends PredictionMarketExchange {
                 (id: string) => this.fetchOrderBook(id),
             );
         }
-        return this.ws.watchTrades(id);
+        return this.ws.watchTrades(outcomeId);
     }
 
     async close(): Promise<void> {
