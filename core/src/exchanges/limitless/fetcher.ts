@@ -283,33 +283,86 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
 
     private async fetchRawEventsDefault(params: EventFetchParams): Promise<LimitlessRawEvent[]> {
         const limit = params?.limit || 250000;
-        let page = 1;
         const pageSize = 25;
         const MAX_PAGES = 40;
-        const allGroups: LimitlessRawEvent[] = [];
+        const sortBy = params?.sort === 'newest' ? 'newest' : params?.sort === 'liquidity' ? 'lp_rewards' : 'high_value';
 
-        while (allGroups.length < limit && page <= MAX_PAGES) {
-            const response = await this.http.get(`${this.apiUrl}/markets/active`, {
-                params: {
-                    page,
-                    limit: pageSize,
-                    tradeType: 'group',
-                    sortBy: params?.sort === 'newest' ? 'newest' : params?.sort === 'liquidity' ? 'lp_rewards' : 'high_value',
+        // Fetch group events and all markets in parallel.
+        // The second call omits tradeType so the API returns every trade type.
+        const [groupEvents, allMarkets] = await Promise.all([
+            this.fetchPaginatedActive({ tradeType: 'group', sortBy, pageSize, maxPages: MAX_PAGES, limit }),
+            this.fetchPaginatedActive({ sortBy, pageSize, maxPages: MAX_PAGES, limit }),
+        ]);
+
+        // Collect slugs already covered by group events (the group slug
+        // itself plus every child market slug inside it)
+        const coveredSlugs = new Set<string>();
+        for (const group of groupEvents) {
+            coveredSlugs.add(group.slug);
+            if (Array.isArray(group.markets)) {
+                for (const child of group.markets) {
+                    if (child.slug) coveredSlugs.add(child.slug);
                 }
+            }
+        }
+
+        // Keep only standalone markets not already part of a group.
+        // Wrap each as a LimitlessRawEvent without a markets array so
+        // normalizeEvent() treats it as a single-market event.
+        const standaloneEvents: LimitlessRawEvent[] = allMarkets
+            .filter((m: any) => !coveredSlugs.has(m.slug) && m.tradeType !== 'group')
+            .map((m: any): LimitlessRawEvent => ({
+                ...m,
+                // Explicitly omit the markets array so the normalizer wraps
+                // the top-level fields as a single-market event
+                markets: undefined,
+            }));
+
+        const combined = [...groupEvents, ...standaloneEvents];
+        return combined.slice(0, limit);
+    }
+
+    /**
+     * Generic paginated fetch against /markets/active.
+     * When tradeType is omitted the API returns all trade types.
+     */
+    private async fetchPaginatedActive(opts: {
+        tradeType?: string;
+        sortBy: string;
+        pageSize: number;
+        maxPages: number;
+        limit: number;
+    }): Promise<any[]> {
+        const { tradeType, sortBy, pageSize, maxPages, limit } = opts;
+        let page = 1;
+        const results: any[] = [];
+
+        while (results.length < limit && page <= maxPages) {
+            const queryParams: Record<string, unknown> = {
+                page,
+                limit: pageSize,
+                sortBy,
+            };
+            if (tradeType) {
+                queryParams.tradeType = tradeType;
+            }
+
+            const response = await this.http.get(`${this.apiUrl}/markets/active`, {
+                params: queryParams,
             });
 
             const items: any[] = response.data?.data || response.data || [];
             if (items.length === 0) break;
 
             for (const item of items) {
-                if (allGroups.length >= limit) break;
-                allGroups.push(item);
+                if (results.length >= limit) break;
+                results.push(item);
             }
 
             if (items.length < pageSize) break;
             page++;
         }
 
-        return allGroups;
+        return results;
     }
 }
