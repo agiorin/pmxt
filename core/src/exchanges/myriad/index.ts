@@ -4,7 +4,7 @@ import { MyriadAuth } from './auth';
 import { MyriadWebSocket } from './websocket';
 import { myriadErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
-import { BASE_URL } from './utils';
+import { DEFAULT_BASE_URL } from './utils';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { myriadApiSpec } from './api';
 import { MyriadFetcher } from './fetcher';
@@ -35,7 +35,8 @@ export class MyriadExchange extends PredictionMarketExchange {
             this.auth = new MyriadAuth(credentials);
         }
 
-        const descriptor = parseOpenApiSpec(myriadApiSpec, BASE_URL);
+        const myriadBaseUrl = credentials?.baseUrl || DEFAULT_BASE_URL;
+        const descriptor = parseOpenApiSpec(myriadApiSpec, myriadBaseUrl);
         this.defineImplicitApi(descriptor);
 
         const ctx: FetcherContext = {
@@ -44,7 +45,7 @@ export class MyriadExchange extends PredictionMarketExchange {
             getHeaders: () => this.getHeaders(),
         };
 
-        this.fetcher = new MyriadFetcher(ctx);
+        this.fetcher = new MyriadFetcher(ctx, myriadBaseUrl);
         this.normalizer = new MyriadNormalizer();
     }
 

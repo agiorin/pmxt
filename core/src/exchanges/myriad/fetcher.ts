@@ -1,6 +1,6 @@
 import { MarketFilterParams, EventFetchParams, OHLCVParams, TradesParams, MyTradesParams } from '../../BaseExchange';
 import { IExchangeFetcher, FetcherContext } from '../interfaces';
-import { BASE_URL, mapStatusToMyriad } from './utils';
+import { DEFAULT_BASE_URL, mapStatusToMyriad } from './utils';
 import { myriadErrorMapper } from './errors';
 
 const MAX_PAGE_SIZE = 100;
@@ -63,9 +63,11 @@ export interface MyriadRawPortfolioItem {
 
 export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRawQuestion> {
     private readonly ctx: FetcherContext;
+    private readonly baseUrl: string;
 
-    constructor(ctx: FetcherContext) {
+    constructor(ctx: FetcherContext, baseUrl?: string) {
         this.ctx = ctx;
+        this.baseUrl = baseUrl || DEFAULT_BASE_URL;
     }
 
     async fetchRawMarkets(params?: MarketFilterParams): Promise<MyriadRawMarket[]> {
@@ -105,7 +107,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
             }
 
             if (limit <= MAX_PAGE_SIZE) {
-                const response = await this.ctx.http.get(`${BASE_URL}/markets`, {
+                const response = await this.ctx.http.get(`${this.baseUrl}/markets`, {
                     params: queryParams,
                     headers: this.ctx.getHeaders(),
                 });
@@ -121,7 +123,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
                 queryParams.page = page;
                 queryParams.limit = MAX_PAGE_SIZE;
 
-                const response = await this.ctx.http.get(`${BASE_URL}/markets`, {
+                const response = await this.ctx.http.get(`${this.baseUrl}/markets`, {
                     params: queryParams,
                     headers: this.ctx.getHeaders(),
                 });
@@ -162,7 +164,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
                 queryParams.keyword = params.query;
             }
 
-            const response = await this.ctx.http.get(`${BASE_URL}/questions`, {
+            const response = await this.ctx.http.get(`${this.baseUrl}/questions`, {
                 params: queryParams,
                 headers: this.ctx.getHeaders(),
             });
@@ -274,7 +276,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
         }
 
         const [networkId, id] = parts;
-        const response = await this.ctx.http.get(`${BASE_URL}/markets/${id}`, {
+        const response = await this.ctx.http.get(`${this.baseUrl}/markets/${id}`, {
             params: { network_id: Number(networkId) },
             headers: this.ctx.getHeaders(),
         });
@@ -284,7 +286,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
     }
 
     private async fetchRawMarketBySlug(slug: string): Promise<MyriadRawMarket[]> {
-        const response = await this.ctx.http.get(`${BASE_URL}/markets/${slug}`, {
+        const response = await this.ctx.http.get(`${this.baseUrl}/markets/${slug}`, {
             headers: this.ctx.getHeaders(),
         });
         const market = response.data.data || response.data;
@@ -292,7 +294,7 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
     }
 
     private async fetchRawQuestionById(id: string): Promise<MyriadRawQuestion[]> {
-        const response = await this.ctx.http.get(`${BASE_URL}/questions/${id}`, {
+        const response = await this.ctx.http.get(`${this.baseUrl}/questions/${id}`, {
             headers: this.ctx.getHeaders(),
         });
         const question = response.data.data || response.data;

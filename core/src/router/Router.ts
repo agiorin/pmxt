@@ -4,7 +4,7 @@ import {
     type MarketFetchParams,
     type EventFetchParams,
 } from '../BaseExchange';
-import type { UnifiedMarket, UnifiedEvent } from '../types';
+import type { UnifiedMarket, UnifiedEvent, OrderBook, OrderLevel, MarketOutcome } from '../types';
 import { PmxtApiClient } from './client';
 import type {
     RouterOptions,
@@ -22,12 +22,44 @@ import type {
     FetchMatchedPricesParams,
 } from './types';
 
+// ---------------------------------------------------------------------------
+// Orderbook merge utilities
+// ---------------------------------------------------------------------------
+
+function findOutcomeForSide(market: UnifiedMarket, side: 'yes' | 'no'): MarketOutcome | undefined {
+    return market.outcomes.find((o) => o.label.toLowerCase() === side)
+        ?? market.outcomes[side === 'yes' ? 0 : 1];
+}
+
+function mergeLevels(levels: OrderLevel[]): OrderLevel[] {
+    const byPrice = new Map<number, number>();
+    for (const level of levels) {
+        byPrice.set(level.price, (byPrice.get(level.price) ?? 0) + level.size);
+    }
+    return Array.from(byPrice.entries()).map(([price, size]) => ({ price, size }));
+}
+
+function mergeOrderBooks(books: OrderBook[]): OrderBook {
+    const allBids = books.flatMap((b) => b.bids);
+    const allAsks = books.flatMap((b) => b.asks);
+
+    return {
+        bids: mergeLevels(allBids).sort((a, b) => b.price - a.price),
+        asks: mergeLevels(allAsks).sort((a, b) => a.price - b.price),
+        timestamp: Date.now(),
+    };
+}
+
+// ---------------------------------------------------------------------------
+
 export class Router extends PredictionMarketExchange {
     private readonly client: PmxtApiClient;
+    private readonly exchanges: Record<string, PredictionMarketExchange>;
 
     constructor(options: RouterOptions) {
         super({ apiKey: options.apiKey } as ExchangeCredentials);
         this.client = new PmxtApiClient(options.apiKey, options.baseUrl);
+        this.exchanges = options.exchanges ?? {};
         this.rateLimit = 100;
     }
 
@@ -58,6 +90,64 @@ export class Router extends PredictionMarketExchange {
             offset: params?.offset,
         });
         return response ?? [];
+    }
+
+    // -----------------------------------------------------------------------
+    // Unified orderbook (cross-exchange merge)
+    // -----------------------------------------------------------------------
+
+    async fetchOrderBook(id: string, side?: 'yes' | 'no'): Promise<OrderBook> {
+        const exchangeNames = Object.keys(this.exchanges);
+        if (exchangeNames.length === 0) {
+            throw new Error(
+                'Router requires exchange instances for fetchOrderBook. Pass exchanges in RouterOptions.',
+            );
+        }
+
+        const resolvedSide = side ?? 'yes';
+
+        // Find identity matches across venues
+        const matches = await this.fetchMarketMatches({
+            marketId: id,
+            relation: 'identity',
+        });
+
+        const fetchPromises: Promise<OrderBook | null>[] = [];
+        const matchedVenues = new Set(
+            matches.map((m) => m.market.sourceExchange).filter(Boolean),
+        );
+
+        // Fetch from matched markets (we know their exchange + outcome IDs)
+        for (const match of matches) {
+            const venueName = match.market.sourceExchange ?? '';
+            const exchange = this.exchanges[venueName];
+            if (!exchange) continue;
+
+            const outcome = findOutcomeForSide(match.market, resolvedSide);
+            if (!outcome) continue;
+
+            fetchPromises.push(
+                exchange.fetchOrderBook(outcome.outcomeId, resolvedSide).catch(() => null),
+            );
+        }
+
+        // Fetch the source market's orderbook (try remaining exchanges with the raw ID)
+        for (const [name, exchange] of Object.entries(this.exchanges)) {
+            if (matchedVenues.has(name)) continue;
+            fetchPromises.push(
+                exchange.fetchOrderBook(id, resolvedSide).catch(() => null),
+            );
+        }
+
+        const books = (await Promise.all(fetchPromises)).filter(
+            (b): b is OrderBook => b !== null,
+        );
+
+        if (books.length === 0) {
+            return { bids: [], asks: [], timestamp: Date.now() };
+        }
+
+        return mergeOrderBooks(books);
     }
 
     // -----------------------------------------------------------------------

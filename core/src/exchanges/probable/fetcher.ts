@@ -1,7 +1,7 @@
 import { AxiosInstance } from 'axios';
 import { MarketFetchParams, EventFetchParams, OHLCVParams, TradesParams, MyTradesParams } from '../../BaseExchange';
 import { IExchangeFetcher, FetcherContext } from '../interfaces';
-import { BASE_URL, SEARCH_PATH, MARKETS_PATH, EVENTS_PATH } from './utils';
+import { DEFAULT_BASE_URL, SEARCH_PATH, MARKETS_PATH, EVENTS_PATH } from './utils';
 import { probableErrorMapper } from './errors';
 
 // ---------------------------------------------------------------------------
@@ -86,9 +86,11 @@ export interface ProbableRawPosition {
 
 export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, ProbableRawEvent> {
     private readonly ctx: FetcherContext;
+    private readonly baseUrl: string;
 
-    constructor(ctx: FetcherContext) {
+    constructor(ctx: FetcherContext, baseUrl?: string) {
         this.ctx = ctx;
+        this.baseUrl = baseUrl || DEFAULT_BASE_URL;
     }
 
     // -----------------------------------------------------------------------
@@ -145,7 +147,7 @@ export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, Prob
         try {
             const numericId = Number(id);
             if (isNaN(numericId)) return null;
-            const response = await this.ctx.http.get(`${BASE_URL}${EVENTS_PATH}${numericId}`);
+            const response = await this.ctx.http.get(`${this.baseUrl}${EVENTS_PATH}${numericId}`);
             return response.data || null;
         } catch (error: any) {
             if (isNotFoundError(error)) return null;
@@ -155,7 +157,7 @@ export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, Prob
 
     async fetchRawEventBySlug(slug: string): Promise<ProbableRawEvent | null> {
         try {
-            const response = await this.ctx.http.get(`${BASE_URL}${EVENTS_PATH}slug/${slug}`);
+            const response = await this.ctx.http.get(`${this.baseUrl}${EVENTS_PATH}slug/${slug}`);
             return response.data || null;
         } catch (error: any) {
             if (isNotFoundError(error)) return null;
@@ -293,11 +295,11 @@ export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, Prob
         const numericId = Number(cleanSlug);
         if (!isNaN(numericId) && String(numericId) === cleanSlug) {
             try {
-                const response = await this.ctx.http.get(`${BASE_URL}${MARKETS_PATH}${numericId}`);
+                const response = await this.ctx.http.get(`${this.baseUrl}${MARKETS_PATH}${numericId}`);
                 return response.data ? [response.data] : [];
             } catch (error: any) {
                 if (isMarketNotFoundError(error)) {
-                    const response = await this.ctx.http.get(`${BASE_URL}${MARKETS_PATH}`, {
+                    const response = await this.ctx.http.get(`${this.baseUrl}${MARKETS_PATH}`, {
                         params: { page: 1, limit: 100, active: true },
                     });
                     if (!response.data?.markets || !Array.isArray(response.data.markets)) {
@@ -341,7 +343,7 @@ export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, Prob
             queryParams.event_id = (params as any).eventId;
         }
 
-        const response = await this.ctx.http.get(`${BASE_URL}${MARKETS_PATH}`, { params: queryParams });
+        const response = await this.ctx.http.get(`${this.baseUrl}${MARKETS_PATH}`, { params: queryParams });
         if (!response.data?.markets || !Array.isArray(response.data.markets)) {
             throw new Error(
                 `Probable markets list: unexpected response shape. Expected { markets: [...] }.`
@@ -448,7 +450,7 @@ export class ProbableFetcher implements IExchangeFetcher<ProbableRawMarket, Prob
         queryParams.sort = 'volume';
         queryParams.ascending = false;
 
-        const response = await this.ctx.http.get(`${BASE_URL}${EVENTS_PATH}`, { params: queryParams });
+        const response = await this.ctx.http.get(`${this.baseUrl}${EVENTS_PATH}`, { params: queryParams });
         const data = response.data;
         if (!Array.isArray(data)) {
             throw new Error(

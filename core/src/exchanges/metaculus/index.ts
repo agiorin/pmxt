@@ -9,7 +9,7 @@ import { AuthenticationError } from "../../errors";
 import { parseOpenApiSpec } from "../../utils/openapi";
 import { metaculusApiSpec } from "./api";
 import { metaculusErrorMapper } from "./errors";
-import { BASE_URL } from "./utils";
+import { DEFAULT_BASE_URL } from "./utils";
 import { fetchMarkets } from "./fetchMarkets";
 import { fetchEvents } from "./fetchEvents";
 import { createOrder, CreateOrderContext } from "./createOrder";
@@ -53,6 +53,7 @@ import { cancelOrder, CancelOrderContext } from "./cancelOrder";
  */
 export class MetaculusExchange extends PredictionMarketExchange {
     private readonly apiToken?: string;
+    private readonly baseUrl: string;
 
     constructor(credentials?: ExchangeCredentials) {
         super(credentials);
@@ -62,7 +63,8 @@ export class MetaculusExchange extends PredictionMarketExchange {
         // Rate-limit conservatively; authenticated users get higher Metaculus quotas
         this.rateLimit = 500;
 
-        const descriptor = parseOpenApiSpec(metaculusApiSpec, BASE_URL);
+        this.baseUrl = credentials?.baseUrl || DEFAULT_BASE_URL;
+        const descriptor = parseOpenApiSpec(metaculusApiSpec, this.baseUrl);
         this.defineImplicitApi(descriptor);
     }
 
@@ -143,6 +145,7 @@ export class MetaculusExchange extends PredictionMarketExchange {
         const ctx: CreateOrderContext = {
             http: this.http,
             getAuthHeaders: () => this.getAuthHeaders(),
+            baseUrl: this.baseUrl,
             fetchOutcomes: async (marketId: string) => {
                 const markets = await this.fetchMarkets({ marketId });
                 return markets.length > 0 ? markets[0].outcomes : [];
@@ -165,6 +168,7 @@ export class MetaculusExchange extends PredictionMarketExchange {
         const ctx: CancelOrderContext = {
             http: this.http,
             getAuthHeaders: () => this.getAuthHeaders(),
+            baseUrl: this.baseUrl,
         };
         return cancelOrder(orderId, ctx);
     }

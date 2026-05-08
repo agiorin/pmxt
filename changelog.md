@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.37.12] - 2026-05-08
+
+### Fix: `baseUrl` credential field missing from TypeScript types
+
+The `ExchangeCredentials` interface was missing the `baseUrl` property added in
+v2.37.11, causing TypeScript compilation to fail when `limitless/auth.ts` and
+`polymarket/auth.ts` referenced it.
+
+### Feat: Router cross-exchange orderbook aggregation
+
+`Router.fetchOrderBook(id, side?)` now merges orderbooks across all configured
+exchange instances. It resolves identity matches via the match API, fetches each
+venue's book in parallel, and returns a single merged orderbook with aggregated
+liquidity at each price level.
+
 ## [2.37.11] - 2026-05-08
 
 ### Feat: Configurable API base URLs for all exchanges

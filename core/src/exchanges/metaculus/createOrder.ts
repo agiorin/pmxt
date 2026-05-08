@@ -2,7 +2,7 @@ import { AxiosInstance } from "axios";
 import { CreateOrderParams, Order, MarketOutcome } from "../../types";
 import { AuthenticationError, InvalidOrder, ValidationError } from "../../errors";
 import { metaculusErrorMapper } from "./errors";
-import { BASE_URL } from "./utils";
+import { DEFAULT_BASE_URL } from "./utils";
 
 // ---------------------------------------------------------------------------
 // OutcomeId Parsing
@@ -240,6 +240,8 @@ export interface CreateOrderContext {
     http: AxiosInstance;
     /** Returns auth headers. Throws if no token is configured. */
     getAuthHeaders: () => Record<string, string>;
+    /** Optional base URL override (defaults to the standard Metaculus API). */
+    baseUrl?: string;
     /**
      * Fetch current market outcomes to read multiple-choice probabilities.
      * Only needed for multiple-choice questions.
@@ -392,7 +394,7 @@ export async function createOrder(
         // array body, but the implicit API infrastructure always sends objects.
         await ctx.http.request({
             method: "POST",
-            url: `${BASE_URL}/questions/forecast/`,
+            url: `${ctx.baseUrl || DEFAULT_BASE_URL}/questions/forecast/`,
             data: payload,
             headers: { "Content-Type": "application/json", ...headers },
         });

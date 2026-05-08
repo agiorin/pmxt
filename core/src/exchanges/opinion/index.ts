@@ -37,7 +37,7 @@ import { opinionErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { opinionApiSpec } from './api';
-import { OPINION_API_URL } from './config';
+import { DEFAULT_OPINION_API_URL } from './config';
 import { OpinionFetcher } from './fetcher';
 import { OpinionNormalizer } from './normalizer';
 import { FetcherContext } from '../interfaces';
@@ -84,7 +84,8 @@ export class OpinionExchange extends PredictionMarketExchange {
             this.auth = new OpinionAuth(credentials);
         }
 
-        const descriptor = parseOpenApiSpec(opinionApiSpec, OPINION_API_URL);
+        const opinionBaseUrl = credentials?.baseUrl || DEFAULT_OPINION_API_URL;
+        const descriptor = parseOpenApiSpec(opinionApiSpec, opinionBaseUrl);
         this.defineImplicitApi(descriptor);
 
         const ctx: FetcherContext = {
@@ -93,7 +94,7 @@ export class OpinionExchange extends PredictionMarketExchange {
             getHeaders: () => this.auth?.getHeaders() ?? {},
         };
 
-        this.fetcher = new OpinionFetcher(ctx);
+        this.fetcher = new OpinionFetcher(ctx, opinionBaseUrl);
         this.normalizer = new OpinionNormalizer();
     }
 

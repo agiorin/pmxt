@@ -45,7 +45,7 @@ export class SmarketsExchange extends PredictionMarketExchange {
     constructor(credentials?: ExchangeCredentials) {
         super(credentials);
         this.rateLimit = 100;
-        this.config = getSmarketsConfig();
+        this.config = getSmarketsConfig(credentials?.baseUrl);
 
         // Smarkets API expects repeated keys for arrays (e.g. state=new&state=live)
         // rather than the axios default bracket format (state[]=new&state[]=live)

@@ -70,7 +70,7 @@ export class KalshiExchange extends PredictionMarketExchange {
     super(credentials);
     this.rateLimit = 100;
     this.wsConfig = wsConfig;
-    this.config = getKalshiConfig(demoMode);
+    this.config = getKalshiConfig(demoMode, credentials?.baseUrl);
 
     if (credentials?.apiKey && credentials?.privateKey) {
       this.auth = new KalshiAuth(credentials);

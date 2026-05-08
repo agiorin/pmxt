@@ -101,7 +101,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
                         });
                     } else {
                         const apiKey = this.auth.getApiKey();
-                        this.client = new LimitlessClient(credentials.privateKey, apiKey);
+                        this.client = new LimitlessClient(credentials.privateKey, apiKey, this.auth.host);
                     }
                 } else if (this.auth.isDelegatedSigning()) {
                     // Delegated mode: HMAC auth, no private key, server signs
@@ -128,7 +128,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             getHeaders: () => this.getHeaders(),
         };
 
-        this.fetcher = new LimitlessFetcher(ctx, this.http, this.auth?.getApiKey());
+        this.fetcher = new LimitlessFetcher(ctx, this.http, this.auth?.getApiKey(), this.auth?.host);
         this.normalizer = new LimitlessNormalizer();
     }
 

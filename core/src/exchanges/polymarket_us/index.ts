@@ -72,7 +72,7 @@ export class PolymarketUSExchange extends PredictionMarketExchange {
     constructor(credentials?: ExchangeCredentials) {
         super(credentials);
         this.rateLimit = 100;
-        this.config = getPolymarketUSConfig();
+        this.config = getPolymarketUSConfig(credentials?.baseUrl);
         this.normalizer = new PolymarketUSNormalizer();
         this.client = new PolymarketUSClient({
             keyId: credentials?.apiKey,

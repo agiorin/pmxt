@@ -336,6 +336,9 @@ export interface ExchangeCredentials {
 
     // Limitless: wallet address for delegated signing profile lookup
     walletAddress?: string;
+
+    // Optional base URL override for venue API (e.g., proxy for geo-restricted venues)
+    baseUrl?: string;
 }
 
 export interface ExchangeOptions {
@@ -1331,6 +1334,14 @@ export abstract class PredictionMarketExchange {
      * Close all WebSocket connections and clean up resources.
      * Call this when you're done streaming to properly release connections.
      */
+    
+    /**
+     * Test method for auto-generation verification.
+     */
+    async testDummyMethod(param?: string): Promise<string> {
+      throw new Error("Test method not implemented.");
+    }
+
     async close(): Promise<void> {
         // Default implementation: no-op
         // Exchanges with WebSocket support should override this

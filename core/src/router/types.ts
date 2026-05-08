@@ -1,3 +1,4 @@
+import type { PredictionMarketExchange } from '../BaseExchange';
 import type { UnifiedMarket, UnifiedEvent } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -13,6 +14,8 @@ export type MatchRelation = 'identity' | 'subset' | 'superset' | 'overlap' | 'di
 export interface RouterOptions {
     apiKey: string;
     baseUrl?: string;
+    /** Exchange instances for cross-venue orderbook aggregation. Keyed by exchange name (e.g. 'polymarket', 'kalshi'). */
+    exchanges?: Record<string, PredictionMarketExchange>;
 }
 
 // ---------------------------------------------------------------------------

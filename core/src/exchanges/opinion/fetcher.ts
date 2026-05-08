@@ -1,7 +1,7 @@
 import { MarketFilterParams, EventFetchParams, OHLCVParams, MyTradesParams } from '../../BaseExchange';
 import { IExchangeFetcher, FetcherContext } from '../interfaces';
 import { opinionErrorMapper } from './errors';
-import { OPINION_API_URL, OPINION_MAX_PAGE_SIZE } from './config';
+import { DEFAULT_OPINION_API_URL, OPINION_MAX_PAGE_SIZE } from './config';
 
 // ----------------------------------------------------------------------------
 // Raw venue-native types (what the Opinion Trade API returns)
@@ -225,9 +225,11 @@ const MAX_PAGES = 500;
 
 export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, OpinionRawMarket> {
     private readonly ctx: FetcherContext;
+    private readonly apiUrl: string;
 
-    constructor(ctx: FetcherContext) {
+    constructor(ctx: FetcherContext, apiUrl?: string) {
         this.ctx = ctx;
+        this.apiUrl = apiUrl || DEFAULT_OPINION_API_URL;
     }
 
     // -- Markets --------------------------------------------------------------
@@ -304,7 +306,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
     async fetchRawMarketById(marketId: number): Promise<OpinionRawMarket | null> {
         try {
             const response = await this.ctx.http.get<OpinionApiResponse<{ data: OpinionRawMarket }>>(
-                `${OPINION_API_URL}/market/${marketId}`,
+                `${this.apiUrl}/market/${marketId}`,
                 { headers: this.ctx.getHeaders() },
             );
             this.assertSuccess(response.data);
@@ -319,7 +321,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
     async fetchRawCategoricalMarketById(marketId: number): Promise<OpinionRawMarket | null> {
         try {
             const response = await this.ctx.http.get<OpinionApiResponse<{ data: OpinionRawMarket }>>(
-                `${OPINION_API_URL}/market/categorical/${marketId}`,
+                `${this.apiUrl}/market/categorical/${marketId}`,
                 { headers: this.ctx.getHeaders() },
             );
             this.assertSuccess(response.data);
@@ -334,7 +336,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
     async fetchRawOrderBook(tokenId: string): Promise<OpinionRawOrderBook> {
         try {
             const response = await this.ctx.http.get<OpinionApiResponse<OpinionRawOrderBook>>(
-                `${OPINION_API_URL}/token/orderbook`,
+                `${this.apiUrl}/token/orderbook`,
                 {
                     params: { token_id: tokenId },
                     headers: this.ctx.getHeaders(),
@@ -360,7 +362,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
             if (params.endAt !== undefined) queryParams.end_at = params.endAt;
 
             const response = await this.ctx.http.get<OpinionApiResponse<{ history: OpinionRawPricePoint[] }>>(
-                `${OPINION_API_URL}/token/price-history`,
+                `${this.apiUrl}/token/price-history`,
                 { params: queryParams, headers: this.ctx.getHeaders() },
             );
             this.assertSuccess(response.data);
@@ -404,7 +406,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
     async fetchRawLatestPrice(tokenId: string): Promise<OpinionRawLatestPrice> {
         try {
             const response = await this.ctx.http.get<OpinionApiResponse<OpinionRawLatestPrice>>(
-                `${OPINION_API_URL}/token/latest-price`,
+                `${this.apiUrl}/token/latest-price`,
                 {
                     params: { token_id: tokenId },
                     headers: this.ctx.getHeaders(),
@@ -486,7 +488,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
     async fetchRawOrderById(orderId: string): Promise<OpinionRawOrder | null> {
         try {
             const response = await this.ctx.http.get<OpinionApiResponse<{ orderData: OpinionRawOrder }>>(
-                `${OPINION_API_URL}/order/${orderId}`,
+                `${this.apiUrl}/order/${orderId}`,
                 { headers: this.ctx.getHeaders() },
             );
             this.assertSuccess(response.data);
@@ -522,7 +524,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
             };
 
             const response = await this.ctx.http.get<OpinionApiResponse<any>>(
-                `${OPINION_API_URL}${path}`,
+                `${this.apiUrl}${path}`,
                 { params, headers: this.ctx.getHeaders() },
             );
 

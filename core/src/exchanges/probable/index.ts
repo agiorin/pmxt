@@ -27,7 +27,7 @@ import { AuthenticationError } from '../../errors';
 import { OrderSide } from '@prob/clob';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { probableApiSpec } from './api';
-import { BASE_URL } from './utils';
+import { DEFAULT_BASE_URL } from './utils';
 import { ProbableFetcher } from './fetcher';
 import { ProbableNormalizer } from './normalizer';
 import { FetcherContext } from '../interfaces';
@@ -50,7 +50,8 @@ export class ProbableExchange extends PredictionMarketExchange {
             this.auth = new ProbableAuth(credentials);
         }
 
-        const descriptor = parseOpenApiSpec(probableApiSpec, BASE_URL);
+        const probableBaseUrl = credentials?.baseUrl || DEFAULT_BASE_URL;
+        const descriptor = parseOpenApiSpec(probableApiSpec, probableBaseUrl);
         this.defineImplicitApi(descriptor);
 
         const ctx: FetcherContext = {
@@ -59,7 +60,7 @@ export class ProbableExchange extends PredictionMarketExchange {
             getHeaders: () => ({ 'Content-Type': 'application/json' }),
         };
 
-        this.fetcher = new ProbableFetcher(ctx);
+        this.fetcher = new ProbableFetcher(ctx, probableBaseUrl);
         this.normalizer = new ProbableNormalizer();
     }
 
