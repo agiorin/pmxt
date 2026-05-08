@@ -3669,6 +3669,21 @@ x-sdk-constructors:
         tsName: privateKey
         type: string
         description: Private key for authentication
+  hyperliquid:
+    className: Hyperliquid
+    params:
+      - name: pmxt_api_key
+        tsName: pmxtApiKey
+        type: string
+        description: PMXT API key for hosted access
+      - name: api_key
+        tsName: apiKey
+        type: string
+        description: API key for authentication
+      - name: private_key
+        tsName: privateKey
+        type: string
+        description: Private key for authentication
   router:
     className: Router
     params:
