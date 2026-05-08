@@ -3134,7 +3134,7 @@ Fetch the current order book (bids/asks) for a specific outcome. Essential for c
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `id` | string | Yes |  |
+| `outcomeId` | string | Yes |  |
 | `side` | string | No |  |
 
 **Response:** `{ success: true, data: ... }`
@@ -3147,7 +3147,7 @@ import pmxt
 exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
-result = exchange.fetch_order_book(id="12345", side="buy")
+result = exchange.fetch_order_book(outcome_id="67890", side="buy")
 ```
 
 **TypeScript:**
@@ -3158,7 +3158,7 @@ import { Router } from "pmxtjs";
 const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
-const result = await exchange.fetchOrderBook({ id: "12345", side: "buy" });
+const result = await exchange.fetchOrderBook({ outcomeId: "67890", side: "buy" });
 ```
 
 
@@ -3170,7 +3170,7 @@ Fetch raw trade history for a specific outcome.
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `id` | string | Yes |  |
+| `outcomeId` | string | Yes |  |
 | `start` | string | No | Start of the time range |
 | `end` | string | No | End of the time range |
 | `limit` | number | No | Maximum number of results to return |
@@ -3186,7 +3186,7 @@ exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_trades(
-    id="12345",
+    outcome_id="67890",
     start="value",
     end="value",
     limit=10,
@@ -3202,7 +3202,7 @@ const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchTrades({
-  id: "12345",
+  outcomeId: "67890",
   start: "value",
   end: "value",
   limit: 10,
