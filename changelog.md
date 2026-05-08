@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.40.0] - 2026-05-08
+
+### Added
+
+- **Gemini Titan** exchange integration (`gemini-titan`)
+  - REST: fetchMarkets, fetchEvents, fetchOrderBook, createOrder, cancelOrder, fetchOpenOrders, fetchClosedOrders, fetchAllOrders, fetchPositions
+  - WebSocket: watchOrderBook (L2 depth20), watchTrades
+  - HMAC-SHA384 auth with monotonic nonce
+  - Independent CFTC-regulated DCM -- not a Kalshi/Polymarket wrapper
+  - Supports sports, politics, crypto, commodities, weather markets
+  - Sandbox environment support
+  - No OHLCV, trade history (REST), fills, or balance endpoints (Gemini does not expose these)
+  - REST order book is top-of-book only; full depth via WebSocket
+
 ## [2.39.2] - 2026-05-08
 
 ### Test suite rewrite and silent failure elimination
