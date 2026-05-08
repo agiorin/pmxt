@@ -35,6 +35,7 @@ import { LimitlessClient } from './client';
 import { limitlessErrorMapper } from './errors';
 import { LimitlessFetcher } from './fetcher';
 import { LimitlessNormalizer } from './normalizer';
+import { DEFAULT_LIMITLESS_API_URL } from './utils';
 import { LimitlessWebSocket, LimitlessWebSocketConfig } from './websocket';
 
 export type { LimitlessWebSocketConfig, WatcherConfig };
@@ -128,7 +129,8 @@ export class LimitlessExchange extends PredictionMarketExchange {
             getHeaders: () => this.getHeaders(),
         };
 
-        this.fetcher = new LimitlessFetcher(ctx, this.http, this.auth?.getApiKey(), this.auth?.host);
+        const limitlessBaseUrl = this.auth?.host || credentials?.baseUrl || DEFAULT_LIMITLESS_API_URL;
+        this.fetcher = new LimitlessFetcher(ctx, this.http, this.auth?.getApiKey(), limitlessBaseUrl);
         this.normalizer = new LimitlessNormalizer();
     }
 

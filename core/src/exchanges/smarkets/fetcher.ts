@@ -164,9 +164,11 @@ const MARKET_ID_BATCH_SIZE = 100;
 
 export class SmarketsFetcher implements IExchangeFetcher<SmarketsRawEventWithMarkets, SmarketsRawEventWithMarkets> {
     private readonly ctx: FetcherContext;
+    private readonly baseUrl: string;
 
-    constructor(ctx: FetcherContext) {
+    constructor(ctx: FetcherContext, baseUrl?: string) {
         this.ctx = ctx;
+        this.baseUrl = baseUrl || 'https://api.smarkets.com';
     }
 
     // -- Markets (returns enriched events with nested markets/contracts) ------
@@ -212,8 +214,7 @@ export class SmarketsFetcher implements IExchangeFetcher<SmarketsRawEventWithMar
 
         // get_quotes is marked as private in the spec but works without auth
         // (returns delayed data). Use a direct HTTP call so it works without credentials.
-        const smarketsBase = process.env.SMARKETS_BASE_URL || 'https://api.smarkets.com';
-        const url = `${smarketsBase}/v3/markets/${encodeURIComponent(id)}/quotes/`;
+        const url = `${this.baseUrl}/v3/markets/${encodeURIComponent(id)}/quotes/`;
         const headers: Record<string, string> = {
             ...this.ctx.getHeaders(),
         };

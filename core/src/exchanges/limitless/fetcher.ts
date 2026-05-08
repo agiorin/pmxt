@@ -184,8 +184,7 @@ export class LimitlessFetcher implements IExchangeFetcher<LimitlessRawMarket, Li
 
     async fetchRawMyTrades(_params: MyTradesParams, apiKey: string): Promise<LimitlessRawTrade[]> {
         try {
-            const baseUrl = process.env.LIMITLESS_BASE_URL || 'https://api.limitless.exchange';
-            const response = await this.http.get(`${baseUrl}/portfolio/trades`, {
+            const response = await this.http.get(`${this.apiUrl}/portfolio/trades`, {
                 headers: { Authorization: `Bearer ${apiKey}` },
             });
             const trades = Array.isArray(response.data) ? response.data : (response.data?.data || []);

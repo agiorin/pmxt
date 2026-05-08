@@ -2,7 +2,6 @@ import { AxiosInstance } from "axios";
 import { Order } from "../../types";
 import { AuthenticationError, ValidationError } from "../../errors";
 import { metaculusErrorMapper } from "./errors";
-import { DEFAULT_BASE_URL } from "./utils";
 
 /**
  * Parameters for the internal cancelOrder function.
@@ -12,8 +11,8 @@ export interface CancelOrderContext {
     http: AxiosInstance;
     /** Returns auth headers. Throws if no token is configured. */
     getAuthHeaders: () => Record<string, string>;
-    /** Optional base URL override (defaults to the standard Metaculus API). */
-    baseUrl?: string;
+    /** Base URL for the Metaculus API. */
+    baseUrl: string;
 }
 
 /**
@@ -71,7 +70,7 @@ export async function cancelOrder(
         // Bypasses callApi because the API expects an array body.
         await ctx.http.request({
             method: "POST",
-            url: `${ctx.baseUrl || DEFAULT_BASE_URL}/questions/withdraw/`,
+            url: `${ctx.baseUrl}/questions/withdraw/`,
             data: [{ question: questionId }],
             headers: { "Content-Type": "application/json", ...headers },
         });

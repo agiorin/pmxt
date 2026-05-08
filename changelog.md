@@ -2,20 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.37.12] - 2026-05-08
+## [2.37.13] - 2026-05-08
 
-### Fix: `baseUrl` credential field missing from TypeScript types
+### Fix: Complete baseUrl wiring across all exchanges
 
-The `ExchangeCredentials` interface was missing the `baseUrl` property added in
-v2.37.11, causing TypeScript compilation to fail when `limitless/auth.ts` and
-`polymarket/auth.ts` referenced it.
+Audited every exchange and fixed cases where `credentials.baseUrl` was
+silently ignored:
 
-### Feat: Router cross-exchange orderbook aggregation
-
-`Router.fetchOrderBook(id, side?)` now merges orderbooks across all configured
-exchange instances. It resolves identity matches via the match API, fetches each
-venue's book in parallel, and returns a single merged orderbook with aggregated
-liquidity at each price level.
+- **Smarkets**: `fetchOrderBook` read `SMARKETS_BASE_URL` env var
+  directly instead of using the configured `config.apiUrl`.
+- **Limitless**: `fetchMyTrades` read `LIMITLESS_BASE_URL` env var
+  directly instead of using `this.apiUrl`. Unauthenticated callers
+  with `baseUrl` had it silently dropped.
+- **Metaculus**: `createOrder` and `cancelOrder` had silent fallbacks
+  to the default URL when `baseUrl` was missing. Made `baseUrl`
+  required in both context interfaces.
+- **Dead exports**: Removed unused env-var-aware `BASE_URL` exports
+  from Metaculus, Probable, Myriad, Opinion, and Limitless utils/config
+  files. These gave the false impression that setting the env var would
+  take effect, but nothing imported them.
 
 ## [2.37.11] - 2026-05-08
 

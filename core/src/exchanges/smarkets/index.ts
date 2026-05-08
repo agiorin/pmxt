@@ -80,7 +80,7 @@ export class SmarketsExchange extends PredictionMarketExchange {
             getHeaders: () => this.auth?.getHeaders('', '') ?? {},
         };
 
-        this.fetcher = new SmarketsFetcher(ctx);
+        this.fetcher = new SmarketsFetcher(ctx, this.config.apiUrl);
         this.normalizer = new SmarketsNormalizer();
     }
 
