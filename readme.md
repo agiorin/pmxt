@@ -71,6 +71,10 @@ Different prediction market platforms have different APIs, data formats, and con
   <a href="https://www.metaculus.com" style="color: inherit; text-decoration: none;"><img src="https://www.metaculus.com/favicon.ico" alt="Metaculus" width="24" height="24"> <b>Metaculus</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://smarkets.com" style="color: inherit; text-decoration: none;"><img src="https://smarkets.com/favicon.ico" alt="Smarkets" width="24" height="24"> <b>Smarkets</b></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://hyperliquid.xyz" style="color: inherit; text-decoration: none;"><img src="https://pmxt.dev/venues/hyperliquid.png" alt="Hyperliquid" width="24" height="24"> <b>Hyperliquid</b></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://gemini.com" style="color: inherit; text-decoration: none;"><img src="https://pmxt.dev/venues/gemini-titan.png" alt="Gemini Titan" width="24" height="24"> <b>Gemini Titan</b></a>
 </p>
 
 [Feature Support & Compliance](core/COMPLIANCE.md).
