@@ -584,7 +584,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ExchangeParam'
         - in: query
-          name: id
+          name: outcomeId
           required: true
           schema:
             type: string
@@ -636,7 +636,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ExchangeParam'
         - in: query
-          name: id
+          name: outcomeId
           required: true
           schema:
             type: string
@@ -667,7 +667,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ExchangeParam'
         - in: query
-          name: id
+          name: outcomeId
           required: true
           schema:
             type: string
