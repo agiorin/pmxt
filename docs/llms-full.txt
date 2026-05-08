@@ -2249,8 +2249,6 @@ const result = await exchange.loadMarkets();
 
 `POST /api/{exchange}/close`
 
-Close all WebSocket connections and clean up resources. Call this when you're done streaming to properly release connections.
-
 **Python:**
 ```python
 import pmxt
@@ -3962,6 +3960,40 @@ const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.unwatchAddress({ address: "0xabc..." });
+```
+
+
+
+## Other
+
+### Test Dummy Method
+
+`POST /api/{exchange}/testDummyMethod`
+
+Test method for auto-generation verification.
+
+**Response:** `{ success: true, data: ... }`
+
+**Python:**
+```python
+import pmxt
+
+# API key optional — enables faster catalog-backed lookups
+exchange = pmxt.Router(
+    pmxt_api_key="YOUR_PMXT_API_KEY",
+)
+result = exchange.test_dummy_method()
+```
+
+**TypeScript:**
+```typescript
+import { Router } from "pmxtjs";
+
+// API key optional — enables faster catalog-backed lookups
+const exchange = new Router({
+  pmxtApiKey: "YOUR_PMXT_API_KEY",
+});
+const result = await exchange.testDummyMethod();
 ```
 
 

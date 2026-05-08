@@ -29,7 +29,7 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Overview](https://pmxt.dev/docs/api-reference/overview): The full venue pass-through surface — auto-generated from pmxt-core.
 - [Server Health Check](https://pmxt.dev/docs/api-reference/healthCheck)
 - [Load Markets](https://pmxt.dev/docs/api-reference/loadMarkets): Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`. Subsequent calls return the cached result without hitting the API again. This is the correct way to paginate or iterate over markets without drift. Because `fetchMarkets()` always hits the API, repeated calls with different `offset` values may return inconsistent results if the exchange reorders or adds markets between requests. Use `loadMarkets()` once to get a stable snapshot, then paginate over `Object.values(exchange.markets)` locally.
-- [Close](https://pmxt.dev/docs/api-reference/close): Close all WebSocket connections and clean up resources. Call this when you're done streaming to properly release connections.
+- [Close](https://pmxt.dev/docs/api-reference/close)
 - [Fetch Events](https://pmxt.dev/docs/api-reference/fetch-events)
 - [Fetch Events Paginated](https://pmxt.dev/docs/api-reference/fetchEventsPaginated): Paginated variant of {@link fetchEvents}. On the first call (no `cursor`), all events are fetched from the exchange and cached in an in-memory snapshot. A cursor is returned along with the first page. Subsequent calls with that cursor serve additional pages directly from the cached snapshot -- no additional API calls are made. The snapshot is invalidated after `snapshotTTL` ms (configured via `ExchangeOptions` in the constructor). A request using a cursor from an expired snapshot throws `'Cursor has expired'`.
 - [Fetch Event](https://pmxt.dev/docs/api-reference/fetch-event)
@@ -60,6 +60,7 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Watch Trades](https://pmxt.dev/docs/api-reference/watchTrades): Watch trade executions in real-time via WebSocket. Returns a promise that resolves with the next trade(s). Call repeatedly in a loop to stream updates (CCXT Pro pattern).
 - [Watch Address](https://pmxt.dev/docs/api-reference/watchAddress): Stream activity for a public wallet address Returns a promise that resolves with the next activity snapshot whenever a change is detected. Call repeatedly in a loop to stream updates (CCXT Pro pattern).
 - [Unwatch Address](https://pmxt.dev/docs/api-reference/unwatchAddress): Stop watching a previously registered wallet address and release its resource updates.
+- [Test Dummy Method](https://pmxt.dev/docs/api-reference/testDummyMethod): Test method for auto-generation verification.
 - [Execute a read-only SQL query against ClickHouse](https://pmxt.dev/docs/api-reference/postV0Sql)
 
 ## Full documentation

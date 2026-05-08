@@ -188,6 +188,13 @@
             "openapi": "api-reference/openapi.json"
           },
           {
+            "group": "Other",
+            "pages": [
+              "POST /api/{exchange}/testDummyMethod"
+            ],
+            "openapi": "api-reference/openapi.json"
+          },
+          {
             "group": "Enterprise",
             "openapi": "api-reference/openapi-hosted.json",
             "pages": [
