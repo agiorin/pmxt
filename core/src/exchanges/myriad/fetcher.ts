@@ -191,6 +191,20 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
         }
     }
 
+    async fetchClobOrderBook(networkId: string, marketId: string, outcome: number): Promise<{ bids: [string, string][]; asks: [string, string][] } | null> {
+        try {
+            const response = await this.ctx.http.get(`${this.baseUrl}/markets/${marketId}/orderbook`, {
+                params: { network_id: Number(networkId), outcome },
+                headers: this.ctx.getHeaders(),
+            });
+            const data = response.data;
+            if (data.error) return null;
+            return { bids: data.bids || [], asks: data.asks || [] };
+        } catch {
+            return null;
+        }
+    }
+
     async fetchRawOrderBook(id: string): Promise<MyriadRawMarket> {
         try {
             const parts = id.split(':');

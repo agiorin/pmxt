@@ -157,19 +157,50 @@ export class MyriadNormalizer implements IExchangeNormalizer<MyriadRawMarket, My
         const parts = id.split(':');
         const outcomeId = parts.length >= 3 ? parts[2] : undefined;
         const outcomes = raw.outcomes || [];
-        const outcome = outcomes.find((o) => String(o.id) === outcomeId) || outcomes[0];
 
-        if (!outcome) {
+        if (!outcomes.length) {
             return { bids: [], asks: [], timestamp: Date.now() };
         }
 
-        const price = Number(outcome.price) || 0;
+        const numericId = Number(outcomeId);
+        let price: number;
+
+        if (!isNaN(numericId) && numericId < 0) {
+            // Synthetic NO outcome (negative ID from normalizeEvent).
+            // The NO price is the sum of all other outcomes in the AMM pool.
+            const positiveId = -numericId;
+            price = outcomes
+                .filter((o) => Number(o.id) !== positiveId)
+                .reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+        } else {
+            const outcome = outcomes.find((o) => String(o.id) === outcomeId) || outcomes[0];
+            if (!outcome) {
+                return { bids: [], asks: [], timestamp: Date.now() };
+            }
+            price = Number(outcome.price) || 0;
+        }
+
         const liquidity = Number(raw.liquidity || 0);
         const size = liquidity > 0 ? liquidity : 1;
 
         return {
             bids: [{ price, size }],
             asks: [{ price, size }],
+            timestamp: Date.now(),
+        };
+    }
+
+    normalizeClobOrderBook(raw: { bids: [string, string][]; asks: [string, string][] }): OrderBook {
+        const WEI = 1e18;
+        return {
+            bids: raw.bids.map(([priceWei, sizeWei]) => ({
+                price: Number(priceWei) / WEI,
+                size: Number(sizeWei) / WEI,
+            })),
+            asks: raw.asks.map(([priceWei, sizeWei]) => ({
+                price: Number(priceWei) / WEI,
+                size: Number(sizeWei) / WEI,
+            })),
             timestamp: Date.now(),
         };
     }

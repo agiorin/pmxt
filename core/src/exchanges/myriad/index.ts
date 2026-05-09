@@ -108,6 +108,21 @@ export class MyriadExchange extends PredictionMarketExchange {
     }
 
     async fetchOrderBook(outcomeId: string): Promise<OrderBook> {
+        const parts = outcomeId.split(':');
+        if (parts.length >= 3) {
+            const [networkId, marketId, oid] = parts;
+            const numericOid = Number(oid);
+            // CLOB markets expose a real orderbook endpoint.
+            // For binary markets outcome is 0 (YES) or 1 (NO).
+            // For AMM markets the endpoint returns an error and we fall back.
+            if (!isNaN(numericOid) && numericOid >= 0) {
+                const clob = await this.fetcher.fetchClobOrderBook(networkId, marketId, numericOid);
+                if (clob) {
+                    return this.normalizer.normalizeClobOrderBook(clob);
+                }
+            }
+        }
+        // AMM fallback: emulate orderbook from spot prices
         const rawMarket = await this.fetcher.fetchRawOrderBook(outcomeId);
         return this.normalizer.normalizeOrderBook(rawMarket, outcomeId);
     }
