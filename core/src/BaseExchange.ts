@@ -258,6 +258,8 @@ export interface ExchangeHas {
     fetchOHLCV: ExchangeCapability;
     /** Whether this exchange supports fetching the order book. */
     fetchOrderBook: ExchangeCapability;
+    /** Whether this exchange supports fetching multiple market order books. */
+    fetchOrderBooks: ExchangeCapability;
     /** Whether this exchange supports fetching public trades. */
     fetchTrades: ExchangeCapability;
     /** Whether this exchange supports creating orders. */
@@ -1601,7 +1603,7 @@ export abstract class PredictionMarketExchange {
 
     /** All keys that appear in ExchangeHas -- kept in sync via the exhaustive check below. */
     private static readonly _capabilityKeys: readonly (keyof ExchangeHas)[] = [
-        'fetchMarkets', 'fetchEvents', 'fetchOHLCV', 'fetchOrderBook',
+        'fetchMarkets', 'fetchEvents', 'fetchOHLCV', 'fetchOrderBook', 'fetchOrderBooks',
         'fetchTrades', 'createOrder', 'cancelOrder', 'fetchOrder',
         'fetchOpenOrders', 'fetchPositions', 'fetchBalance',
         'watchAddress', 'unwatchAddress', 'watchOrderBook', 'watchOrderBooks',
@@ -1615,7 +1617,7 @@ export abstract class PredictionMarketExchange {
     // ExchangeHas but is missing from _capabilityKeys above.
     private static readonly _exhaustiveCheck: Record<keyof ExchangeHas, true> = {
         fetchMarkets: true, fetchEvents: true, fetchOHLCV: true,
-        fetchOrderBook: true, fetchTrades: true, createOrder: true,
+        fetchOrderBook: true, fetchOrderBooks: true, fetchTrades: true, createOrder: true,
         cancelOrder: true, fetchOrder: true, fetchOpenOrders: true,
         fetchPositions: true, fetchBalance: true, watchAddress: true,
         unwatchAddress: true, watchOrderBook: true, watchOrderBooks: true, unwatchOrderBook: true,

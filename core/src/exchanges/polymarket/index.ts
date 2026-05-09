@@ -1,5 +1,5 @@
-import { AssetType, Side } from '@polymarket/clob-client-v2';
 import type { SignedOrder } from '@polymarket/clob-client-v2';
+import { AssetType, Side } from '@polymarket/clob-client-v2';
 import { createHmac } from 'crypto';
 import {
     EventFetchParams,
@@ -164,6 +164,19 @@ export class PolymarketExchange extends PredictionMarketExchange {
         validateOutcomeId(outcomeId, 'OrderBook');
         const raw = await this.fetcher.fetchRawOrderBook(outcomeId);
         return this.normalizer.normalizeOrderBook(raw, outcomeId);
+    }
+
+    async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
+        const response: Record<string, OrderBook> = {};
+        ids.forEach((id) => {
+            validateIdFormat(id, 'OrderBook');
+            validateOutcomeId(id, 'OrderBook');
+        })
+        const raw = await this.fetcher.fetchRawOrderBooks(ids);
+        raw.forEach((item) => {
+            response[item.asset_id] = this.normalizer.normalizeOrderBook(item, item.asset_id);
+        })
+        return response;
     }
 
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
