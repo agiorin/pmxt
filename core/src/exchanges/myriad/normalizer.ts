@@ -62,8 +62,36 @@ export class MyriadNormalizer implements IExchangeNormalizer<MyriadRawMarket, My
 
         const markets: UnifiedMarket[] = [];
         for (const m of raw.markets || []) {
-            const um = this.normalizeMarket(m);
-            if (um) markets.push(um);
+            const rawOutcomes = m.outcomes || [];
+
+            // Binary markets (2 outcomes): keep as-is.
+            // Multi-outcome markets (>2): expand each outcome into a separate
+            // binary market with a specific title (e.g. "Premier League - Arsenal")
+            // so the matching engine can find cross-venue identity matches against
+            // venues like Polymarket that split each outcome into its own market.
+            if (rawOutcomes.length <= 2) {
+                const um = this.normalizeMarket(m);
+                if (um) markets.push(um);
+            } else {
+                const eventTitle = m.title || raw.title || '';
+                for (const outcome of rawOutcomes) {
+                    const outcomeTitle = outcome.title || `Outcome ${outcome.id}`;
+                    const syntheticMarket: MyriadRawMarket = {
+                        ...m,
+                        id: m.id,
+                        title: `${eventTitle} - ${outcomeTitle}`,
+                        outcomes: [
+                            { ...outcome, title: outcomeTitle },
+                            { id: -(outcome.id || 0), title: `Not ${outcomeTitle}`, price: 1 - (Number(outcome.price) || 0) },
+                        ],
+                    };
+                    const um = this.normalizeMarket(syntheticMarket);
+                    if (um) {
+                        um.marketId = `${m.networkId}:${m.id}:${outcome.id}`;
+                        markets.push(um);
+                    }
+                }
+            }
         }
 
         return {

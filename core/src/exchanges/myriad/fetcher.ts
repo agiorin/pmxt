@@ -154,23 +154,23 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
                 return this.fetchRawQuestionById(params.slug);
             }
 
+            // Use /markets (complete endpoint) instead of /questions (only
+            // returns BNB-chain candle markets). Each market is wrapped as a
+            // synthetic single-market question for compatibility with the
+            // event-based ingest pipeline.
             const limit = params.limit || 100;
-            const queryParams: Record<string, any> = {
-                page: 1,
-                limit: Math.min(limit, 100),
-            };
-
-            if (params.query) {
-                queryParams.keyword = params.query;
-            }
-
-            const response = await this.ctx.http.get(`${this.baseUrl}/questions`, {
-                params: queryParams,
-                headers: this.ctx.getHeaders(),
+            const markets = await this.fetchRawMarkets({
+                limit,
+                status: params.status || 'active',
+                sort: 'volume',
+                query: params.query,
             });
 
-            const questions: MyriadRawQuestion[] = response.data.data || response.data.questions || [];
-            return questions.slice(0, limit);
+            return markets.map((m): MyriadRawQuestion => ({
+                id: m.id,
+                title: m.title,
+                markets: [m],
+            }));
         } catch (error: any) {
             throw myriadErrorMapper.mapError(error);
         }

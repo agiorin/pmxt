@@ -2,10 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.40.2] - 2026-05-08
+## [2.40.3] - 2026-05-09
 
 ### Fixed
 
+- **Myriad**: `fetchRawEvents` was using the `/questions` endpoint which only returned BNB-chain candle markets. Switched to `/markets` endpoint which returns all active markets across all networks (Abstract, Linea, BNB).
+- **Myriad**: Multi-outcome markets (e.g. "Who will win Premier League?" with 6 outcomes) are now expanded into per-outcome binary markets (e.g. "Who will win Premier League? - Arsenal" Yes/No). This matches Polymarket's structure and enables cross-venue identity matching.
 - **Myriad**: Map `status` field in `normalizeMarket()` — Myriad API returns `state: 'open'|'closed'|'resolved'` but it was never mapped to the unified `status` field, causing all Myriad markets to be stored with `NULL` status. Uses the existing `mapMarketState()` helper.
 
 ## [2.40.1] - 2026-05-08
