@@ -2607,7 +2607,10 @@ components:
           description: Lifecycle status of the order.
         filled:
           type: number
-          description: Amount filled
+          description: 'Amount filled (USDC cost for buys, shares for sells)'
+        filledShares:
+          type: number
+          description: Amount filled in shares/contracts (if different from USDC-denominated `filled`).
         remaining:
           type: number
           description: Amount remaining
@@ -2617,6 +2620,9 @@ components:
         fee:
           type: number
           description: 'Fee paid for this order, if known.'
+        feeRateBps:
+          type: number
+          description: Fee rate in basis points applied to this order (e.g. 100 = 1%).
       required:
         - id
         - marketId
