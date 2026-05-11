@@ -167,15 +167,17 @@ export class PolymarketExchange extends PredictionMarketExchange {
     }
 
     async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
-        const response: Record<string, OrderBook> = {};
         ids.forEach((id) => {
             validateIdFormat(id, 'OrderBook');
             validateOutcomeId(id, 'OrderBook');
-        })
+        });
         const raw = await this.fetcher.fetchRawOrderBooks(ids);
-        raw.forEach((item) => {
-            response[item.asset_id] = this.normalizer.normalizeOrderBook(item, item.asset_id);
-        })
+        const byAssetId = new Map(raw.map(item => [item.asset_id, item]));
+        const response: Record<string, OrderBook> = {};
+        ids.forEach((id) => {
+            const item = byAssetId.get(id);
+            if (item) response[id] = this.normalizer.normalizeOrderBook(item, id);
+        });
         return response;
     }
 

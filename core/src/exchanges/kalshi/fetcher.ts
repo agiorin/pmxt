@@ -284,14 +284,13 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
 
     async fetchRawOrderBooks(ids: string[]): Promise<KalshiRawOrderBook[]> {
         ids.forEach((id) => validateIdFormat(id, 'OrderBook'));
-        const tickers = ids.map(id => id.replace(/-NO$/, ''));
+        const tickers = [...new Set(ids.map(id => id.replace(/-NO$/, '')))];
         const data: KalshiRawOrderBooks = await this.ctx.callApi('GetMarketOrderbooks', { tickers });
         const orderBooks = data.orderbooks;
-        if (ids.length !== orderBooks.length) {
-            const rawIdSet = new Set(ids);
-            const idSet = new Set(orderBooks.map(item => item.ticker));
-            const diff = rawIdSet.difference(idSet);
-            throw new NotFound(`Order book not found for tickers ${diff.join(', ')}`, 'Kalshi');
+        if (tickers.length !== orderBooks.length) {
+            const returned = new Set(orderBooks.map(item => item.ticker));
+            const missing = tickers.filter(t => !returned.has(t));
+            throw new NotFound(`Order book not found for tickers ${missing.join(', ')}`, 'Kalshi');
         }
         return orderBooks;
     }

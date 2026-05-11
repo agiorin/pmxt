@@ -237,8 +237,15 @@ export class PolymarketFetcher implements IExchangeFetcher<PolymarketRawEvent, P
     async fetchRawOrderBooks(ids: string[]): Promise<PolymarketRawOrderBook[]> {
         try {
             const payload = ids.map(id => ({token_id: id}));
-            return await this.ctx.callApi('postBooks', payload);
+            const books: PolymarketRawOrderBook[] = await this.ctx.callApi('postBooks', payload);
+            if (books.length !== ids.length) {
+                const returned = new Set(books.map(b => b.asset_id));
+                const missing = ids.filter(id => !returned.has(id));
+                throw new NotFound(`Order book not found for token IDs ${missing.join(', ')}`, 'Polymarket');
+            }
+            return books;
         } catch (error: any) {
+            if (error instanceof NotFound) throw error;
             const mapped = polymarketErrorMapper.mapError(error);
             if (mapped instanceof OrderNotFound) {
                 throw new NotFound(

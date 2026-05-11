@@ -198,10 +198,12 @@ export class KalshiExchange extends PredictionMarketExchange {
     }
 
     async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
-        const response: Record<string, OrderBook> = {};
         const raw = await this.fetcher.fetchRawOrderBooks(ids);
-        raw.forEach((orderBook) => {
-            response[orderBook.ticker] = this.normalizer.normalizeOrderBook(orderBook, orderBook.ticker);
+        const byTicker = new Map(raw.map(ob => [ob.ticker, ob]));
+        const response: Record<string, OrderBook> = {};
+        ids.forEach((id) => {
+            const ob = byTicker.get(id.replace(/-NO$/, ''));
+            if (ob) response[id] = this.normalizer.normalizeOrderBook(ob, id);
         });
         return response;
     }
