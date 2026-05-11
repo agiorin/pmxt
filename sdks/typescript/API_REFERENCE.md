@@ -415,12 +415,12 @@ Batch variant of {@link fetchOrderBook}. Fetches order books for
 **Signature:**
 
 ```typescript
-async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>>
+async fetchOrderBooks(outcomeIds: string[]): Promise<Record<string, OrderBook>>
 ```
 
 **Parameters:**
 
-- `ids` (string[]): List of Outcome IDs (outcomeId). Each id must be in the
+- `outcomeIds` (string[]): List of Outcome IDs (outcomeId). Each id must be in the
 
 **Returns:** Promise<Record<string, OrderBook>> - A map keyed by the input id (preserving the caller's exact
 

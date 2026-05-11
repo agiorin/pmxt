@@ -412,19 +412,19 @@ Batch variant of {@link fetchOrderBook}. Fetches order books for
 **Signature:**
 
 ```python
-def fetch_order_books(ids: List[string]) -> Dictstr, [OrderBook]:
+def fetch_order_books(outcome_ids: List[string]) -> Dictstr, [OrderBook]:
 ```
 
 **Parameters:**
 
-- `ids` (List[string]): List of Outcome IDs (outcomeId). Each id must be in the
+- `outcome_ids` (List[string]): List of Outcome IDs (outcomeId). Each id must be in the
 
 **Returns:** Dict[str, [OrderBook](#orderbook)] - A map keyed by the input id (preserving the caller's exact
 
 **Example:**
 
 ```python
-exchange.fetch_order_books(ids="12345")
+exchange.fetch_order_books(outcome_ids="12345")
 ```
 
 

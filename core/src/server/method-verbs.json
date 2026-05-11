@@ -108,7 +108,7 @@
     "verb": "post",
     "args": [
       {
-        "name": "ids",
+        "name": "outcomeIds",
         "kind": "unknown",
         "optional": false
       }

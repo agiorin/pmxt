@@ -864,12 +864,12 @@ export abstract class PredictionMarketExchange {
      * Batch variant of {@link fetchOrderBook}. Fetches order books for
      * multiple outcomes in a single request where the exchange supports it.
      *
-     * @param ids - List of Outcome IDs (outcomeId). Each id must be in the
+     * @param outcomeIds - List of Outcome IDs (outcomeId). Each id must be in the
      *   exchange's native format; market slugs are not accepted here.
      * @returns A map keyed by the input id (preserving the caller's exact
      *   string) to its order book. Throws `NotFound` if any id has no book.
      */
-    async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
+    async fetchOrderBooks(outcomeIds: string[]): Promise<Record<string, OrderBook>> {
         throw new Error("Method fetchOrderBooks not implemented.");
     }
 
