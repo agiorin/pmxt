@@ -850,6 +850,19 @@ export abstract class PredictionMarketExchange {
     }
 
     /**
+     * Batch variant of {@link fetchOrderBook}. Fetches order books for
+     * multiple outcomes in a single request where the exchange supports it.
+     *
+     * @param ids - List of Outcome IDs (outcomeId). Each id must be in the
+     *   exchange's native format; market slugs are not accepted here.
+     * @returns A map keyed by the input id (preserving the caller's exact
+     *   string) to its order book. Throws `NotFound` if any id has no book.
+     */
+    async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
+        throw new Error("Method fetchOrderBooks not implemented.");
+    }
+
+    /**
      * Fetch raw trade history for a specific outcome.
      *
      * @param outcomeId - The Outcome ID (outcomeId)
@@ -1343,7 +1356,7 @@ export abstract class PredictionMarketExchange {
      * Close all WebSocket connections and clean up resources.
      * Call this when you're done streaming to properly release connections.
      */
-    
+
     /**
      * Test method for auto-generation verification.
      */
@@ -1486,7 +1499,7 @@ export abstract class PredictionMarketExchange {
      * Provides a typed entry point so unified methods can delegate to the implicit API
      * without casting to `any` everywhere.
      */
-    protected async callApi(operationId: string, params?: Record<string, any>): Promise<any> {
+    protected async callApi(operationId: string, params?: Record<string, any> | any[]): Promise<any> {
         const method = (this as any)[operationId];
         if (typeof method !== 'function') {
             throw new Error(`Implicit API method "${operationId}" not found on ${this.name}`);
@@ -1544,9 +1557,10 @@ export abstract class PredictionMarketExchange {
         name: string,
         endpoint: ApiEndpoint,
         resolvedBaseUrl: string
-    ): (params?: Record<string, any>) => Promise<any> {
-        return async (params?: Record<string, any>): Promise<any> => {
-            const allParams = { ...(params || {}) };
+    ): (params?: Record<string, any> | any[]) => Promise<any> {
+        return async (params?: Record<string, any> | any[]): Promise<any> => {
+            const isArray = Array.isArray(params);
+            const allParams: Record<string, any> = isArray ? {} : { ...(params || {}) };
 
             // Substitute path parameters like {ticker} from params
             let resolvedPath = endpoint.path.replace(/\{([^}]+)\}/g, (_match, key) => {
@@ -1581,11 +1595,15 @@ export abstract class PredictionMarketExchange {
                         headers,
                     });
                 } else {
-                    // POST/PUT/PATCH: remaining params go to JSON body
+                    // POST/PUT/PATCH: array payloads go through as-is; object
+                    // payloads send remaining params.
+                    const body = isArray
+                        ? params
+                        : (Object.keys(allParams).length > 0 ? allParams : undefined);
                     response = await this.http.request({
                         method: method as any,
                         url,
-                        data: Object.keys(allParams).length > 0 ? allParams : undefined,
+                        data: body,
                         headers: { 'Content-Type': 'application/json', ...headers },
                     });
                 }

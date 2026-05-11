@@ -824,6 +824,36 @@ export abstract class Exchange {
         }
     }
 
+    async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            args.push(ids);
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBooks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            const data = this.handleResponse(json);
+            const result: Record<string, OrderBook> = {};
+            for (const [key, value] of Object.entries(data as any)) {
+                result[key] = convertOrderBook(value);
+            }
+            return result;
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to fetchOrderBooks: ${error}`);
+        }
+    }
+
     async submitOrder(built: BuiltOrder): Promise<Order> {
         await this.initPromise;
         try {
