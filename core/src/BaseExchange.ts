@@ -424,7 +424,18 @@ export abstract class PredictionMarketExchange {
         this.http = axios.create({
             headers: {
                 'User-Agent': `pmxt (https://github.com/pmxt-dev/pmxt)`
-            }
+            },
+            paramsSerializer: {
+                serialize: (params) => {
+                    const sp = new URLSearchParams();
+                    for (const [k, v] of Object.entries(params)) {
+                        if (v === undefined || v === null) continue;
+                        if (Array.isArray(v)) v.forEach((x) => sp.append(k, String(x)));
+                        else sp.append(k, String(v));
+                    }
+                    return sp.toString();
+                },
+            },
         });
         this._throttler = new Throttler({
             refillRate: 1 / this._rateLimit,
