@@ -82,7 +82,7 @@ Different prediction market platforms have different APIs, data formats, and con
 
 ## Installation
 
-Ensure that [`Node.js`](https://nodejs.org) is installed and the `node` command is available on your PATH.
+Ensure that [`Node.js`](https://nodejs.org) (>= 18) is installed and the `node` command is available on your PATH. The Python SDK requires Python >= 3.8.
 
 ### Python
 ```bash
@@ -92,6 +92,14 @@ pip install pmxt
 ### Node.js
 ```bash
 npm install pmxtjs
+```
+
+### Running from Source
+```bash
+git clone https://github.com/pmxt-dev/pmxt.git
+cd pmxt
+npm install
+npm run dev
 ```
 
 ### MCP (for AI agents)
@@ -136,6 +144,9 @@ print(f"Price: {warsh.yes.price}")
 ```
 
 ### TypeScript
+
+> **Note:** Named imports do not work in ESM. Use `import pmxt from 'pmxtjs'` (default import), not `import { Polymarket } from 'pmxtjs'`.
+
 ```typescript
 import pmxt from 'pmxtjs';
 
@@ -155,7 +166,7 @@ console.log(`Price: ${warsh.yes?.price}`);
 pmxt supports unified trading across exchanges.
 
 ### Setup
-To trade, you must provide your private credentials during initialization.
+To trade, you must provide your private credentials during initialization. For detailed credential setup instructions, see the exchange-specific guides: [Polymarket](core/docs/SETUP_POLYMARKET.md), [Kalshi](core/docs/SETUP_KALSHI.md), [Limitless](core/docs/SETUP_LIMITLESS.md).
 
 #### Polymarket
 ```python
