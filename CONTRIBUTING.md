@@ -44,6 +44,8 @@ The server is the backbone of the SDKs. To develop on it or run it locally:
 npm run server
 ```
 
+The dev server runs on port 3847 by default, with automatic fallback up to port 3947 if the port is in use.
+
 Or navigating manually:
 
 ```bash
@@ -107,8 +109,15 @@ export PMXT_ALWAYS_RESTART=1
 If the server doesn't shut down cleanly, use:
 
 ```bash
-python3 -c "import sys; sys.path.insert(0, 'sdks/python'); import pmxt; pmxt.stop_server()"
+python3 -c "import sys; sys.path.insert(0, 'sdks/python'); import pmxt; pmxt.server.stop()"
 ```
+
+## Submitting a Contribution
+
+1. Branch from `main`.
+2. Use [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `refactor:`, etc.).
+3. Open a pull request against `main`.
+4. All tests must pass before merging (`npm test`).
 
 ## Further Reading
 
