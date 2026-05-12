@@ -27,7 +27,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
     try {
         clobTokenIds = typeof market.clobTokenIds === 'string' ? JSON.parse(market.clobTokenIds) : (market.clobTokenIds || []);
     } catch (e) {
-        // console.warn(`Error parsing clobTokenIds for market ${market.id}`, e);
+        console.warn(`Error parsing clobTokenIds for market ${market.id}:`, e);
     }
 
     // Extract candidate/option name from market question for better outcome labels
@@ -153,14 +153,10 @@ export async function paginateParallel(url: string, params: any, http: any, maxR
 
     // 3. Fetch remaining pages in parallel
     const remainingPages = await Promise.all(offsets.map(async (offset) => {
-        try {
-            const res = await http.get(url, {
-                params: { ...params, limit: PAGE_SIZE, offset }
-            });
-            return res.data || [];
-        } catch (e) {
-            return []; // Swallow individual page errors to be robust
-        }
+        const res = await http.get(url, {
+            params: { ...params, limit: PAGE_SIZE, offset }
+        });
+        return res.data;
     }));
 
     return [firstPage, ...remainingPages].flat();
@@ -197,14 +193,10 @@ export async function paginateSearchParallel(url: string, params: any, maxResult
     }
 
     const remainingPages = await Promise.all(pageNumbers.map(async (pageNum) => {
-        try {
-            const res = await http.get(url, {
-                params: { ...params, page: pageNum }
-            });
-            return res.data?.events || [];
-        } catch (e) {
-            return []; // Swallow individual page errors to be robust
-        }
+        const res = await http.get(url, {
+            params: { ...params, page: pageNum }
+        });
+        return res.data?.events;
     }));
 
     return [firstPageEvents, ...remainingPages].flat();
