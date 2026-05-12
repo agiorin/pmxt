@@ -154,36 +154,9 @@ npm run build
 npx tsx examples/*
 ```
 
-## Publishing
+## Publishing and Versioning
 
-### Python (PyPI)
-
-```bash
-cd sdks/python
-python -m build
-python -m twine upload dist/*
-```
-
-### TypeScript (NPM)
-
-```bash
-cd sdks/typescript
-npm publish --access public
-```
-
-## Version Bumping
-
-When releasing a new version:
-
-1.  Update `core/package.json` version.
-2.  Update `sdks/python/pyproject.toml` version.
-3.  Update `sdks/typescript/package.json` version.
-4.  Regenerate SDKs: `npm run generate:sdk:all`.
-5.  Commit and tag.
-
-## Future: Native Bindings (v2.0.0)
-
-Eventually, we'll move to native bindings (Rust + FFI) to eliminate the sidecar dependency. But for v1.0.0, the sidecar approach lets us move fast and support many languages with minimal effort.
+Publishing and version bumping are fully automated by GitHub Actions. Never run `twine upload`, `npm publish`, or manually edit version numbers in package files. To release, push a version tag via `scripts/release.sh` and CI handles the rest.
 
 ## Questions?
 

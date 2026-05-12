@@ -333,7 +333,11 @@ components:
       required: true
 ```
 
-After modifying the OpenAPI spec, regenerate SDK clients so they include the new exchange.
+After modifying the OpenAPI spec, regenerate SDK clients so they include the new exchange:
+
+```bash
+npm run generate:sdk:all --workspace=pmxt-core
+```
 
 ### 4. `core/COMPLIANCE.md` -- Add to compliance matrix
 

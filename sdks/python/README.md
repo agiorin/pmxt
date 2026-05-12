@@ -10,13 +10,7 @@ A unified Python interface for interacting with multiple prediction market excha
 pip install pmxt
 ```
 
-**Prerequisites**: The Python SDK requires the PMXT server, which is distributed via npm:
-
-```bash
-npm install -g pmxtjs
-```
-
-That's it! The server will start automatically when you use the SDK.
+**Requirements**: Python >= 3.8. The sidecar server is bundled automatically via the `pmxt-core` dependency -- no separate install needed.
 
 ## Quick Start
 
@@ -232,7 +226,7 @@ print(dt)
 
 ```bash
 # Clone the repo
-git clone https://github.com/qoery-com/pmxt.git
+git clone https://github.com/pmxt-dev/pmxt.git
 cd pmxt/sdks/python
 
 # Install in development mode
