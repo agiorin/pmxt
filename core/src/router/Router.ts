@@ -212,7 +212,12 @@ export class Router extends PredictionMarketExchange {
      */
     private async fetchMarketMatchesBrowse(params: FetchMarketMatchesParams): Promise<MatchResult[]> {
         const results = await this.client.browseMarketMatches(params);
-        return Array.isArray(results) ? results : [];
+        if (!Array.isArray(results)) {
+            throw new Error(
+                `browseMarketMatches returned unexpected type '${typeof results}'`
+            );
+        }
+        return results;
     }
 
     /** @deprecated Use {@link fetchMarketMatches} instead. */
