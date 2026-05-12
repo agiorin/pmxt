@@ -296,11 +296,15 @@ export abstract class Exchange {
                 });
                 this.api = new DefaultApi(this.config);
             } catch (error) {
-                throw new PmxtError(
-                    `Failed to start PMXT server: ${error}\n\n` +
+                const msg =
+                    `Failed to start PMXT server: ${error instanceof Error ? error.message : error}\n\n` +
                     `Please ensure 'pmxt-core' is installed: npm install -g pmxt-core\n` +
-                    `Or start the server manually: pmxt-server`
-                );
+                    `Or start the server manually: pmxt-server`;
+                const pmxtError = new PmxtError(msg);
+                if (error instanceof Error) {
+                    (pmxtError as any).cause = error;
+                }
+                throw pmxtError;
             }
         }
     }
@@ -408,9 +412,12 @@ export abstract class Exchange {
         if (this._wsClient?.connected) return this._wsClient;
 
         const host = this.resolveBaseUrl();
-        const accessToken = this.serverManager.getAccessToken();
+        const accessToken = this.isHosted
+            ? this.pmxtApiKey
+            : this.serverManager.getAccessToken();
+        const authParamName = this.isHosted ? "apiKey" : "token";
 
-        const client = new SidecarWsClient(host, accessToken || undefined);
+        const client = new SidecarWsClient(host, accessToken || undefined, authParamName);
         try {
             // Trigger connection to validate the endpoint exists.
             // subscribe() calls ensureConnected internally, but we want
@@ -459,8 +466,12 @@ export abstract class Exchange {
                 args,
                 this.getCredentials() as Record<string, any> | undefined,
             );
-        } catch {
-            return null;
+        } catch (error) {
+            // Only fall back to HTTP for transport-level failures
+            if (error instanceof PmxtError && /connection failed|no websocket/i.test(error.message)) {
+                return null;
+            }
+            throw error;
         }
     }
 
@@ -1540,8 +1551,11 @@ export abstract class Exchange {
                     }
                     return result;
                 }
-            } catch {
-                // fall through to HTTP
+            } catch (error) {
+                // Only fall through to HTTP for transport-level WS failures
+                if (!(error instanceof PmxtError) || !/connection failed|no websocket/i.test(error.message)) {
+                    throw error;
+                }
             }
         }
 
@@ -1571,7 +1585,7 @@ export abstract class Exchange {
                 }
                 return result;
             }
-            return {};
+            throw new PmxtError("watchOrderBooks: unexpected response shape from server");
         } catch (error) {
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to watch order books: ${error}`);

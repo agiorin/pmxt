@@ -36,6 +36,7 @@ export class SidecarWsClient {
     private ws: WebSocket | null = null;
     private host: string;
     private accessToken: string | undefined;
+    private authParamName: string;
     private closed = false;
 
     /** requestId -> latest data payload */
@@ -47,9 +48,10 @@ export class SidecarWsClient {
 
     private connectPromise: Promise<void> | null = null;
 
-    constructor(host: string, accessToken?: string) {
+    constructor(host: string, accessToken?: string, authParamName: string = "token") {
         this.host = host;
         this.accessToken = accessToken;
+        this.authParamName = authParamName;
     }
 
     // ------------------------------------------------------------------
@@ -81,7 +83,7 @@ export class SidecarWsClient {
 
             let url = `${scheme}://${hostPart}/ws`;
             if (this.accessToken) {
-                url = `${url}?token=${this.accessToken}`;
+                url = `${url}?${this.authParamName}=${this.accessToken}`;
             }
 
             // Use the ws package in Node.js, native WebSocket in browsers
@@ -103,6 +105,18 @@ export class SidecarWsClient {
                 if (!this.ws) {
                     // Connection failed during handshake
                     reject(new PmxtError(`WebSocket connection failed: ${err.message || err}`));
+                } else {
+                    // Post-handshake error — propagate to all pending subscribers
+                    const error = new PmxtError(`WebSocket error: ${err.message || err}`);
+                    for (const sub of this.subscriptions.values()) {
+                        if (sub.reject) {
+                            sub.reject(error);
+                            sub.reject = null;
+                            sub.resolve = null;
+                        }
+                    }
+                    this.closed = true;
+                    this.ws = null;
                 }
             };
 
@@ -112,15 +126,11 @@ export class SidecarWsClient {
             };
 
             ws.onmessage = (event: any) => {
-                try {
-                    const data = typeof event.data === "string"
-                        ? event.data
-                        : event.data.toString();
-                    const msg: WsMessage = JSON.parse(data);
-                    this.dispatch(msg);
-                } catch {
-                    // Ignore unparseable frames
-                }
+                const raw = typeof event.data === "string"
+                    ? event.data
+                    : event.data.toString();
+                const msg: WsMessage = JSON.parse(raw);
+                this.dispatch(msg);
             };
         });
     }
@@ -130,13 +140,16 @@ export class SidecarWsClient {
         if (typeof globalThis !== "undefined" && (globalThis as any).WebSocket) {
             return (globalThis as any).WebSocket;
         }
-        // Node.js -- try to require ws
+        // Node.js -- require ws
         try {
             // Dynamic require to avoid bundler issues
             const wsModule = require("ws");
             return wsModule.default || wsModule;
         } catch {
-            return null;
+            throw new PmxtError(
+                "WebSocket support in Node.js requires the 'ws' package. " +
+                "Install it with: npm install ws"
+            );
         }
     }
 
