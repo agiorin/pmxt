@@ -276,6 +276,20 @@ class OrderBook:
 
 
 @dataclass
+class FirehoseEvent:
+    """A single event from the firehose stream."""
+
+    source: str
+    """The venue this event originated from (e.g. 'polymarket', 'limitless')"""
+
+    symbol: str
+    """The outcome token id / asset id"""
+
+    orderbook: OrderBook
+    """The order book snapshot"""
+
+
+@dataclass
 class ExecutionPriceResult:
     """Result of an execution price calculation."""
     

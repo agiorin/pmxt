@@ -46,6 +46,7 @@ from .models import (
     EventFilterCriteria,
     EventFilterFunction,
     SubscribedAddressSnapshot,
+    FirehoseEvent,
 )
 from .constants import LOCAL_URL, resolve_pmxt_base_url
 from .errors import PmxtError, from_server_error
@@ -1923,6 +1924,35 @@ class Exchange(ABC):
             return {}
         except ApiException as e:
             raise self._parse_api_exception(e) from None
+
+    def firehose(
+        self,
+        venues: Optional[List[str]] = None,
+    ) -> "FirehoseEvent":
+        """Stream all orderbook updates across venues via the hosted WebSocket API.
+
+        Returns the next book event. Call repeatedly in a loop to stream
+        updates (CCXT Pro pattern). Requires hosted mode (``pmxt_api_key`` set).
+
+        Args:
+            venues: Optional venue filter (e.g. ``["polymarket", "limitless"]``)
+
+        Returns:
+            FirehoseEvent with source, symbol, and orderbook
+        """
+        if not self.is_hosted:
+            raise PmxtError("firehose() requires hosted mode (set pmxt_api_key)")
+
+        args: list = [venues] if venues else []
+        data = self._watch_via_ws("firehose", args)
+        if data is not None:
+            return FirehoseEvent(
+                source=data.get("_source", ""),
+                symbol=data.get("_symbol", ""),
+                orderbook=_convert_order_book(data),
+            )
+
+        raise PmxtError("firehose() requires WebSocket transport — connection failed")
 
     def watch_trades(
         self,

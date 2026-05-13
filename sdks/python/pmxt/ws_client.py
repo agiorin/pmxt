@@ -188,7 +188,7 @@ class SidecarWsClient:
             else:
                 self._ensure_connected()
                 request_id = f"req-{uuid.uuid4().hex[:12]}"
-                symbols = args[0] if isinstance(args[0], list) else [args[0]] if args else []
+                symbols = args[0] if args and isinstance(args[0], list) else [args[0]] if args else []
 
                 sub = _WsSubscription(request_id, method, symbols)
                 self._subscriptions[request_id] = sub

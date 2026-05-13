@@ -42,6 +42,7 @@ import {
     UnifiedEvent,
     UnifiedMarket,
     UserTrade,
+    FirehoseEvent,
 } from "./models.js";
 
 import { ServerManager } from "./server-manager.js";
@@ -1590,6 +1591,45 @@ export abstract class Exchange {
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to watch order books: ${error}`);
         }
+    }
+
+    /**
+     * Stream all orderbook updates across venues via the hosted WebSocket API.
+     *
+     * Returns a promise that resolves with the next book event.
+     * Call repeatedly in a loop to stream updates (CCXT Pro pattern).
+     * Requires hosted mode (`pmxtApiKey` set).
+     *
+     * @param venues - Optional venue filter (e.g. ["polymarket", "limitless"])
+     * @returns Next firehose event with source, symbol, and orderbook
+     *
+     * @example
+     * ```typescript
+     * const poly = new Polymarket({ pmxtApiKey: "pmxt_xxx" });
+     * while (true) {
+     *   const event = await poly.firehose();
+     *   console.log(event.source, event.symbol, event.orderbook.bids[0]);
+     * }
+     * ```
+     */
+    async firehose(venues?: string[]): Promise<FirehoseEvent> {
+        await this.initPromise;
+
+        if (!this.isHosted) {
+            throw new PmxtError("firehose() requires hosted mode (set pmxtApiKey)");
+        }
+
+        const args: any[] = venues ? [venues] : [];
+        const wsData = await this.watchViaWs("firehose", args);
+        if (wsData !== null) {
+            return {
+                source: (wsData as any)._source || "",
+                symbol: (wsData as any)._symbol || "",
+                orderbook: convertOrderBook(wsData),
+            };
+        }
+
+        throw new PmxtError("firehose() requires WebSocket transport — connection failed");
     }
 
     /**

@@ -154,6 +154,20 @@ export interface OrderBook {
 }
 
 /**
+ * A single event from the firehose stream.
+ */
+export interface FirehoseEvent {
+    /** The venue this event originated from (e.g. "polymarket", "limitless") */
+    source: string;
+
+    /** The outcome token id / asset id */
+    symbol: string;
+
+    /** The order book snapshot */
+    orderbook: OrderBook;
+}
+
+/**
  * Result of an execution price calculation.
  */
 export interface ExecutionPriceResult {
