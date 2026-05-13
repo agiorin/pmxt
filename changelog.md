@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.41.0] - 2026-05-13
+
+### Added
+
+- **SDK (TypeScript + Python)**: Real-time WebSocket streaming via the hosted PMXT API. When `pmxtApiKey` is set, `watchOrderBook()` and `watchOrderBooks()` connect to `wss://api.pmxt.dev/ws` instead of the local sidecar — no venue credentials needed.
+- **SDK (TypeScript + Python)**: `firehose()` method streams all orderbook updates across all venues (Polymarket, Limitless, Opinion) through a single connection. Optional venue filter: `firehose(["polymarket"])`.
+- **SDK (TypeScript + Python)**: `FirehoseEvent` type with `source`, `symbol`, and `orderbook` fields.
+
+### Fixed
+
+- **SDK (TypeScript)**: Silent WebSocket failures when sidecar is unavailable now fall back to HTTP correctly.
+- **SDK (Python)**: `IndexError` in `ws_client.subscribe()` when called with empty args (affected `firehose()` with no venue filter).
+- **SDK (Python)**: Silent failures in WS client error handling.
+- **Router**: Throw on unexpected `browseMarketMatches` response type instead of returning silently.
+- **Core**: Distinguish error types in lock file, port manager, and method verbs loading.
+- **Baozi**: Reject pending resolvers on WebSocket parse errors instead of leaving them hanging.
+- **Polymarket**: Propagate pagination errors and restore `clobTokenIds` warnings.
+- **Core**: Replace stale `qoery-com` GitHub org references with `pmxt-dev`.
+
+### Documentation
+
+- Expanded `.env.example` with all exchange credentials.
+- Added version requirements, contributor quickstart, and ESM caveat.
+- Added PR process, fixed deprecated `stop_server`, documented server port.
+- Fixed stale SDK guides, added regeneration step, corrected prerequisites.
+
 ## [2.40.6] - 2026-05-12
 
 ### Fixed
