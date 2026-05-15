@@ -1279,7 +1279,14 @@ function extractParamMeta(method) {
   });
 }
 
+const WS_METHODS = new Set([
+  'watchOrderBook', 'watchOrderBooks', 'watchAllOrderBooks',
+  'watchTrades', 'watchAddress',
+  'unwatchOrderBook', 'unwatchAddress',
+]);
+
 function classifyVerb(methodName, paramsMeta) {
+  if (WS_METHODS.has(methodName)) return 'ws';
   if (!methodName.startsWith('fetch')) return 'post';
   if (paramsMeta.length === 0) return 'get';
   // Reject unknown kinds outright — we can't safely serialise them.
@@ -1386,6 +1393,68 @@ function buildPathSpec(method, sourceFile) {
   const description = getJSDocDescription(method, sourceFile);
   const summary = camelToTitle(name);
   const deprecated = isDeprecated(method, sourceFile);
+
+  // ---- WS: WebSocket streaming method ------------------------------------
+  if (verb === 'ws') {
+    const wsDescription = [
+      description || summary,
+      '',
+      '**Transport:** WebSocket',
+      '',
+      '| Environment | URL |',
+      '|---|---|',
+      '| Local sidecar | `ws://localhost:3847/ws` |',
+      '| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |',
+      '',
+      '**Subscribe:**',
+      '```json',
+      `{ "id": "req-1", "action": "subscribe", "method": "${name}", "args": [...] }`,
+      '```',
+      '',
+      '**Server response:**',
+      '```json',
+      '{ "event": "data", "id": "req-1", "method": "' + name + '", "symbol": "...", "data": { ... } }',
+      '```',
+      '',
+      '**Unsubscribe:**',
+      '```json',
+      '{ "id": "req-1", "action": "unsubscribe" }',
+      '```',
+    ].join('\n');
+
+    const pathObj = {
+      post: {
+        summary: summary + ' (WebSocket)',
+        operationId: name,
+        parameters: [{ $ref: '#/components/parameters/ExchangeParam' }],
+        description: wsDescription,
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                title: name.charAt(0).toUpperCase() + name.slice(1) + 'Request',
+                type: 'object',
+                properties: {
+                  args: { type: 'array', items: { type: 'string' } },
+                  credentials: { $ref: '#/components/schemas/ExchangeCredentials' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: `${summary} response (WebSocket data event)`,
+            content: {
+              'application/json': { schema: responseSchema },
+            },
+          },
+        },
+      },
+    };
+    if (deprecated) pathObj.post.deprecated = true;
+    return { name, pathObj, verb, paramsMeta };
+  }
 
   // ---- GET: query-parameter shape, no request body ----------------------
   if (verb === 'get') {
