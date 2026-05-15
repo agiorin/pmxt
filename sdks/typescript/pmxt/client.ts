@@ -230,6 +230,8 @@ export abstract class Exchange {
     protected serverManager: ServerManager;
     protected initPromise: Promise<void>;
     protected isHosted: boolean;
+    private _hostedAccount?: { depositWallet?: string; signatureType?: number };
+    private _accountDiscoveryPromise?: Promise<void>;
 
     /**
      * Sticky flag: set to `true` the first time a GET read is rejected by
@@ -1850,12 +1852,68 @@ export abstract class Exchange {
         }
     }
 
+    private async _discoverHostedAccount(): Promise<void> {
+        if (this._hostedAccount) return;
+        if (!this._accountDiscoveryPromise) {
+            this._accountDiscoveryPromise = (async () => {
+                try {
+                    const res = await this.fetchWithRetry(
+                        `${this.resolveBaseUrl()}/v0/account`,
+                        { method: 'GET', headers: { ...this.getAuthHeaders() } },
+                    );
+                    if (res.ok) {
+                        const body = await res.json();
+                        this._hostedAccount = { depositWallet: body.deposit_wallet, signatureType: body.signature_type };
+                    } else { this._hostedAccount = {}; }
+                } catch { this._hostedAccount = {}; }
+            })();
+        }
+        await this._accountDiscoveryPromise;
+    }
+
+    private async _executeSorOrder(params: any): Promise<Order> {
+        await this._discoverHostedAccount();
+
+        const buildRes = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/sor/buildOrder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+            body: JSON.stringify({ args: [params] }),
+        });
+        if (!buildRes.ok) throw new PmxtError(`buildOrder failed: ${await buildRes.text()}`);
+        const buildJson = await buildRes.json();
+        const { orderId, legs } = buildJson.data || buildJson;
+
+        const fills: any[] = [];
+        for (const leg of legs) {
+            try {
+                const { Polymarket, Limitless } = require('pmxt-core');
+                const VenueClass = leg.venue === 'polymarket' ? Polymarket : leg.venue === 'limitless' ? Limitless : null;
+                if (!VenueClass) throw new Error(`unsupported venue: ${leg.venue}`);
+
+                const venueOpts: any = { privateKey: this.privateKey };
+                if (leg.venue === 'polymarket' && this._hostedAccount?.depositWallet) {
+                    venueOpts.funderAddress = this._hostedAccount.depositWallet;
+                    venueOpts.signatureType = this._hostedAccount.signatureType || 3;
+                }
+                const venue = new VenueClass(venueOpts);
+                const order = await venue.createOrder({ outcomeId: leg.tokenId, side: leg.side, amount: leg.shares, price: leg.price });
+                fills.push({ venue: leg.venue, venueOrderId: order.id, venueMarketId: leg.venueMarketId, venueOutcomeId: leg.venueOutcomeId, shares: order.filled || leg.shares, price: order.price || leg.price, status: 'filled' });
+            } catch (err: any) {
+                fills.push({ venue: leg.venue, venueMarketId: leg.venueMarketId, venueOutcomeId: leg.venueOutcomeId, shares: leg.shares, price: leg.price, status: 'failed', error: err.message });
+            }
+        }
+
+        const submitRes = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/sor/submitOrder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+            body: JSON.stringify({ args: [{ orderId, fills }] }),
+        });
+        if (!submitRes.ok) throw new PmxtError(`submitOrder failed: ${await submitRes.text()}`);
+        const submitJson = await submitRes.json();
+        return convertOrder(submitJson.data || submitJson);
+    }
+
     /**
-     * Create a new order.
-     * 
-     * @param params - Order parameters
-     * @returns Created order
-     * 
      * @example
      * ```typescript
      * const order = await exchange.createOrder({
@@ -1870,6 +1928,9 @@ export abstract class Exchange {
      */
     async createOrder(params: any): Promise<Order> {
         if (this.isHosted) {
+            if (this.exchangeName === 'sor' && this.privateKey) {
+                return this._executeSorOrder(params);
+            }
             throw new PmxtError(
                 "Trade execution is not available through the hosted API. " +
                 "Use the local PMXT SDK with your venue credentials instead. " +

@@ -2220,6 +2220,73 @@ class Exchange(ABC):
 
     # Trading Methods (require authentication)
 
+    def _discover_hosted_account(self) -> dict:
+        if not hasattr(self, "_hosted_account_cache"):
+            import requests as _req
+            try:
+                resp = _req.get(
+                    f"{self._resolve_sidecar_host()}/v0/account",
+                    headers=self._get_auth_headers(),
+                    timeout=10,
+                )
+                self._hosted_account_cache = resp.json() if resp.ok else {}
+            except Exception:
+                self._hosted_account_cache = {}
+        return self._hosted_account_cache
+
+    def _execute_sor_order(self, **kwargs) -> "Order":
+        import requests as _req
+        import time
+        account = self._discover_hosted_account()
+        host = self._resolve_sidecar_host()
+
+        o = kwargs.get("outcome")
+        if o is not None and hasattr(o, "market_id"):
+            params = {"marketId": o.market_id, "outcomeId": o.outcome_id, "side": kwargs.get("side", "buy"), "shares": kwargs.get("amount", 0)}
+        else:
+            params = {"marketId": kwargs.get("market_id"), "side": kwargs.get("side", "buy"), "outcome": kwargs.get("outcome"), "shares": kwargs.get("amount", 0)}
+        if kwargs.get("price") is not None:
+            params["price"] = kwargs["price"]
+        params = {k: v for k, v in params.items() if v is not None}
+
+        build_resp = _req.post(f"{host}/api/sor/buildOrder", headers={"Content-Type": "application/json", **self._get_auth_headers()}, json={"args": [params]}, timeout=30)
+        if not build_resp.ok:
+            raise PmxtError(f"buildOrder failed: {build_resp.text}")
+        build_data = build_resp.json().get("data", build_resp.json())
+        order_id, legs = build_data["orderId"], build_data["legs"]
+
+        fills = []
+        for leg in legs:
+            try:
+                from . import _exchanges
+                venue_map = {"polymarket": getattr(_exchanges, "Polymarket", None), "limitless": getattr(_exchanges, "Limitless", None)}
+                venue_cls = venue_map.get(leg["venue"])
+                if not venue_cls:
+                    raise PmxtError(f"Unsupported venue: {leg['venue']}")
+                venue_opts = {"private_key": self.private_key}
+                if leg["venue"] == "polymarket" and account.get("deposit_wallet"):
+                    venue_opts["proxy_address"] = account["deposit_wallet"]
+                    venue_opts["signature_type"] = account.get("signature_type", 3)
+                venue = venue_cls(**venue_opts)
+                result = venue.create_order(outcome_id=leg["tokenId"], side=leg["side"], amount=leg["shares"], price=leg["price"])
+                fills.append({"venue": leg["venue"], "venueOrderId": result.id, "venueMarketId": leg.get("venueMarketId"), "venueOutcomeId": leg.get("venueOutcomeId"), "shares": getattr(result, "filled", None) or leg["shares"], "price": getattr(result, "price", None) or leg["price"], "status": "filled"})
+            except Exception as e:
+                fills.append({"venue": leg["venue"], "venueMarketId": leg.get("venueMarketId"), "venueOutcomeId": leg.get("venueOutcomeId"), "shares": leg["shares"], "price": leg["price"], "status": "failed", "error": str(e)})
+
+        submit_resp = _req.post(f"{host}/api/sor/submitOrder", headers={"Content-Type": "application/json", **self._get_auth_headers()}, json={"args": [{"orderId": order_id, "fills": fills}]}, timeout=30)
+        if not submit_resp.ok:
+            raise PmxtError(f"submitOrder failed: {submit_resp.text}")
+        data = submit_resp.json().get("data", submit_resp.json())
+        from .models import Order
+        return Order(
+            id=data.get("id", order_id), market_id=params.get("marketId", ""),
+            outcome_id="", side=params.get("side", "buy"), type="market",
+            amount=float(data.get("filled_shares", 0)), price=float(data.get("average_price") or 0),
+            filled=float(data.get("filled_shares", 0)), remaining=0,
+            status=data.get("status", "unknown"), fee=float(data.get("fee_amount", 0)),
+            timestamp=int(time.time() * 1000),
+        )
+
     def create_order(
         self,
         market_id: Optional[str] = None,
@@ -2272,6 +2339,11 @@ class Exchange(ABC):
             ... )
         """
         if self.is_hosted:
+            if self.exchange_name == "sor" and self.private_key:
+                return self._execute_sor_order(
+                    market_id=market_id, outcome_id=outcome_id, side=side,
+                    type=type, amount=amount, price=price, outcome=outcome,
+                )
             raise PmxtError(
                 "Trade execution is not available through the hosted API. "
                 "Use the local PMXT SDK with your venue credentials instead. "
