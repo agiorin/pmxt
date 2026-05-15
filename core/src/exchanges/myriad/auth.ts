@@ -9,16 +9,17 @@ export class MyriadAuth {
     }
 
     private validateCredentials() {
-        if (!this.credentials.apiKey) {
-            throw new Error('Myriad requires an apiKey for authentication');
+        if (!this.credentials.apiKey && !this.credentials.privateKey) {
+            throw new Error('Myriad requires an apiKey or privateKey for authentication');
         }
     }
 
     getHeaders(): Record<string, string> {
-        return {
-            'x-api-key': this.credentials.apiKey!,
-            'Content-Type': 'application/json',
-        };
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (this.credentials.apiKey) {
+            headers['x-api-key'] = this.credentials.apiKey;
+        }
+        return headers;
     }
 
     get walletAddress(): string | undefined {

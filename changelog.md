@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.41.4] - 2026-05-15
+
+### Fixed
+
+- **Polymarket**: Replaced `@nevuamarkets/poly-websockets` with native WebSocket implementation for `watchTrades` and `watchOrderBook`. The third-party package was silently dropping `last_trade_price` events. Native WebSocket connects directly to `wss://ws-subscriptions-clob.polymarket.com/ws/market` and receives all event types reliably.
+- **Polymarket**: `watchTrades` now buffers trades between calls instead of silently discarding them when no promise is waiting. Fixes timeout errors on active markets.
+- **Kalshi**: `watchTrades` WebSocket handler updated from API v1 field names (`yes_price`, `count`) to v2 (`yes_price_dollars`, `count_fp`). Fixes silent data corruption where prices and amounts returned as 0.
+
+### Documentation
+
+- Watch methods (`watchOrderBook`, `watchOrderBooks`, `watchAllOrderBooks`, `watchTrades`) moved from OpenAPI spec to dedicated MDX pages with proper WebSocket documentation, per-method parameter tables, response schemas, and SDK code examples.
+
 ## [2.41.3] - 2026-05-15
 
 ### Fixed

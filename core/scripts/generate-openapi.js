@@ -2131,7 +2131,10 @@ function main() {
 
   const methodNodes = extractMethods(sourceFile);
   const methodSpecs = methodNodes.map(m => buildPathSpec(m, sourceFile));
-  const spec = buildSpec(methodSpecs);
+  // WebSocket methods get their own MDX page — exclude from OpenAPI spec
+  // so Mintlify doesn't render them as POST endpoints.
+  const restMethodSpecs = methodSpecs.filter(s => s.verb !== 'ws');
+  const spec = buildSpec(restMethodSpecs);
 
   // Attach per-exchange SDK constructor metadata from app.ts
   const appTsContent = fs.readFileSync(APP_TS_PATH, 'utf-8');

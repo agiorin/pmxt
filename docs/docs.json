@@ -178,14 +178,12 @@
           {
             "group": "Realtime",
             "pages": [
-              "POST /api/{exchange}/watchOrderBook",
-              "POST /api/{exchange}/watchOrderBooks",
-              "POST /api/{exchange}/unwatchOrderBook",
-              "POST /api/{exchange}/watchTrades",
-              "POST /api/{exchange}/watchAddress",
-              "POST /api/{exchange}/unwatchAddress"
-            ],
-            "openapi": "api-reference/openapi.json"
+              "api-reference/websocket",
+              "api-reference/watch-order-book",
+              "api-reference/watch-order-books",
+              "api-reference/watch-all-order-books",
+              "api-reference/watch-trades"
+            ]
           },
           {
             "group": "Other",

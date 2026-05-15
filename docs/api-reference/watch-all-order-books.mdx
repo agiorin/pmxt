@@ -1,0 +1,218 @@
+---
+title: watchAllOrderBooks
+description: Stream all orderbook updates across all venues via WebSocket
+---
+
+<Info>
+**Hosted only** — This method requires a PMXT API key and connects to the hosted WebSocket API at `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY`. Not available on the local sidecar.
+</Info>
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `venues` | string[] | No | Optional venue filter. Omit to receive all venues. |
+
+Available venues: `polymarket`, `limitless`, `opinion` (more added automatically as they come online).
+
+## Response
+
+Returns a `FirehoseEvent` object for each orderbook update across all venues:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `source` | string | The venue (e.g. `"polymarket"`, `"limitless"`) |
+| `symbol` | string | The outcome token ID |
+| `orderbook` | `OrderBook` | The orderbook snapshot (`bids`, `asks`, `timestamp`) |
+
+## Usage
+
+### All venues
+
+<CodeGroup>
+
+```python Python
+import pmxt
+
+exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+
+while True:
+    event = exchange.watch_all_order_books()
+    print(f"[{event.source}] {event.symbol[:20]}...")
+    print(f"  bid={event.orderbook.bids[0].price} ask={event.orderbook.asks[0].price}")
+```
+
+```javascript JavaScript
+import { Polymarket } from "pmxtjs";
+
+const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+
+while (true) {
+  const event = await exchange.watchAllOrderBooks();
+  console.log(`[${event.source}] ${event.symbol.slice(0, 20)}...`);
+  console.log(`  bid=${event.orderbook.bids[0].price} ask=${event.orderbook.asks[0].price}`);
+}
+```
+
+```json WebSocket
+// → Subscribe to all venues
+{ "id": "req-1", "action": "subscribe", "method": "watchAllOrderBooks" }
+
+// ← Subscription confirmed
+{ "event": "subscribed", "id": "req-1" }
+
+// ← Data events (continuous, all venues)
+{
+  "event": "data",
+  "id": "req-1",
+  "method": "watchAllOrderBooks",
+  "symbol": "OUTCOME_ID",
+  "source": "polymarket",
+  "data": {
+    "bids": [{ "price": 0.42, "size": 100 }],
+    "asks": [{ "price": 0.58, "size": 200 }],
+    "timestamp": 1778450010713
+  }
+}
+```
+
+</CodeGroup>
+
+### Filtered by venue
+
+<CodeGroup>
+
+```python Python
+import pmxt
+
+exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+
+# Only Polymarket and Limitless events
+while True:
+    event = exchange.watch_all_order_books(["polymarket", "limitless"])
+    print(f"[{event.source}] bid={event.orderbook.bids[0].price}")
+```
+
+```javascript JavaScript
+import { Polymarket } from "pmxtjs";
+
+const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+
+// Only Polymarket and Limitless events
+while (true) {
+  const event = await exchange.watchAllOrderBooks(["polymarket", "limitless"]);
+  console.log(`[${event.source}] bid=${event.orderbook.bids[0].price}`);
+}
+```
+
+```json WebSocket
+// → Subscribe with venue filter
+{
+  "id": "req-1",
+  "action": "subscribe",
+  "method": "watchAllOrderBooks",
+  "args": [["polymarket", "limitless"]]
+}
+```
+
+</CodeGroup>
+
+## Use cases
+
+### Cross-venue monitoring dashboard
+
+Build a real-time dashboard showing all orderbook activity:
+
+<CodeGroup>
+
+```python Python
+import pmxt
+from collections import defaultdict
+
+exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+counts = defaultdict(int)
+
+while True:
+    event = exchange.watch_all_order_books()
+    counts[event.source] += 1
+    total = sum(counts.values())
+    if total % 100 == 0:
+        print(f"Events: {dict(counts)} (total: {total})")
+```
+
+```javascript JavaScript
+import { Polymarket } from "pmxtjs";
+
+const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const counts = {};
+
+while (true) {
+  const event = await exchange.watchAllOrderBooks();
+  counts[event.source] = (counts[event.source] || 0) + 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (total % 100 === 0) {
+    console.log(`Events:`, counts, `(total: ${total})`);
+  }
+}
+```
+
+</CodeGroup>
+
+### Real-time arbitrage scanner
+
+Detect cross-venue price discrepancies as they happen:
+
+<CodeGroup>
+
+```python Python
+import pmxt
+
+exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+latest = {}  # symbol -> {source -> mid_price}
+
+while True:
+    event = exchange.watch_all_order_books()
+    book = event.orderbook
+    if not book.bids or not book.asks:
+        continue
+    mid = (book.bids[0].price + book.asks[0].price) / 2
+
+    if event.symbol not in latest:
+        latest[event.symbol] = {}
+    latest[event.symbol][event.source] = mid
+
+    prices = latest[event.symbol]
+    if len(prices) >= 2:
+        venues = list(prices.keys())
+        spread = abs(prices[venues[0]] - prices[venues[1]])
+        if spread > 0.03:
+            print(f"Spread {spread:.1%}: {venues[0]}={prices[venues[0]]:.1%} vs {venues[1]}={prices[venues[1]]:.1%}")
+```
+
+```javascript JavaScript
+import { Polymarket } from "pmxtjs";
+
+const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const latest = new Map();
+
+while (true) {
+  const event = await exchange.watchAllOrderBooks();
+  const { bids, asks } = event.orderbook;
+  if (!bids.length || !asks.length) continue;
+  const mid = (bids[0].price + asks[0].price) / 2;
+
+  if (!latest.has(event.symbol)) latest.set(event.symbol, {});
+  latest.get(event.symbol)[event.source] = mid;
+
+  const prices = latest.get(event.symbol);
+  const venues = Object.keys(prices);
+  if (venues.length >= 2) {
+    const spread = Math.abs(prices[venues[0]] - prices[venues[1]]);
+    if (spread > 0.03) {
+      console.log(`Spread ${(spread * 100).toFixed(1)}%: ${venues[0]}=${(prices[venues[0]] * 100).toFixed(1)}% vs ${venues[1]}=${(prices[venues[1]] * 100).toFixed(1)}%`);
+    }
+  }
+}
+```
+
+</CodeGroup>

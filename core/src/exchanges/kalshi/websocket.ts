@@ -418,11 +418,12 @@ export class KalshiWebSocket {
     const trade: Trade = {
       id: data.trade_id || `${timestamp}-${Math.random()}`,
       timestamp,
-      price:
-        data.yes_price || data.price
-          ? (data.yes_price || data.price) / 100
-          : 0.5,
-      amount: data.count || data.size || 0,
+      price: data.yes_price_dollars != null
+        ? parseFloat(data.yes_price_dollars)
+        : 0.5,
+      amount: data.count_fp != null
+        ? parseFloat(data.count_fp)
+        : 0,
       side:
         data.taker_side === "yes" || data.side === "buy"
           ? "buy"

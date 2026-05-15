@@ -62,15 +62,19 @@ export interface PolymarketWebSocketConfig {
     userChannelCreds?: PolymarketUserChannelCreds;
 }
 
+const POLYMARKET_MARKET_WS_URL = 'wss://ws-subscriptions-clob.polymarket.com/ws/market';
+
 /**
- * Wrapper around @nevuamarkets/poly-websockets that provides CCXT Pro-style
- * watchOrderBook() and watchTrades() methods.
+ * Native WebSocket implementation for Polymarket market data.
+ * Replaces the @nevuamarkets/poly-websockets dependency.
  */
 export class PolymarketWebSocket {
-    private manager: any;
+    private ws: any;
+    private subscribedAssets = new Set<string>();
     private readonly watcher: AddressWatcher;
     private orderBookResolvers = new Map<string, QueuedPromise<OrderBook>[]>();
     private tradeResolvers = new Map<string, QueuedPromise<Trade[]>[]>();
+    private pendingTrades = new Map<string, Trade[]>();
     private orderBooks = new Map<string, OrderBook>();
     private config: PolymarketWebSocketConfig;
     private initializationPromise?: Promise<void>;
@@ -93,12 +97,7 @@ export class PolymarketWebSocket {
 
     async watchOrderBook(outcomeId: string): Promise<OrderBook> {
         await this.ensureInitialized();
-
-        // Subscribe to the asset if not already subscribed
-        const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(outcomeId)) {
-            await this.manager.addSubscriptions([outcomeId]);
-        }
+        await this.subscribe([outcomeId]);
 
         // Return a promise that resolves on the next orderbook update
         const dataPromise = new Promise<OrderBook>((resolve, reject) => {
@@ -116,11 +115,7 @@ export class PolymarketWebSocket {
     }
 
     async unwatchOrderBook(outcomeId: string): Promise<void> {
-        if (!this.manager) {
-            return;
-        }
-
-        await this.manager.removeSubscriptions([outcomeId]);
+        this.subscribedAssets.delete(outcomeId);
 
         // Clear any pending resolvers for this asset
         const resolvers = this.orderBookResolvers.get(outcomeId);
@@ -144,14 +139,17 @@ export class PolymarketWebSocket {
         }
 
         await this.ensureInitialized();
+        await this.subscribe([outcomeId]);
 
-        // Subscribe to the asset if not already subscribed
-        const currentAssets = this.manager.getAssetIds();
-        if (!currentAssets.includes(outcomeId)) {
-            await this.manager.addSubscriptions([outcomeId]);
+        // Return accumulated trades immediately if any arrived between calls
+        const accumulated = this.pendingTrades.get(outcomeId);
+        if (accumulated && accumulated.length > 0) {
+            const result = [...accumulated];
+            this.pendingTrades.set(outcomeId, []);
+            return result;
         }
 
-        // Return a promise that resolves on the next trade
+        // Otherwise wait for the next trade
         const dataPromise = new Promise<Trade[]>((resolve, reject) => {
             if (!this.tradeResolvers.has(outcomeId)) {
                 this.tradeResolvers.set(outcomeId, []);
@@ -298,58 +296,64 @@ export class PolymarketWebSocket {
     }
 
     async close() {
-        if (this.manager) {
-            await this.manager.clearState();
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
         }
+        this.subscribedAssets.clear();
         this.closeUserChannel();
         this.watcher.close();
+    }
+
+    private async subscribe(assetIds: string[]) {
+        const newIds = assetIds.filter((id) => !this.subscribedAssets.has(id));
+        if (newIds.length === 0) return;
+
+        for (const id of newIds) this.subscribedAssets.add(id);
+
+        if (this.ws && this.ws.readyState === 1) {
+            this.ws.send(JSON.stringify({
+                assets_ids: newIds,
+                type: 'market',
+                custom_feature_enabled: true,
+            }));
+        }
     }
 
     private async ensureInitialized() {
         if (this.initializationPromise) return this.initializationPromise;
 
-        this.initializationPromise = (async () => {
-            try {
-                // Dynamic import to handle optional dependency
-                const poly = await import('@nevuamarkets/poly-websockets');
+        this.initializationPromise = new Promise<void>((resolve, reject) => {
+            const WebSocket = require('ws');
+            this.ws = new WebSocket(POLYMARKET_MARKET_WS_URL);
 
-                this.manager = new poly.WSSubscriptionManager(
-                    {
-                        onBook: async (events: any[]) => {
-                            for (const event of events) {
-                                this.handleBookSnapshot(event);
-                            }
-                        },
-                        onPriceChange: async (events: any[]) => {
-                            for (const event of events) {
-                                this.handlePriceChange(event);
-                            }
-                        },
-                        onLastTradePrice: async (events: any[]) => {
-                            for (const event of events) {
-                                this.handleTrade(event);
-                            }
-                        },
-                        onError: async (error: Error) => {
-                            console.error('Polymarket WebSocket error:', error.message);
-                        },
-                    },
-                    {
-                        reconnectAndCleanupIntervalMs: this.config.reconnectIntervalMs ?? 5000,
-                        pendingFlushIntervalMs: this.config.flushIntervalMs ?? 100,
-                    },
-                );
-            } catch (e) {
-                const error = e as Error;
-                if (error.message.includes('Cannot find module')) {
-                    throw new Error(
-                        'Polymarket WebSocket support requires the "@nevuamarkets/poly-websockets" package.\n' +
-                        'To use this feature, please install it: npm install @nevuamarkets/poly-websockets',
-                    );
-                }
-                throw e;
-            }
-        })();
+            this.ws.on('open', () => {
+                resolve();
+            });
+
+            this.ws.on('message', (raw: any) => {
+                try {
+                    const msgs = JSON.parse(raw.toString());
+                    const arr = Array.isArray(msgs) ? msgs : [msgs];
+                    for (const msg of arr) {
+                        const type = msg.event_type;
+                        if (type === 'book') this.handleBookSnapshot(msg);
+                        else if (type === 'price_change') this.handlePriceChange(msg);
+                        else if (type === 'last_trade_price') this.handleTrade(msg);
+                    }
+                } catch {}
+            });
+
+            this.ws.on('error', (err: Error) => {
+                console.error('Polymarket WebSocket error:', err.message);
+                reject(err);
+            });
+
+            this.ws.on('close', () => {
+                this.initializationPromise = undefined;
+                this.ws = null;
+            });
+        });
 
         return this.initializationPromise;
     }
@@ -378,19 +382,17 @@ export class PolymarketWebSocket {
     }
 
     private handlePriceChange(event: any) {
-        // Apply deltas to existing orderbook
-        for (const change of event.price_changes) {
-            const id = change.asset_id;
-            const existing = this.orderBooks.get(id);
+        const id = event.asset_id;
+        const existing = this.orderBooks.get(id);
 
-            if (!existing) {
-                // No snapshot yet, skip delta
-                continue;
-            }
+        if (!existing) return;
 
+        // Native API sends individual price_change events (not wrapped in an array)
+        const changes = event.price_changes || [event];
+        for (const change of changes) {
             const price = parseFloat(change.price);
             const size = parseFloat(change.size);
-            const side = change.side.toUpperCase();
+            const side = (change.side || '').toUpperCase();
 
             const levels = side === 'BUY' ? existing.bids : existing.asks;
             const existingIndex = levels.findIndex((l) => l.price === price);
@@ -431,10 +433,16 @@ export class PolymarketWebSocket {
             side: event.side.toLowerCase() as 'buy' | 'sell' | 'unknown',
         };
 
+        // Resolve waiting promises if any, otherwise buffer for next watchTrades call
         const resolvers = this.tradeResolvers.get(id);
         if (resolvers && resolvers.length > 0) {
             resolvers.forEach((r) => r.resolve([trade]));
             this.tradeResolvers.set(id, []);
+        } else {
+            if (!this.pendingTrades.has(id)) {
+                this.pendingTrades.set(id, []);
+            }
+            this.pendingTrades.get(id)!.push(trade);
         }
     }
 
