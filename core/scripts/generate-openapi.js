@@ -1424,27 +1424,13 @@ function buildPathSpec(method, sourceFile) {
 
     const pathObj = {
       post: {
-        summary: summary + ' (WebSocket)',
+        summary,
         operationId: name,
         parameters: [{ $ref: '#/components/parameters/ExchangeParam' }],
         description: wsDescription,
-        requestBody: {
-          content: {
-            'application/json': {
-              schema: {
-                title: name.charAt(0).toUpperCase() + name.slice(1) + 'Request',
-                type: 'object',
-                properties: {
-                  args: { type: 'array', items: { type: 'string' } },
-                  credentials: { $ref: '#/components/schemas/ExchangeCredentials' },
-                },
-              },
-            },
-          },
-        },
         responses: {
           '200': {
-            description: `${summary} response (WebSocket data event)`,
+            description: `${summary} response`,
             content: {
               'application/json': { schema: responseSchema },
             },

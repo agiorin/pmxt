@@ -5964,7 +5964,7 @@
     },
     "/api/{exchange}/watchOrderBook": {
       "post": {
-        "summary": "Watch Order Book (WebSocket)",
+        "summary": "Watch Order Book",
         "operationId": "watchOrderBook",
         "parameters": [
           {
@@ -5972,30 +5972,9 @@
           }
         ],
         "description": "Watch order book updates in real-time via WebSocket. Returns a promise that resolves with the next order book update. Call repeatedly in a loop to stream updates (CCXT Pro pattern).\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"watchOrderBook\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"watchOrderBook\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "WatchOrderBookRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Watch Order Book response (WebSocket data event)",
+            "description": "Watch Order Book response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6174,7 +6153,7 @@
     },
     "/api/{exchange}/watchOrderBooks": {
       "post": {
-        "summary": "Watch Order Books (WebSocket)",
+        "summary": "Watch Order Books",
         "operationId": "watchOrderBooks",
         "parameters": [
           {
@@ -6182,30 +6161,9 @@
           }
         ],
         "description": "Watch multiple order books simultaneously via WebSocket. Returns a promise that resolves with a record of order book snapshots keyed by ID. Exchanges with native batch support (e.g. Kalshi) send a single subscribe message for all tickers; others fall back to individual watchOrderBook calls.\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"watchOrderBooks\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"watchOrderBooks\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "WatchOrderBooksRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Watch Order Books response (WebSocket data event)",
+            "description": "Watch Order Books response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6387,7 +6345,7 @@
     },
     "/api/{exchange}/unwatchOrderBook": {
       "post": {
-        "summary": "Unwatch Order Book (WebSocket)",
+        "summary": "Unwatch Order Book",
         "operationId": "unwatchOrderBook",
         "parameters": [
           {
@@ -6395,30 +6353,9 @@
           }
         ],
         "description": "Unsubscribe from a previously watched order book stream.\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"unwatchOrderBook\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"unwatchOrderBook\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "UnwatchOrderBookRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Unwatch Order Book response (WebSocket data event)",
+            "description": "Unwatch Order Book response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6585,7 +6522,7 @@
     },
     "/api/{exchange}/watchTrades": {
       "post": {
-        "summary": "Watch Trades (WebSocket)",
+        "summary": "Watch Trades",
         "operationId": "watchTrades",
         "parameters": [
           {
@@ -6593,30 +6530,9 @@
           }
         ],
         "description": "Watch trade executions in real-time via WebSocket. Returns a promise that resolves with the next trade(s). Call repeatedly in a loop to stream updates (CCXT Pro pattern).\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"watchTrades\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"watchTrades\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "WatchTradesRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Watch Trades response (WebSocket data event)",
+            "description": "Watch Trades response",
             "content": {
               "application/json": {
                 "schema": {
@@ -6798,7 +6714,7 @@
     },
     "/api/{exchange}/watchAddress": {
       "post": {
-        "summary": "Watch Address (WebSocket)",
+        "summary": "Watch Address",
         "operationId": "watchAddress",
         "parameters": [
           {
@@ -6806,30 +6722,9 @@
           }
         ],
         "description": "Stream activity for a public wallet address Returns a promise that resolves with the next activity snapshot whenever a change is detected. Call repeatedly in a loop to stream updates (CCXT Pro pattern).\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"watchAddress\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"watchAddress\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "WatchAddressRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Watch Address response (WebSocket data event)",
+            "description": "Watch Address response",
             "content": {
               "application/json": {
                 "schema": {
@@ -7008,7 +6903,7 @@
     },
     "/api/{exchange}/unwatchAddress": {
       "post": {
-        "summary": "Unwatch Address (WebSocket)",
+        "summary": "Unwatch Address",
         "operationId": "unwatchAddress",
         "parameters": [
           {
@@ -7016,30 +6911,9 @@
           }
         ],
         "description": "Stop watching a previously registered wallet address and release its resource updates.\n\n**Transport:** WebSocket\n\n| Environment | URL |\n|---|---|\n| Local sidecar | `ws://localhost:3847/ws` |\n| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |\n\n**Subscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"subscribe\", \"method\": \"unwatchAddress\", \"args\": [...] }\n```\n\n**Server response:**\n```json\n{ \"event\": \"data\", \"id\": \"req-1\", \"method\": \"unwatchAddress\", \"symbol\": \"...\", \"data\": { ... } }\n```\n\n**Unsubscribe:**\n```json\n{ \"id\": \"req-1\", \"action\": \"unsubscribe\" }\n```",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "title": "UnwatchAddressRequest",
-                "type": "object",
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "credentials": {
-                    "$ref": "#/components/schemas/ExchangeCredentials"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Unwatch Address response (WebSocket data event)",
+            "description": "Unwatch Address response",
             "content": {
               "application/json": {
                 "schema": {
