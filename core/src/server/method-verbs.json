@@ -295,7 +295,7 @@
     ]
   },
   "watchOrderBook": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "outcomeId",
@@ -310,7 +310,7 @@
     ]
   },
   "watchOrderBooks": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "outcomeIds",
@@ -325,7 +325,7 @@
     ]
   },
   "unwatchOrderBook": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "outcomeId",
@@ -335,7 +335,7 @@
     ]
   },
   "watchTrades": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "outcomeId",
@@ -360,7 +360,7 @@
     ]
   },
   "watchAddress": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "address",
@@ -375,7 +375,7 @@
     ]
   },
   "unwatchAddress": {
-    "verb": "post",
+    "verb": "ws",
     "args": [
       {
         "name": "address",
