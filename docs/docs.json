@@ -176,16 +176,6 @@
             "openapi": "api-reference/openapi.json"
           },
           {
-            "group": "Realtime",
-            "pages": [
-              "api-reference/websocket",
-              "api-reference/watch-order-book",
-              "api-reference/watch-order-books",
-              "api-reference/watch-all-order-books",
-              "api-reference/watch-trades"
-            ]
-          },
-          {
             "group": "Other",
             "pages": [
               "POST /api/{exchange}/testDummyMethod"
