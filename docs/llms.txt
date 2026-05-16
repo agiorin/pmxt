@@ -54,7 +54,11 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Fetch All Orders](https://pmxt.dev/docs/api-reference/fetchAllOrders)
 - [Fetch Positions](https://pmxt.dev/docs/api-reference/fetchPositions): Fetch current user positions across all markets.
 - [Fetch Balance](https://pmxt.dev/docs/api-reference/fetchBalance): Fetch account balances.
-- [Test Dummy Method](https://pmxt.dev/docs/api-reference/testDummyMethod): Test method for auto-generation verification.
+- [WebSocket Overview](https://pmxt.dev/docs/api-reference/websocket): Real-time orderbook and trade streaming via WebSocket
+- [watchAllOrderBooks](https://pmxt.dev/docs/api-reference/watch-all-order-books): Stream all orderbook updates across all venues via WebSocket
+- [watchOrderBook](https://pmxt.dev/docs/api-reference/watch-order-book): Stream real-time orderbook updates for a single outcome via WebSocket
+- [watchOrderBooks](https://pmxt.dev/docs/api-reference/watch-order-books): Stream real-time orderbook updates for multiple outcomes via WebSocket
+- [watchTrades](https://pmxt.dev/docs/api-reference/watch-trades): Stream real-time trade updates for a single outcome via WebSocket
 - [Execute a read-only SQL query against ClickHouse](https://pmxt.dev/docs/api-reference/postV0Sql)
 
 ## Full documentation
