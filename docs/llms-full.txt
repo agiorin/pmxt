@@ -3872,8 +3872,11 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 while True:
 event = exchange.watch_all_order_books()
+book = event.orderbook
+if not book.bids or not book.asks:
+    continue
 print(f"[{event.source}] {event.symbol[:20]}...")
-print(f"  bid={event.orderbook.bids[0].price} ask={event.orderbook.asks[0].price}")
+print(f"  bid={book.bids[0].price} ask={book.asks[0].price}")
 ```
 
 ```javascript JavaScript
@@ -3883,8 +3886,10 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 while (true) {
   const event = await exchange.watchAllOrderBooks();
+  const { bids, asks } = event.orderbook;
+  if (!bids.length || !asks.length) continue;
   console.log(`[${event.source}] ${event.symbol.slice(0, 20)}...`);
-  console.log(`  bid=${event.orderbook.bids[0].price} ask=${event.orderbook.asks[0].price}`);
+  console.log(`  bid=${bids[0].price} ask=${asks[0].price}`);
 }
 ```
 
@@ -3924,6 +3929,8 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 # Only Polymarket and Limitless events
 while True:
 event = exchange.watch_all_order_books(["polymarket", "limitless"])
+if not event.orderbook.bids:
+    continue
 print(f"[{event.source}] bid={event.orderbook.bids[0].price}")
 ```
 
@@ -3935,6 +3942,7 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 // Only Polymarket and Limitless events
 while (true) {
   const event = await exchange.watchAllOrderBooks(["polymarket", "limitless"]);
+  if (!event.orderbook.bids.length) continue;
   console.log(`[${event.source}] bid=${event.orderbook.bids[0].price}`);
 }
 ```
@@ -4089,6 +4097,8 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 # Stream orderbook updates — each call returns the next snapshot
 while True:
 book = exchange.watch_order_book("OUTCOME_ID")
+if not book.bids or not book.asks:
+    continue
 print(f"Best bid: {book.bids[0].price} ({book.bids[0].size} contracts)")
 print(f"Best ask: {book.asks[0].price} ({book.asks[0].size} contracts)")
 print(f"Spread: {book.asks[0].price - book.bids[0].price:.4f}")
@@ -4102,6 +4112,7 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 // Stream orderbook updates — each call returns the next snapshot
 while (true) {
   const book = await exchange.watchOrderBook("OUTCOME_ID");
+  if (!book.bids.length || !book.asks.length) continue;
   console.log(`Best bid: ${book.bids[0].price} (${book.bids[0].size} contracts)`);
   console.log(`Best ask: ${book.asks[0].price} (${book.asks[0].size} contracts)`);
   console.log(`Spread: ${(book.asks[0].price - book.bids[0].price).toFixed(4)}`);
@@ -4188,6 +4199,8 @@ kalshi = pmxt.Kalshi(pmxt_api_key="YOUR_PMXT_API_KEY")
 while True:
 poly_book = poly.watch_order_book("POLY_OUTCOME_ID")
 kalshi_book = kalshi.watch_order_book("KALSHI_OUTCOME_ID")
+if not poly_book.bids or not kalshi_book.asks:
+    continue
 spread = poly_book.bids[0].price - kalshi_book.asks[0].price
 if spread > 0.02:
     print(f"Arbitrage opportunity: {spread:.4f}")
@@ -4204,6 +4217,7 @@ while (true) {
 poly.watchOrderBook("POLY_OUTCOME_ID"),
 kalshi.watchOrderBook("KALSHI_OUTCOME_ID"),
   ]);
+  if (!polyBook.bids.length || !kalshiBook.asks.length) continue;
   const spread = polyBook.bids[0].price - kalshiBook.asks[0].price;
   if (spread > 0.02) {
 console.log(`Arbitrage opportunity: ${spread.toFixed(4)}`);
