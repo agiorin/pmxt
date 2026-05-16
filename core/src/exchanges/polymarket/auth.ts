@@ -1,6 +1,9 @@
 import { ClobClient } from '@polymarket/clob-client-v2';
 import type { ApiKeyCreds } from '@polymarket/clob-client-v2';
-import { Wallet } from 'ethers';
+import { createWalletClient, http } from 'viem';
+import type { WalletClient } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { polygon } from 'viem/chains';
 import axios from 'axios';
 import { ExchangeCredentials } from '../../BaseExchange';
 import { polymarketErrorMapper } from './errors';
@@ -21,7 +24,8 @@ const SIG_TYPE_POLY_1271 = 3;  // Deposit wallet (ERC-1271, recommended for new 
  */
 export class PolymarketAuth {
     private credentials: ExchangeCredentials;
-    private signer?: Wallet;
+    private signer?: WalletClient;
+    private signerAddress?: string;
     private clobClient?: ClobClient;
     private apiCreds?: ApiKeyCreds;
     private discoveredProxyAddress?: string;
@@ -43,9 +47,8 @@ export class PolymarketAuth {
             privateKey = privateKey.replace(/\\n/g, '\n');
         }
 
-        // Validate key format before passing to ethers. Solana wallets
-        // (e.g. Phantom) export base58 ed25519 keys which are not
-        // compatible with EVM. Detect early and give a clear message.
+        // Validate key format. Solana wallets (e.g. Phantom) export
+        // base58 ed25519 keys which are not compatible with EVM.
         const stripped = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
         if (!/^[0-9a-fA-F]{64}$/.test(stripped)) {
             throw new Error(
@@ -56,7 +59,14 @@ export class PolymarketAuth {
             );
         }
 
-        this.signer = new Wallet(privateKey);
+        const hexKey = (privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`) as `0x${string}`;
+        const account = privateKeyToAccount(hexKey);
+        this.signerAddress = account.address;
+        this.signer = createWalletClient({
+            account,
+            chain: polygon,
+            transport: http(),
+        });
     }
 
     /**
@@ -130,7 +140,7 @@ export class PolymarketAuth {
             };
         }
 
-        const address = this.signer!.address;
+        const address = this.signerAddress!;
         try {
             // Polymarket Data API / Profiles endpoint
             // Path-based: https://data-api.polymarket.com/profiles/0x...
@@ -207,11 +217,7 @@ export class PolymarketAuth {
         // Priority order:
         //   1. Discovery (Polymarket Data API) — authoritative when it works
         //   2. User-provided signatureType — respected as explicit override
-        //   3. Default: Gnosis Safe (2) — correct for all Polymarket
-        //      accounts created since 2023
-        //
-        // The previous default was EOA (0), which silently returned $0
-        // balances for the vast majority of wallets (#80).
+        //   3. Default: POLY_1271 (3) — deposit wallet, the V2 standard
         const sigTypeProvided =
             this.credentials.signatureType !== undefined && this.credentials.signatureType !== null;
         let proxyAddress = this.credentials.funderAddress || undefined;
@@ -246,7 +252,7 @@ export class PolymarketAuth {
 
         if (signatureType === undefined) {
             // Neither user nor discovery provided a value. Default to
-            // Gnosis Safe — the modern Polymarket standard.
+            // Gnosis Safe — the standard Polymarket wallet type.
             signatureType = SIG_TYPE_GNOSIS_SAFE;
         }
 
@@ -254,7 +260,7 @@ export class PolymarketAuth {
         const apiCreds = await this.getApiCredentials();
 
         // Final addresses
-        const signerAddress = this.signer!.address;
+        const signerAddress = this.signerAddress!;
         const finalProxyAddress: string = (proxyAddress || signerAddress) as string;
         const finalSignatureType: number = signatureType;
 
@@ -289,14 +295,14 @@ export class PolymarketAuth {
      * Synchronous getter for credentials funder address.
      */
     getFunderAddress(): string {
-        return this.credentials.funderAddress || this.signer!.address;
+        return this.credentials.funderAddress || this.signerAddress!;
     }
 
     /**
      * Get the signer's address.
      */
     getAddress(): string {
-        return this.signer!.address;
+        return this.signerAddress!;
     }
 
     /**

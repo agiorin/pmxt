@@ -38,8 +38,11 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 while True:
     event = exchange.watch_all_order_books()
+    book = event.orderbook
+    if not book.bids or not book.asks:
+        continue
     print(f"[{event.source}] {event.symbol[:20]}...")
-    print(f"  bid={event.orderbook.bids[0].price} ask={event.orderbook.asks[0].price}")
+    print(f"  bid={book.bids[0].price} ask={book.asks[0].price}")
 ```
 
 ```javascript JavaScript
@@ -49,8 +52,10 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 while (true) {
   const event = await exchange.watchAllOrderBooks();
+  const { bids, asks } = event.orderbook;
+  if (!bids.length || !asks.length) continue;
   console.log(`[${event.source}] ${event.symbol.slice(0, 20)}...`);
-  console.log(`  bid=${event.orderbook.bids[0].price} ask=${event.orderbook.asks[0].price}`);
+  console.log(`  bid=${bids[0].price} ask=${asks[0].price}`);
 }
 ```
 
@@ -90,6 +95,8 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 # Only Polymarket and Limitless events
 while True:
     event = exchange.watch_all_order_books(["polymarket", "limitless"])
+    if not event.orderbook.bids:
+        continue
     print(f"[{event.source}] bid={event.orderbook.bids[0].price}")
 ```
 
@@ -101,6 +108,7 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 // Only Polymarket and Limitless events
 while (true) {
   const event = await exchange.watchAllOrderBooks(["polymarket", "limitless"]);
+  if (!event.orderbook.bids.length) continue;
   console.log(`[${event.source}] bid=${event.orderbook.bids[0].price}`);
 }
 ```
