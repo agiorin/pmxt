@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.41.6] - 2026-05-16
+
+### Fixed
+
+- **Docs**: Fixed `IndexError` / `TypeError` in WebSocket code examples (`watchOrderBook`, `watchAllOrderBooks`) when orderbook has no bids or asks. All examples now guard against empty orderbooks.
+
 ## [2.41.5] - 2026-05-16
 
 ### Fixed
