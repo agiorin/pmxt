@@ -27,6 +27,15 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Find Similar Markets](https://pmxt.dev/docs/router/matching): Find the same or related market on other venues, with relation types, confidence scores, and reasoning.
 - [Compare Prices Across Venues](https://pmxt.dev/docs/router/prices): Compare prices across venues and find related markets.
 - [Overview](https://pmxt.dev/docs/api-reference/overview): The full venue pass-through surface — auto-generated from pmxt-core.
+- [List Available Feeds](https://pmxt.dev/docs/api-reference/feedList): Returns the list of available data feed providers.
+- [Load Feed Markets](https://pmxt.dev/docs/api-reference/feedLoadMarkets): Returns all trading pairs supported by this feed.
+- [Fetch Ticker](https://pmxt.dev/docs/api-reference/feedFetchTicker): Returns the latest ticker for a single symbol.
+- [Fetch Tickers](https://pmxt.dev/docs/api-reference/feedFetchTickers): Returns the latest tickers for all symbols, or a filtered subset.
+- [Fetch OHLCV](https://pmxt.dev/docs/api-reference/feedFetchOHLCV): Returns OHLCV candle data for a symbol.
+- [Fetch Order Book](https://pmxt.dev/docs/api-reference/feedFetchOrderBook): Returns the current order book for a symbol (where supported).
+- [Fetch Oracle Round](https://pmxt.dev/docs/api-reference/feedFetchOracleRound): Returns the latest Chainlink oracle round for a price feed.
+- [Fetch Oracle History](https://pmxt.dev/docs/api-reference/feedFetchOracleHistory): Returns historical Chainlink oracle rounds for a price feed.
+- [Fetch Historical Prices](https://pmxt.dev/docs/api-reference/feedFetchHistoricalPrices): Returns historical price data as tickers within a time range.
 - [Server Health Check](https://pmxt.dev/docs/api-reference/healthCheck)
 - [Load Markets](https://pmxt.dev/docs/api-reference/loadMarkets): Load and cache all markets from the exchange into `this.markets` and `this.marketsBySlug`. Subsequent calls return the cached result without hitting the API again. This is the correct way to paginate or iterate over markets without drift. Because `fetchMarkets()` always hits the API, repeated calls with different `offset` values may return inconsistent results if the exchange reorders or adds markets between requests. Use `loadMarkets()` once to get a stable snapshot, then paginate over `Object.values(exchange.markets)` locally.
 - [Close](https://pmxt.dev/docs/api-reference/close)
