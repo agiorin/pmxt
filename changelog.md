@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.1] - 2026-05-19
+
+### Fixed
+
+- **Build**: Resolved TypeScript compilation errors — renamed conflicting `OrderBook`/`Market` re-exports from feeds module to `FeedOrderBook`/`FeedMarket`, and fixed `req.params.feed` type assertion in feed routes.
+
 ## [2.42.0] - 2026-05-19
 
 ### Added
