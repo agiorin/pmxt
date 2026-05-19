@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.5] - 2026-05-20
+
+### Added
+
+- **Docs**: Added `watchTicker` WebSocket endpoint to Data Feeds documentation with subscribe/unsubscribe protocol and SDK code samples.
+
 ## [2.42.4] - 2026-05-20
 
 ### Fixed

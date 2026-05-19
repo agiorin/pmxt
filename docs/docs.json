@@ -194,6 +194,7 @@
               "GET /api/feeds/{feed}/fetchTickers",
               "GET /api/feeds/{feed}/fetchOHLCV",
               "GET /api/feeds/{feed}/fetchOrderBook",
+              "GET /api/feeds/{feed}/watchTicker",
               "GET /api/feeds/{feed}/fetchOracleRound",
               "GET /api/feeds/{feed}/fetchOracleHistory",
               "GET /api/feeds/{feed}/fetchHistoricalPrices"

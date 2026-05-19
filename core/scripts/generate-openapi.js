@@ -2133,6 +2133,46 @@ function buildFeedPaths() {
     },
   };
 
+  // WebSocket streaming — watchTicker
+  paths['/api/feeds/{feed}/watchTicker'] = {
+    get: {
+      summary: 'Watch Ticker (WebSocket)',
+      operationId: 'feedWatchTicker',
+      description: [
+        'Stream live ticker updates for a symbol via WebSocket.',
+        '',
+        '**Transport:** WebSocket',
+        '',
+        '| Environment | URL |',
+        '|---|---|',
+        '| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |',
+        '',
+        '**Subscribe:**',
+        '```json',
+        '{ "id": "btc-stream", "action": "subscribe", "method": "watchTicker", "args": ["BTC/USDT"], "feed": "binance" }',
+        '```',
+        '',
+        '**Server response:**',
+        '```json',
+        '{ "event": "data", "id": "btc-stream", "method": "watchTicker", "symbol": "BTC/USDT", "source": "binance", "data": { "symbol": "BTC/USDT", "last": 76949.16, "timestamp": 1716148800000, ... } }',
+        '```',
+        '',
+        '**Unsubscribe:**',
+        '```json',
+        '{ "id": "btc-stream", "action": "unsubscribe" }',
+        '```',
+        '',
+        'Currently supports Binance feeds only. Tickers stream as they arrive from the Binance trade relay.',
+      ].join('\n'),
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbol', required: true, schema: { type: 'string' }, description: 'Trading pair to stream (e.g. BTC/USDT)' },
+      ],
+      responses: feedResponse({ $ref: '#/components/schemas/FeedTicker' }),
+      tags: ['Data Feeds'],
+    },
+  };
+
   return paths;
 }
 
@@ -2166,6 +2206,10 @@ function buildFeedCodeSamples(operationId) {
     feedFetchHistoricalPrices: {
       python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nprices = feed.fetch_historical_prices("BTC/USD", max_size=20, order="desc")\nfor p in prices:\n    print(f"{p.datetime}: ${p.last}")',
       typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst prices = await feed.fetchHistoricalPrices("BTC/USD", {\n  maxSize: 20,\n  order: "desc",\n});\nfor (const p of prices) {\n  console.log(`${p.datetime}: $${p.last}`);\n}',
+    },
+    feedWatchTicker: {
+      python: 'import asyncio\nimport json\nimport websockets\n\nasync def main():\n    url = "wss://api.pmxt.dev/ws?apiKey=YOUR_PMXT_API_KEY"\n    async with websockets.connect(url) as ws:\n        await ws.send(json.dumps({\n            "id": "btc-stream",\n            "action": "subscribe",\n            "method": "watchTicker",\n            "args": ["BTC/USDT"],\n            "feed": "binance",\n        }))\n        async for raw in ws:\n            msg = json.loads(raw)\n            if msg.get("event") == "data":\n                print(f\'{msg["data"]["symbol"]}: ${msg["data"]["last"]}\')\n\nasyncio.run(main())',
+      typescript: 'const ws = new WebSocket("wss://api.pmxt.dev/ws?apiKey=YOUR_PMXT_API_KEY");\n\nws.onopen = () => {\n  ws.send(JSON.stringify({\n    id: "btc-stream",\n    action: "subscribe",\n    method: "watchTicker",\n    args: ["BTC/USDT"],\n    feed: "binance",\n  }));\n};\n\nws.onmessage = (e) => {\n  const msg = JSON.parse(e.data);\n  if (msg.event === "data") {\n    console.log(`${msg.data.symbol}: $${msg.data.last}`);\n  }\n};',
     },
   };
 

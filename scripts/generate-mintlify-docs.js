@@ -212,8 +212,8 @@ const ENDPOINT_GROUPS = [
         match: (opId) => /^feed/.test(opId),
         order: [
             'feedList', 'feedLoadMarkets', 'feedFetchTicker', 'feedFetchTickers',
-            'feedFetchOHLCV', 'feedFetchOrderBook', 'feedFetchOracleRound',
-            'feedFetchOracleHistory', 'feedFetchHistoricalPrices',
+            'feedFetchOHLCV', 'feedFetchOrderBook', 'feedWatchTicker',
+            'feedFetchOracleRound', 'feedFetchOracleHistory', 'feedFetchHistoricalPrices',
         ],
     },
 ];
