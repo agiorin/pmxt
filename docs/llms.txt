@@ -65,6 +65,7 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Fetch Tickers](https://pmxt.dev/docs/api-reference/feedFetchTickers): Returns the latest tickers for all symbols, or a filtered subset.
 - [Fetch OHLCV](https://pmxt.dev/docs/api-reference/feedFetchOHLCV): Returns OHLCV candle data for a symbol.
 - [Fetch Order Book](https://pmxt.dev/docs/api-reference/feedFetchOrderBook): Returns the current order book for a symbol (where supported).
+- [Watch Ticker (WebSocket)](https://pmxt.dev/docs/api-reference/feedWatchTicker): Stream live ticker updates for a symbol via WebSocket.
 - [Fetch Oracle Round](https://pmxt.dev/docs/api-reference/feedFetchOracleRound): Returns the latest Chainlink oracle round for a price feed.
 - [Fetch Oracle History](https://pmxt.dev/docs/api-reference/feedFetchOracleHistory): Returns historical Chainlink oracle rounds for a price feed.
 - [Fetch Historical Prices](https://pmxt.dev/docs/api-reference/feedFetchHistoricalPrices): Returns historical price data as tickers within a time range.

@@ -4704,6 +4704,65 @@ const result = await exchange.feedFetchOrderBook({ symbol: "BTC-USD", limit: 10 
 ```
 
 
+### Watch Ticker (WebSocket)
+
+`GET /api/feeds/{feed}/watchTicker`
+
+Stream live ticker updates for a symbol via WebSocket.
+
+**Transport:** WebSocket
+
+| Environment | URL |
+|---|---|
+| Hosted API | `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY` |
+
+**Subscribe:**
+```json
+{ "id": "btc-stream", "action": "subscribe", "method": "watchTicker", "args": ["BTC/USDT"], "feed": "binance" }
+```
+
+**Server response:**
+```json
+{ "event": "data", "id": "btc-stream", "method": "watchTicker", "symbol": "BTC/USDT", "source": "binance", "data": { "symbol": "BTC/USDT", "last": 76949.16, "timestamp": 1716148800000, ... } }
+```
+
+**Unsubscribe:**
+```json
+{ "id": "btc-stream", "action": "unsubscribe" }
+```
+
+Currently supports Binance feeds only. Tickers stream as they arrive from the Binance trade relay.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `feed` | string | Yes | The data feed provider. |
+| `symbol` | string | Yes | Trading pair to stream (e.g. BTC/USDT) |
+
+**Response:** `{ success: true, data: ... }`
+
+**Python:**
+```python
+import pmxt
+
+# API key optional — enables faster catalog-backed lookups
+exchange = pmxt.Router(
+    pmxt_api_key="YOUR_PMXT_API_KEY",
+)
+result = exchange.feed_watch_ticker(symbol="BTC-USD")
+```
+
+**TypeScript:**
+```typescript
+import { Router } from "pmxtjs";
+
+// API key optional — enables faster catalog-backed lookups
+const exchange = new Router({
+  pmxtApiKey: "YOUR_PMXT_API_KEY",
+});
+const result = await exchange.feedWatchTicker({ symbol: "BTC-USD" });
+```
+
+
 ### Fetch Oracle Round
 
 `GET /api/feeds/{feed}/fetchOracleRound`
