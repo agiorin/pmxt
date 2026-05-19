@@ -144,6 +144,15 @@ matrix (inferred from the OpenAPI \`operationId\`s).
 
 const ENDPOINT_GROUPS = [
     {
+        name: 'Data Feeds',
+        match: (opId) => /^feed/.test(opId),
+        order: [
+            'feedList', 'feedLoadMarkets', 'feedFetchTicker', 'feedFetchTickers',
+            'feedFetchOHLCV', 'feedFetchOrderBook', 'feedFetchOracleRound',
+            'feedFetchOracleHistory', 'feedFetchHistoricalPrices',
+        ],
+    },
+    {
         name: 'System',
         match: (opId) => ['healthCheck', 'loadMarkets', 'close'].includes(opId),
     },

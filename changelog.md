@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.3] - 2026-05-20
+
+### Added
+
+- **Docs**: Data feed endpoints (Binance + Chainlink) now auto-generated in OpenAPI spec and Mintlify docs. 9 new endpoints under `/api/feeds/{feed}/`, FeedTicker/FeedMarket/FeedOracleRound schemas, SDK code samples for Python and TypeScript FeedClient, and a "Data Feeds" sidebar group.
+
 ## [2.42.2] - 2026-05-19
 
 ### Fixed

@@ -117,6 +117,11 @@ const HOSTED_TAGS = [
         description:
             'Executed locally by the SDK against the venue. Never proxied through PMXT servers.',
     },
+    {
+        name: 'Data Feeds',
+        description:
+            'Auxiliary price and oracle data feeds (Binance, Chainlink). CCXT-compatible method names and response shapes.',
+    },
 ];
 
 // Only endpoints that are exceptions get a tag+badge. Most endpoints
@@ -252,6 +257,19 @@ function assignHostedTags(spec) {
                     enhanced.security = [{ bearerAuth: [] }];
                 }
                 newMethods[method] = enhanced;
+            } else if (Array.isArray(op.tags) && op.tags.includes('Data Feeds')) {
+                // Feed endpoints: preserve existing tag, add auth + badge
+                newMethods[method] = {
+                    ...op,
+                    security: [{ bearerAuth: [] }],
+                    'x-mint': {
+                        ...(op['x-mint'] || {}),
+                        metadata: {
+                            ...((op['x-mint'] || {}).metadata || {}),
+                            tag: 'Data Feeds',
+                        },
+                    },
+                };
             } else {
                 // Explicitly mark non-tagged endpoints as no-auth so
                 // Mintlify doesn't inherit a global security requirement.
@@ -644,7 +662,8 @@ function injectCodeSamples(spec) {
                 newMethods[method] = op;
                 continue;
             }
-            const samples = generateCodeSamples(op.operationId, method, pathKey, op, spec);
+            const samples = generateCodeSamples(op.operationId, method, pathKey, op, spec)
+                || buildFeedCodeSamples(op.operationId);
             if (samples) {
                 newMethods[method] = { ...op, 'x-codeSamples': samples };
             } else {
@@ -1869,6 +1888,297 @@ let SCHEMAS = { ...STATIC_SCHEMAS };
 
 
 // ---------------------------------------------------------------------------
+// Data Feed schemas and paths
+//
+// Feed endpoints live at /api/feeds/{feed}/{method} and use CCXT-compatible
+// types (Ticker, Market, OracleRound) that differ from the prediction-market
+// types in types.ts. Defined statically to avoid naming conflicts with the
+// AST-derived exchange schemas (both define OrderBook, Market, etc.).
+// ---------------------------------------------------------------------------
+
+const FEED_SCHEMAS = {
+  FeedTicker: {
+    type: 'object',
+    description: 'CCXT-compatible ticker with last trade price and metadata.',
+    properties: {
+      symbol: { type: 'string', description: 'Trading pair symbol (e.g. BTC/USD)' },
+      info: { description: 'Raw provider-specific data' },
+      timestamp: { type: 'integer', description: 'Unix timestamp in milliseconds' },
+      datetime: { type: 'string', format: 'date-time' },
+      high: { type: 'number' }, low: { type: 'number' },
+      bid: { type: 'number' }, bidVolume: { type: 'number' },
+      ask: { type: 'number' }, askVolume: { type: 'number' },
+      vwap: { type: 'number' }, open: { type: 'number' },
+      close: { type: 'number' },
+      last: { type: 'number', description: 'Last trade price' },
+      previousClose: { type: 'number' },
+      change: { type: 'number' }, percentage: { type: 'number' },
+      average: { type: 'number' },
+      quoteVolume: { type: 'number' }, baseVolume: { type: 'number' },
+      indexPrice: { type: 'number' }, markPrice: { type: 'number' },
+    },
+    required: ['symbol'],
+  },
+  FeedMarket: {
+    type: 'object',
+    description: 'CCXT-compatible market descriptor for a data feed.',
+    properties: {
+      id: { type: 'string' },
+      symbol: { type: 'string' },
+      base: { type: 'string' },
+      quote: { type: 'string' },
+      active: { type: 'boolean' },
+      type: { type: 'string' },
+      info: { description: 'Provider-specific metadata' },
+    },
+    required: ['id', 'symbol', 'base', 'quote'],
+  },
+  FeedOracleRound: {
+    type: 'object',
+    description: 'Chainlink oracle price round.',
+    properties: {
+      feed: { type: 'string', description: 'Price feed pair (e.g. BTC/USD)' },
+      roundId: { type: 'string' },
+      answer: { type: 'number', description: 'Oracle price' },
+      startedAt: { type: 'integer' },
+      updatedAt: { type: 'integer' },
+      answeredInRound: { type: 'string' },
+      decimals: { type: 'integer' },
+      description: { type: 'string' },
+    },
+    required: ['feed', 'roundId', 'answer', 'startedAt', 'updatedAt', 'answeredInRound', 'decimals'],
+  },
+};
+
+const FEED_PARAM = {
+  in: 'path',
+  name: 'feed',
+  schema: { type: 'string', enum: ['binance', 'chainlink'] },
+  required: true,
+  description: 'The data feed provider.',
+};
+
+function feedResponse(dataSchema) {
+  return {
+    '200': {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean', example: true },
+              data: dataSchema,
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function buildFeedPaths() {
+  const paths = {};
+
+  paths['/api/feeds'] = {
+    get: {
+      summary: 'List Available Feeds',
+      operationId: 'feedList',
+      description: 'Returns the list of available data feed providers.',
+      responses: feedResponse({ type: 'array', items: { type: 'string' } }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/loadMarkets'] = {
+    get: {
+      summary: 'Load Feed Markets',
+      operationId: 'feedLoadMarkets',
+      description: 'Returns all trading pairs supported by this feed.',
+      parameters: [FEED_PARAM],
+      responses: feedResponse({
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/FeedMarket' },
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchTicker'] = {
+    get: {
+      summary: 'Fetch Ticker',
+      operationId: 'feedFetchTicker',
+      description: 'Returns the latest ticker for a single symbol.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbol', required: true, schema: { type: 'string' }, description: 'Trading pair (e.g. BTC/USD, BTC/USDT)' },
+      ],
+      responses: feedResponse({ $ref: '#/components/schemas/FeedTicker' }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchTickers'] = {
+    get: {
+      summary: 'Fetch Tickers',
+      operationId: 'feedFetchTickers',
+      description: 'Returns the latest tickers for all symbols, or a filtered subset.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbols', required: false, schema: { type: 'string' }, description: 'Comma-separated symbols to filter (optional)' },
+      ],
+      responses: feedResponse({
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/FeedTicker' },
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchOHLCV'] = {
+    get: {
+      summary: 'Fetch OHLCV',
+      operationId: 'feedFetchOHLCV',
+      description: 'Returns OHLCV candle data for a symbol.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbol', required: true, schema: { type: 'string' }, description: 'Trading pair' },
+        { in: 'query', name: 'timeframe', required: false, schema: { type: 'string', default: '1h' }, description: 'Candle interval (e.g. 1m, 5m, 1h, 1d)' },
+        { in: 'query', name: 'since', required: false, schema: { type: 'integer' }, description: 'Start timestamp in ms' },
+        { in: 'query', name: 'limit', required: false, schema: { type: 'integer' }, description: 'Max candles to return' },
+      ],
+      responses: feedResponse({
+        type: 'array',
+        items: { type: 'array', items: { type: 'number' }, minItems: 6, maxItems: 6 },
+        description: 'Array of [timestamp, open, high, low, close, volume] tuples',
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchOrderBook'] = {
+    get: {
+      summary: 'Fetch Order Book',
+      operationId: 'feedFetchOrderBook',
+      description: 'Returns the current order book for a symbol (where supported).',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbol', required: true, schema: { type: 'string' }, description: 'Trading pair' },
+        { in: 'query', name: 'limit', required: false, schema: { type: 'integer' }, description: 'Depth limit' },
+      ],
+      responses: feedResponse({
+        type: 'object',
+        properties: {
+          asks: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
+          bids: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
+          timestamp: { type: 'integer' },
+          datetime: { type: 'string' },
+          symbol: { type: 'string' },
+        },
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchOracleRound'] = {
+    get: {
+      summary: 'Fetch Oracle Round',
+      operationId: 'feedFetchOracleRound',
+      description: 'Returns the latest Chainlink oracle round for a price feed.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'feed', required: true, schema: { type: 'string' }, description: 'Price feed pair (e.g. BTC/USD)' },
+      ],
+      responses: feedResponse({ $ref: '#/components/schemas/FeedOracleRound' }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchOracleHistory'] = {
+    get: {
+      summary: 'Fetch Oracle History',
+      operationId: 'feedFetchOracleHistory',
+      description: 'Returns historical Chainlink oracle rounds for a price feed.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'feed', required: true, schema: { type: 'string' }, description: 'Price feed pair (e.g. BTC/USD)' },
+        { in: 'query', name: 'limit', required: false, schema: { type: 'integer' }, description: 'Max rounds to return (default 500)' },
+      ],
+      responses: feedResponse({
+        type: 'array',
+        items: { $ref: '#/components/schemas/FeedOracleRound' },
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  paths['/api/feeds/{feed}/fetchHistoricalPrices'] = {
+    get: {
+      summary: 'Fetch Historical Prices',
+      operationId: 'feedFetchHistoricalPrices',
+      description: 'Returns historical price data as tickers within a time range.',
+      parameters: [
+        FEED_PARAM,
+        { in: 'query', name: 'symbol', required: true, schema: { type: 'string' }, description: 'Trading pair (e.g. BTC/USD)' },
+        { in: 'query', name: 'fromTimestamp', required: false, schema: { type: 'integer' }, description: 'Start unix timestamp (seconds)' },
+        { in: 'query', name: 'untilTimestamp', required: false, schema: { type: 'integer' }, description: 'End unix timestamp (seconds)' },
+        { in: 'query', name: 'maxSize', required: false, schema: { type: 'integer' }, description: 'Max records to return' },
+        { in: 'query', name: 'order', required: false, schema: { type: 'string', enum: ['asc', 'desc'] }, description: 'Sort order' },
+      ],
+      responses: feedResponse({
+        type: 'array',
+        items: { $ref: '#/components/schemas/FeedTicker' },
+      }),
+      tags: ['Data Feeds'],
+    },
+  };
+
+  return paths;
+}
+
+// SDK code samples for feed endpoints
+function buildFeedCodeSamples(operationId) {
+  const FEED_SAMPLES = {
+    feedList: {
+      python: 'import requests\n\nresp = requests.get(\n    "https://api.pmxt.dev/api/feeds",\n    headers={"Authorization": "Bearer YOUR_PMXT_API_KEY"},\n)\nprint(resp.json()["data"])',
+      typescript: 'const resp = await fetch("https://api.pmxt.dev/api/feeds", {\n  headers: { Authorization: "Bearer YOUR_PMXT_API_KEY" },\n});\nconst { data } = await resp.json();\nconsole.log(data);',
+    },
+    feedLoadMarkets: {
+      python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nmarkets = feed.load_markets()\nfor symbol, market in markets.items():\n    print(symbol, market.base, market.quote)',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst markets = await feed.loadMarkets();\nfor (const [symbol, market] of Object.entries(markets)) {\n  console.log(symbol, market.base, market.quote);\n}',
+    },
+    feedFetchTicker: {
+      python: 'from pmxt.feed_client import FeedClient\n\n# Chainlink oracle price\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nticker = feed.fetch_ticker("BTC/USD")\nprint(f"BTC/USD: ${ticker.last}")\n\n# Binance spot price\nfeed = FeedClient("binance", pmxt_api_key="YOUR_PMXT_API_KEY")\nticker = feed.fetch_ticker("BTC/USDT")\nprint(f"BTC/USDT: ${ticker.last}")',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\n// Chainlink oracle price\nconst chainlink = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst ticker = await chainlink.fetchTicker("BTC/USD");\nconsole.log(`BTC/USD: $${ticker.last}`);\n\n// Binance spot price\nconst binance = new FeedClient("binance", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst btc = await binance.fetchTicker("BTC/USDT");\nconsole.log(`BTC/USDT: $${btc.last}`);',
+    },
+    feedFetchTickers: {
+      python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\ntickers = feed.fetch_tickers()\nfor symbol, ticker in tickers.items():\n    print(f"{symbol}: ${ticker.last}")',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst tickers = await feed.fetchTickers();\nfor (const [symbol, ticker] of Object.entries(tickers)) {\n  console.log(`${symbol}: $${ticker.last}`);\n}',
+    },
+    feedFetchOracleRound: {
+      python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nround = feed.fetch_oracle_round("BTC/USD")\nprint(f"Round {round.round_id}: ${round.answer} (decimals: {round.decimals})")',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst round = await feed.fetchOracleRound("BTC/USD");\nconsole.log(`Round ${round.roundId}: $${round.answer}`);',
+    },
+    feedFetchOracleHistory: {
+      python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nrounds = feed.fetch_oracle_history("BTC/USD", limit=10)\nfor r in rounds:\n    print(f"{r.round_id}: ${r.answer}")',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst rounds = await feed.fetchOracleHistory("BTC/USD", 10);\nfor (const r of rounds) {\n  console.log(`${r.roundId}: $${r.answer}`);\n}',
+    },
+    feedFetchHistoricalPrices: {
+      python: 'from pmxt.feed_client import FeedClient\n\nfeed = FeedClient("chainlink", pmxt_api_key="YOUR_PMXT_API_KEY")\nprices = feed.fetch_historical_prices("BTC/USD", max_size=20, order="desc")\nfor p in prices:\n    print(f"{p.datetime}: ${p.last}")',
+      typescript: 'import { FeedClient } from "pmxtjs";\n\nconst feed = new FeedClient("chainlink", { pmxtApiKey: "YOUR_PMXT_API_KEY" });\nconst prices = await feed.fetchHistoricalPrices("BTC/USD", {\n  maxSize: 20,\n  order: "desc",\n});\nfor (const p of prices) {\n  console.log(`${p.datetime}: $${p.last}`);\n}',
+    },
+  };
+
+  const sample = FEED_SAMPLES[operationId];
+  if (!sample) return undefined;
+  return [
+    { lang: 'python', label: 'Python', source: sample.python },
+    { lang: 'javascript', label: 'TypeScript', source: sample.typescript },
+  ];
+}
+
+
+// ---------------------------------------------------------------------------
 // Assemble and write the full spec
 // ---------------------------------------------------------------------------
 
@@ -1903,6 +2213,10 @@ function buildSpec(methodSpecs) {
     paths[`/api/{exchange}/${name}`] = pathObj;
   }
 
+  // Data feed endpoints
+  const feedPaths = buildFeedPaths();
+  Object.assign(paths, feedPaths);
+
   return {
     openapi: '3.0.0',
     info: {
@@ -1929,8 +2243,15 @@ function buildSpec(methodSpecs) {
           required: true,
           description: 'The prediction market exchange to target.',
         },
+        FeedParam: {
+          in: 'path',
+          name: 'feed',
+          schema: { type: 'string', enum: ['binance', 'chainlink'] },
+          required: true,
+          description: 'The data feed provider.',
+        },
       },
-      schemas: SCHEMAS,
+      schemas: { ...SCHEMAS, ...FEED_SCHEMAS },
     },
   };
 }
