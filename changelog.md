@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.4] - 2026-05-20
+
+### Fixed
+
+- **Docs**: Moved Data Feeds group to the bottom of the API Reference sidebar. Prediction market endpoints come first.
+
 ## [2.42.3] - 2026-05-20
 
 ### Added
