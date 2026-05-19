@@ -70,10 +70,13 @@ export class FeedClient {
 
     constructor(feedName: string, options: FeedClientOptions = {}) {
         this.feedName = feedName;
-        const pmxtApiKey = options.pmxtApiKey || process.env.PMXT_API_KEY || '';
-        this.baseUrl = options.baseUrl || resolvePmxtBaseUrl(pmxtApiKey);
+        const resolved = resolvePmxtBaseUrl({
+            baseUrl: options.baseUrl,
+            pmxtApiKey: options.pmxtApiKey,
+        });
+        this.baseUrl = resolved.baseUrl;
         this.headers = {
-            ...(pmxtApiKey ? { 'Authorization': `Bearer ${pmxtApiKey}` } : {}),
+            ...(resolved.pmxtApiKey ? { 'Authorization': `Bearer ${resolved.pmxtApiKey}` } : {}),
         };
     }
 

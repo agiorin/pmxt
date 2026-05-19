@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **Build**: Resolved TypeScript compilation errors — renamed conflicting `OrderBook`/`Market` re-exports from feeds module to `FeedOrderBook`/`FeedMarket`, and fixed `req.params.feed` type assertion in feed routes.
+- **Build**: Resolved TypeScript compilation errors — renamed conflicting `OrderBook`/`Market` re-exports from feeds module to `FeedOrderBook`/`FeedMarket`, fixed `req.params.feed` type assertion in feed routes, and fixed `FeedClient` constructor to use `resolvePmxtBaseUrl` object signature.
 
 ## [2.42.0] - 2026-05-19
 
