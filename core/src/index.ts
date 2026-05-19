@@ -18,6 +18,7 @@ export * from './exchanges/polymarket_us';
 export * from './exchanges/hyperliquid';
 export * from './exchanges/gemini-titan';
 export * from './router';
+export * from './feeds';
 export * from './server/app';
 export * from './server/utils/port-manager';
 export * from './server/utils/lock-file';

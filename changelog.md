@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] - Data Feeds (Binance + ChainLink)
+
+### Added
+
+- **Data Feeds module** (`core/src/feeds/`): auxiliary price/oracle data alongside prediction markets. CCXT-compatible unified API — same method names, same types (`Ticker`, `OHLCV`, `OrderBook`, `Market`), same return shapes.
+- **BinanceFeed**: real-time spot trade tickers via obdata WebSocket relay. Supports `fetchTicker`, `fetchTickers`, `watchTicker`, `loadMarkets`. Symbols: BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT.
+- **ChainlinkFeed**: on-chain oracle prices via pmxt-ohlc REST + WebSocket. Supports `fetchTicker`, `fetchTickers`, `watchTicker`, `loadMarkets`, plus pmxt-specific `fetchOracleRound`, `fetchOracleHistory`, `fetchHistoricalPrices`. Feeds: ETH/USD, BTC/USD, XRP/USD, SOL/USD on Polygon.
+- **Server routes** (`/api/feeds/:feed/:method`): REST endpoints for all feed methods, mounted alongside existing exchange routes.
+- **SDK (TypeScript)**: `FeedClient` class (`pmxt/feed-client.ts`) with `loadMarkets`, `fetchTicker`, `fetchTickers`, `fetchOHLCV`, `fetchOracleRound`, `fetchOracleHistory`.
+- **SDK (Python)**: `FeedClient` class (`pmxt/feed_client.py`) with `load_markets`, `fetch_ticker`, `fetch_tickers`, `fetch_ohlcv`, `fetch_oracle_round`, `fetch_oracle_history`.
+- **E2E tests**: 38 tests hitting live Binance relay and ChainLink API — verifies raw API shape, normalizer output, and full feed class integration.
+
 ## [2.41.7] - 2026-05-17
 
 ### Fixed
