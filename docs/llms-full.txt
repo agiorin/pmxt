@@ -1115,6 +1115,9 @@ or `new pmxt.Polymarket({})` from the SDKs.
 | Metaculus | `metaculus` | `POST /api/metaculus/:method` |
 | Smarkets | `smarkets` | `POST /api/smarkets/:method` |
 | Polymarket US | `polymarket_us` | `POST /api/polymarket_us/:method` |
+| gemini-titan | `gemini-titan` | `POST /api/gemini-titan/:method` |
+| hyperliquid | `hyperliquid` | `POST /api/hyperliquid/:method` |
+| mock | `mock` | `POST /api/mock/:method` |
 | Router | `router` | `POST /api/router/:method` |
 
 
