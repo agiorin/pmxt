@@ -1,6 +1,6 @@
 /**
  * Exchange client implementations.
- * 
+ *
  * This module provides clean, TypeScript-friendly wrappers around the auto-generated
  * OpenAPI client, matching the Python API exactly.
  */
@@ -214,7 +214,7 @@ export interface ExchangeOptions {
 
 /**
  * Base class for prediction market exchanges.
- * 
+ *
  * This provides a unified interface for interacting with different
  * prediction market platforms (Polymarket, Kalshi, etc.).
  */
@@ -824,11 +824,11 @@ export abstract class Exchange {
         }
     }
 
-    async fetchOrderBooks(ids: string[]): Promise<Record<string, OrderBook>> {
+    async fetchOrderBooks(outcomeIds: (string | MarketOutcome)[]): Promise<Record<string, OrderBook>> {
         await this.initPromise;
         try {
             const args: any[] = [];
-            args.push(ids);
+            args.push(outcomeIds.map(resolveOutcomeId));
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBooks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -1420,7 +1420,7 @@ export abstract class Exchange {
      * @param outcomeId - Outcome ID (from market.outcomes[].outcomeId)
      * @param params - History filter parameters
      * @returns List of price candles
-     * 
+     *
      * @example
      * ```typescript
      * const markets = await exchange.fetchMarkets({ query: "Trump" });
@@ -1505,14 +1505,14 @@ export abstract class Exchange {
 
     /**
      * Watch real-time order book updates via WebSocket.
-     * 
+     *
      * Returns a promise that resolves with the next order book update.
      * Call repeatedly in a loop to stream updates (CCXT Pro pattern).
-     * 
+     *
      * @param outcomeId - Outcome ID to watch
      * @param limit - Optional depth limit for order book
      * @returns Next order book update
-     * 
+     *
      * @example
      * ```typescript
      * // Stream order book updates
@@ -2070,7 +2070,7 @@ export abstract class Exchange {
     /**
      * Calculate the average execution price for a given amount by walking the order book.
      * Uses the sidecar server for calculation to ensure consistency.
-     * 
+     *
      * @param orderBook - The current order book
      * @param side - 'buy' or 'sell'
      * @param amount - The amount to execute
@@ -2084,7 +2084,7 @@ export abstract class Exchange {
     /**
      * Calculate detailed execution price information.
      * Uses the sidecar server for calculation to ensure consistency.
-     * 
+     *
      * @param orderBook - The current order book
      * @param side - 'buy' or 'sell'
      * @param amount - The amount to execute
