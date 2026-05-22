@@ -3139,6 +3139,9 @@ Fetch the order book (bids/asks) for a specific outcome.
 | --- | --- | --- | --- |
 | `outcomeId` | string | Yes |  |
 | `limit` | number | No |  |
+| `side` | string | No | Outcome side: 'yes' or 'no'. Required for exchanges like Limitless where the API returns a single orderbook per market. |
+| `since` | number | No | Unix timestamp (ms) — fetch a historical snapshot at or before this time, or the start of a range when combined with `until` (hosted API only). |
+| `until` | number | No | Unix timestamp (ms) — end of a historical range. When combined with `since`, returns an array of reconstructed L2 OrderBook snapshots between `since` and `until` (hosted API only). |
 
 **Response:** `{ success: true, data: ... }`
 
@@ -3150,7 +3153,13 @@ import pmxt
 exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
-result = exchange.fetch_order_book(outcome_id="67890", limit=10)
+result = exchange.fetch_order_book(
+    outcome_id="67890",
+    limit=10,
+    side="buy",
+    since=1,
+    until=1,
+)
 ```
 
 **TypeScript:**
@@ -3161,7 +3170,13 @@ import { Router } from "pmxtjs";
 const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
-const result = await exchange.fetchOrderBook({ outcomeId: "67890", limit: 10 });
+const result = await exchange.fetchOrderBook({
+  outcomeId: "67890",
+  limit: 10,
+  side: "buy",
+  since: 1,
+  until: 1,
+});
 ```
 
 
