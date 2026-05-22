@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.7] - 2026-05-22
+
+### Fixed
+
+- **Publish**: Re-release of v2.42.6 (failed due to expired npm token; provenance record burned in Sigstore).
+
 ## [2.42.6] - 2026-05-22
 
 ### Fixed
