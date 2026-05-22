@@ -383,26 +383,27 @@ Common resolutions: '1m' | '5m' | '15m' | '1h' | '6h' | '1d'. Arbitrary interval
 ---
 ### `fetchOrderBook`
 
-Fetch the current order book (bids/asks) for a specific outcome.
+Fetch the order book (bids/asks) for a specific outcome.
 
 
 **Signature:**
 
 ```typescript
-async fetchOrderBook(outcomeId: string, side?: 'yes' | 'no'): Promise<OrderBook>
+async fetchOrderBook(outcomeId: string, limit?: number, params?: Record<string, any>): Promise<OrderBook>
 ```
 
 **Parameters:**
 
 - `outcomeId` (string): The Outcome ID (outcomeId) or market slug
-- `side` ('yes' | 'no') - **Optional**: Optional 'yes' or 'no' to explicitly indicate the
+- `limit` (number) - **Optional**: Max number of bid/ask levels to return (CCXT-style).
+- `params` (Record<string, any>) - **Optional**: Optional parameters:
 
-**Returns:** Promise<[OrderBook](#orderbook)> - Current order book with bids and asks
+**Returns:** Promise<[OrderBook](#orderbook)> - Order book with bids and asks. Returns OrderBook[] when
 
 **Example:**
 
 ```typescript
-await exchange.fetchOrderBook("abc123", { side: "buy" })
+await exchange.fetchOrderBook("abc123", { limit: 10, params: "..." })
 ```
 
 
@@ -1512,6 +1513,7 @@ interface OrderBook {
 bids: OrderLevel[]; // Order book bid levels, sorted by price descending.
 asks: OrderLevel[]; // Order book ask levels, sorted by price ascending.
 timestamp: number; // Unix timestamp in milliseconds when the snapshot was taken.
+datetime: string; // ISO 8601 datetime string of the snapshot (CCXT-compatible).
 }
 ```
 

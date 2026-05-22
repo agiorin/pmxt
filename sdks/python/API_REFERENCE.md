@@ -380,26 +380,27 @@ Common resolutions: '1m' | '5m' | '15m' | '1h' | '6h' | '1d'. Arbitrary interval
 ---
 ### `fetch_order_book`
 
-Fetch the current order book (bids/asks) for a specific outcome.
+Fetch the order book (bids/asks) for a specific outcome.
 
 
 **Signature:**
 
 ```python
-def fetch_order_book(outcome_id: str, side: Optional['yes' | 'no'] = None) -> OrderBook:
+def fetch_order_book(outcome_id: str, limit: Optional[float] = None, params: Optional[Dict[str, Any]] = None) -> OrderBook:
 ```
 
 **Parameters:**
 
 - `outcome_id` (str): The Outcome ID (outcomeId) or market slug
-- `side` ('yes' | 'no') - **Optional**: Optional 'yes' or 'no' to explicitly indicate the
+- `limit` (float) - **Optional**: Max number of bid/ask levels to return (CCXT-style).
+- `params` (Dict[str, Any]) - **Optional**: Optional parameters:
 
-**Returns:** [OrderBook](#orderbook) - Current order book with bids and asks
+**Returns:** [OrderBook](#orderbook) - Order book with bids and asks. Returns OrderBook[] when
 
 **Example:**
 
 ```python
-exchange.fetch_order_book(outcome_id="abc123", side="buy")
+exchange.fetch_order_book(outcome_id="abc123", limit=10, params="...")
 ```
 
 
@@ -1512,6 +1513,7 @@ class OrderBook:
 bids: List[OrderLevel] # Order book bid levels, sorted by price descending.
 asks: List[OrderLevel] # Order book ask levels, sorted by price ascending.
 timestamp: float # Unix timestamp in milliseconds when the snapshot was taken.
+datetime: str # ISO 8601 datetime string of the snapshot (CCXT-compatible).
 ```
 
 ---
