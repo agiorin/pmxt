@@ -93,8 +93,13 @@
         "optional": false
       },
       {
-        "name": "side",
-        "kind": "string",
+        "name": "limit",
+        "kind": "number",
+        "optional": true
+      },
+      {
+        "name": "params",
+        "kind": "object",
         "optional": true
       }
     ]
