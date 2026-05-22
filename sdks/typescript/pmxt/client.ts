@@ -766,13 +766,16 @@ export abstract class Exchange {
         }
     }
 
-    async fetchOrderBook(outcomeId: string | MarketOutcome, limit?: number, params?: Record<string, any>): Promise<OrderBook> {
+    async fetchOrderBook(outcomeId: string | MarketOutcome, limit?: number, params?: Record<string, any>): Promise<OrderBook | OrderBook[]> {
         await this.initPromise;
         try {
             const args: any[] = [];
             args.push(resolveOutcomeId(outcomeId));
             if (limit !== undefined) args.push(limit);
-            if (params !== undefined) args.push(params);
+            if (params !== undefined) {
+                if (limit === undefined) args.push(null);
+                args.push(params);
+            }
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -787,6 +790,9 @@ export abstract class Exchange {
             }
             const json = await response.json();
             const data = this.handleResponse(json);
+            if (Array.isArray(data)) {
+                return data.map(convertOrderBook);
+            }
             return convertOrderBook(data);
         } catch (error) {
             if (error instanceof PmxtError) throw error;
