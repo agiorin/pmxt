@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.42.6] - 2026-05-22
+
+### Fixed
+
+- **Polymarket**: Pagination now uses PAGE_SIZE 100 (Gamma silently clamps responses to 100 items; the old 500 value stopped pagination after one request).
+- **Polymarket**: Null-safe parsing for `outcomePrices`, `outcomeLabels`, and `clobTokenIds` — resolved markets return `"null"` (string) which `JSON.parse` turns into JS `null`, bypassing the `|| []` fallback.
+- **Polymarket**: Cap pagination offsets at 10,000 (Gamma's server-enforced maximum).
+
 ## [2.42.5] - 2026-05-20
 
 ### Added
