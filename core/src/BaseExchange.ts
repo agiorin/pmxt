@@ -16,6 +16,7 @@ import {
     UserTrade,
 } from './types';
 import { ExecutionPriceResult, getExecutionPrice, getExecutionPriceDetailed } from './utils/math';
+import { logger } from './utils/logger';
 import { Throttler } from './utils/throttler';
 import type {
     FetchMarketMatchesParams,
@@ -467,9 +468,9 @@ export abstract class PredictionMarketExchange {
         // Request Interceptor
         this.http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
             if (this.verbose) {
-                console.log(`\n[pmxt] → ${config.method?.toUpperCase()} ${config.url}`);
-                if (config.params) console.log('[pmxt] params:', config.params);
-                if (config.data) console.log('[pmxt] body:', JSON.stringify(config.data, null, 2));
+                logger.debug(`-> ${config.method?.toUpperCase()} ${config.url}`);
+                if (config.params) logger.debug('params:', { params: config.params });
+                if (config.data) logger.debug('body:', { body: config.data });
             }
             return config;
         });
@@ -478,20 +479,17 @@ export abstract class PredictionMarketExchange {
         this.http.interceptors.response.use(
             (response: AxiosResponse) => {
                 if (this.verbose) {
-                    console.log(`\n[pmxt] ← ${response.status} ${response.statusText} ${response.config.url}`);
-                    // console.log('[pmxt] response:', JSON.stringify(response.data, null, 2));
-                    // Commented out full body log to avoid spam, but headers might be useful
+                    logger.debug(`<- ${response.status} ${response.statusText} ${response.config.url}`);
                 }
                 return response;
             },
             (error: any) => {
                 if (this.verbose) {
-                    console.log(`\n[pmxt] ✖ REQUEST FAILED: ${error.config?.url}`);
-                    console.log('[pmxt] error:', error.message);
-                    if (error.response) {
-                        console.log('[pmxt] status:', error.response.status);
-                        console.log('[pmxt] data:', JSON.stringify(error.response.data, null, 2));
-                    }
+                    logger.debug(`REQUEST FAILED: ${error.config?.url}`, {
+                        error: error.message,
+                        status: error.response?.status,
+                        data: error.response?.data,
+                    });
                 }
                 return Promise.reject(error);
             }
@@ -854,9 +852,23 @@ export abstract class PredictionMarketExchange {
     /**
      * Fetch the order book (bids/asks) for a specific outcome.
      *
+     * Supports live and historical queries. For historical data, pass `since`
+     * to get a single snapshot, or `since` + `until` to get an array of fully
+     * reconstructed L2 books from the archive. Range queries return up to
+     * `limit` snapshots (default 100, max 1000).
+     *
+     * Example — 2028 Presidential Election order book from last week:
+     *
+     *     const book = await poly.fetchOrderBook(
+     *       '0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a',
+     *       undefined,
+     *       { since: Date.now() - 7 * 24 * 60 * 60 * 1000 }
+     *     );
+     *
      * @param outcomeId - The Outcome ID (outcomeId) or market slug
-     * @param limit - Max number of bid/ask levels to return (CCXT-style).
-     *   For range queries, limits the number of snapshots returned.
+     * @param limit - Max number of bid/ask levels to return. For range
+     *   queries (since + until), limits the number of snapshots returned
+     *   (default 100, max 1000).
      * @param params - Optional parameters:
      *   - `side`: 'yes' or 'no' — explicitly indicate the outcome side
      *     (required for exchanges like Limitless where the API returns a
@@ -898,10 +910,7 @@ export abstract class PredictionMarketExchange {
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         // Deprecation warning for resolution parameter
         if ('resolution' in params && params.resolution !== undefined) {
-            console.warn(
-                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
-                'It will be removed in v3.0.0. Please remove it from your code.'
-            );
+            logger.warn('The "resolution" parameter is deprecated for fetchTrades() and will be ignored. It will be removed in v3.0.0.');
         }
         throw new Error("Method fetchTrades not implemented.");
     }
@@ -1419,7 +1428,7 @@ export abstract class PredictionMarketExchange {
      * @deprecated Use {@link fetchMarketMatches} instead.
      */
     async fetchMatches(params: FetchMatchesParams): Promise<MatchResult[]> {
-        console.warn('[pmxt] fetchMatches is deprecated, use fetchMarketMatches instead');
+        logger.warn('fetchMatches is deprecated, use fetchMarketMatches instead');
         return this.fetchMarketMatches(params);
     }
 

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.6] - 2026-05-23
+
+### Improved
+
+- **Docs**: `fetchOrderBook` description now includes a 2028 Presidential Election example, explains historical query modes, and documents default/max limits (100/1000) for range queries.
+
 ## [2.43.5] - 2026-05-22
 
 ### Fixed
