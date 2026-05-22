@@ -1,6 +1,6 @@
 /**
  * Exchange client implementations.
- * 
+ *
  * This module provides clean, TypeScript-friendly wrappers around the auto-generated
  * OpenAPI client, matching the Python API exactly.
  */
@@ -214,7 +214,7 @@ export interface ExchangeOptions {
 
 /**
  * Base class for prediction market exchanges.
- * 
+ *
  * This provides a unified interface for interacting with different
  * prediction market platforms (Polymarket, Kalshi, etc.).
  */
@@ -766,43 +766,13 @@ export abstract class Exchange {
         }
     }
 
-    /**
-     * Fetch the order book for an outcome.
-     *
-     * @param outcomeId - Outcome ID or MarketOutcome object
-     * @param limit - Max bid/ask levels (live), or max snapshots (range query)
-     * @param params - Optional parameters:
-     *   - `side`: 'yes' | 'no' — outcome side (for exchanges like Limitless)
-     *   - `since`: Unix timestamp (ms) — historical snapshot at or before this time
-     *   - `since` + `until`: Unix timestamps (ms) — returns OrderBook[] of all
-     *     snapshots between since and until
-     * @returns Single OrderBook, or OrderBook[] when both since and until are provided
-     *
-     * @example
-     * // Live order book
-     * const book = await exchange.fetchOrderBook(outcomeId);
-     *
-     * @example
-     * // Historical snapshot
-     * const book = await exchange.fetchOrderBook(outcomeId, undefined, { since: 1779278400000 });
-     *
-     * @example
-     * // Range of snapshots (last 5 minutes)
-     * const books = await exchange.fetchOrderBook(outcomeId, 100, {
-     *   since: Date.now() - 5 * 60 * 1000,
-     *   until: Date.now(),
-     * });
-     */
-    async fetchOrderBook(outcomeId: string | MarketOutcome, limit?: number, params?: Record<string, any>): Promise<OrderBook | OrderBook[]> {
+    async fetchOrderBook(outcomeId: string | MarketOutcome, limit?: number, params?: Record<string, any>): Promise<OrderBook> {
         await this.initPromise;
         try {
             const args: any[] = [];
             args.push(resolveOutcomeId(outcomeId));
             if (limit !== undefined) args.push(limit);
-            if (params !== undefined) {
-                if (limit === undefined) args.push(undefined);
-                args.push(params);
-            }
+            if (params !== undefined) args.push(params);
             const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
@@ -821,6 +791,36 @@ export abstract class Exchange {
         } catch (error) {
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to fetchOrderBook: ${error}`);
+        }
+    }
+
+    async fetchOrderBooks(outcomeIds: (string | MarketOutcome)[]): Promise<Record<string, OrderBook>> {
+        await this.initPromise;
+        try {
+            const args: any[] = [];
+            args.push(outcomeIds.map(resolveOutcomeId));
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/fetchOrderBooks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
+            }
+            const json = await response.json();
+            const data = this.handleResponse(json);
+            const result: Record<string, OrderBook> = {};
+            for (const [key, value] of Object.entries(data as any)) {
+                result[key] = convertOrderBook(value);
+            }
+            return result;
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to fetchOrderBooks: ${error}`);
         }
     }
 
@@ -1390,7 +1390,7 @@ export abstract class Exchange {
      * @param outcomeId - Outcome ID (from market.outcomes[].outcomeId)
      * @param params - History filter parameters
      * @returns List of price candles
-     * 
+     *
      * @example
      * ```typescript
      * const markets = await exchange.fetchMarkets({ query: "Trump" });
@@ -1475,14 +1475,14 @@ export abstract class Exchange {
 
     /**
      * Watch real-time order book updates via WebSocket.
-     * 
+     *
      * Returns a promise that resolves with the next order book update.
      * Call repeatedly in a loop to stream updates (CCXT Pro pattern).
-     * 
+     *
      * @param outcomeId - Outcome ID to watch
      * @param limit - Optional depth limit for order book
      * @returns Next order book update
-     * 
+     *
      * @example
      * ```typescript
      * // Stream order book updates
@@ -2040,7 +2040,7 @@ export abstract class Exchange {
     /**
      * Calculate the average execution price for a given amount by walking the order book.
      * Uses the sidecar server for calculation to ensure consistency.
-     * 
+     *
      * @param orderBook - The current order book
      * @param side - 'buy' or 'sell'
      * @param amount - The amount to execute
@@ -2054,7 +2054,7 @@ export abstract class Exchange {
     /**
      * Calculate detailed execution price information.
      * Uses the sidecar server for calculation to ensure consistency.
-     * 
+     *
      * @param orderBook - The current order book
      * @param side - 'buy' or 'sell'
      * @param amount - The amount to execute
@@ -2643,5 +2643,53 @@ export class Smarkets extends Exchange {
 export class PolymarketUS extends Exchange {
     constructor(options: ExchangeOptions = {}) {
         super("polymarket_us", options);
+    }
+}
+
+/**
+ * Gemini Titan exchange client.
+ *
+ * @example
+ * ```typescript
+ * const titan = new GeminiTitan();
+ * const markets = await titan.fetchMarkets();
+ * ```
+ */
+export class GeminiTitan extends Exchange {
+    constructor(options: ExchangeOptions = {}) {
+        super("gemini-titan", options);
+    }
+}
+
+/**
+ * Hyperliquid exchange client.
+ *
+ * @example
+ * ```typescript
+ * const hl = new Hyperliquid();
+ * const markets = await hl.fetchMarkets();
+ * ```
+ */
+export class Hyperliquid extends Exchange {
+    constructor(options: ExchangeOptions = {}) {
+        super("hyperliquid", options);
+    }
+}
+
+/**
+ * Mock exchange client.
+ *
+ * Offline deterministic exchange for testing and development.
+ * No credentials required.
+ *
+ * @example
+ * ```typescript
+ * const mock = new Mock();
+ * const markets = await mock.fetchMarkets();
+ * ```
+ */
+export class Mock extends Exchange {
+    constructor(options: ExchangeOptions = {}) {
+        super("mock", options);
     }
 }

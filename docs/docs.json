@@ -146,6 +146,7 @@
             "pages": [
               "api-reference/fetch-ohlcv",
               "GET /api/{exchange}/fetchOrderBook",
+              "POST /api/{exchange}/fetchOrderBooks",
               "GET /api/{exchange}/fetchTrades",
               "POST /api/{exchange}/getExecutionPrice",
               "POST /api/{exchange}/getExecutionPriceDetailed"

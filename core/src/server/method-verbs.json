@@ -104,6 +104,16 @@
       }
     ]
   },
+  "fetchOrderBooks": {
+    "verb": "post",
+    "args": [
+      {
+        "name": "outcomeIds",
+        "kind": "unknown",
+        "optional": false
+      }
+    ]
+  },
   "fetchTrades": {
     "verb": "get",
     "args": [
