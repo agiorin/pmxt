@@ -772,21 +772,21 @@ Watch order book updates in real-time via WebSocket.
 **Signature:**
 
 ```python
-def watch_order_book(outcome_id: str, limit: Optional[float] = None, params: Optional[dict] = None) -> OrderBook:
+def watch_order_book(outcome_id: str, limit: Optional[float] = None, params: Dict[str, Any]) -> OrderBook:
 ```
 
 **Parameters:**
 
 - `outcome_id` (str): The Outcome ID to watch
 - `limit` (float) - **Optional**: Optional limit for orderbook depth
-- `params` (dict) - **Optional**: Optional exchange-specific parameters
+- `params` (Dict[str, Any]): Optional exchange-specific parameters
 
 **Returns:** [OrderBook](#orderbook) - Promise that resolves with the current orderbook state
 
 **Example:**
 
 ```python
-exchange.watch_order_book(outcome_id="abc123", limit=10)
+exchange.watch_order_book(outcome_id="abc123", params="...", limit=10)
 ```
 
 
@@ -799,20 +799,21 @@ Watch multiple order books simultaneously via WebSocket.
 **Signature:**
 
 ```python
-def watch_order_books(outcome_ids: List[string], limit: Optional[float] = None) -> Dictstr, [OrderBook]:
+def watch_order_books(outcome_ids: List[string], limit: Optional[float] = None, params: Dict[str, Any]) -> Dictstr, [OrderBook]:
 ```
 
 **Parameters:**
 
 - `outcome_ids` (List[string]): Array of Outcome IDs to watch
 - `limit` (float) - **Optional**: Optional limit for orderbook depth
+- `params` (Dict[str, Any]): Optional exchange-specific parameters
 
 **Returns:** Dict[str, [OrderBook](#orderbook)] - Promise that resolves with order books keyed by ID
 
 **Example:**
 
 ```python
-exchange.watch_order_books(outcome_ids="12345", limit=10)
+exchange.watch_order_books(outcome_ids="12345", params="...", limit=10)
 ```
 
 
@@ -2159,6 +2160,7 @@ result = exchange.call_api('operationName', {'param': 'value'})
 | `getDataTrades` | `GET` | `/data/trades` | Get Trades | Required |
 | `getOrderScoring` | `GET` | `/order-scoring` | Check Order Reward Scoring | Required |
 | `postOrdersScoring` | `POST` | `/orders-scoring` | Check Multiple Orders Scoring | Required |
+| `updateBalanceAllowance` | `GET` | `/balance-allowance/update` | Update balance and allowance cache | Required |
 | `getGeoblock` | `GET` | `/geoblock` | Check Geoblock Status | Public |
 | `getDataApiHealth` | `GET` | `/` | Data API Health check | Public |
 | `getPositions` | `GET` | `/positions` | Get current positions for a user | Public |
@@ -2742,6 +2744,16 @@ Check Order Reward Scoring *(Auth required)*
 **POST** `/orders-scoring`
 
 Check Multiple Orders Scoring *(Auth required)*
+
+**Parameters:**
+- `` (, string)
+
+---
+##### `updateBalanceAllowance`
+
+**GET** `/balance-allowance/update`
+
+Update balance and allowance cache *(Auth required)*
 
 **Parameters:**
 - `` (, string)

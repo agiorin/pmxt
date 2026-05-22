@@ -775,21 +775,21 @@ Watch order book updates in real-time via WebSocket.
 **Signature:**
 
 ```typescript
-async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook>
+async watchOrderBook(outcomeId: string, limit?: number, params: Record<string, any>): Promise<OrderBook>
 ```
 
 **Parameters:**
 
 - `outcomeId` (string): The Outcome ID to watch
 - `limit` (number) - **Optional**: Optional limit for orderbook depth
-- `params` (object) - **Optional**: Optional exchange-specific parameters
+- `params` (Record<string, any>): Optional exchange-specific parameters
 
 **Returns:** Promise<[OrderBook](#orderbook)> - Promise that resolves with the current orderbook state
 
 **Example:**
 
 ```typescript
-await exchange.watchOrderBook("12345", 10)
+await exchange.watchOrderBook("abc123", "...", { limit: 10 })
 ```
 
 
@@ -802,20 +802,21 @@ Watch multiple order books simultaneously via WebSocket.
 **Signature:**
 
 ```typescript
-async watchOrderBooks(outcomeIds: string[], limit?: number): Promise<Record<string, OrderBook>>
+async watchOrderBooks(outcomeIds: string[], limit?: number, params: Record<string, any>): Promise<Record<string, OrderBook>>
 ```
 
 **Parameters:**
 
 - `outcomeIds` (string[]): Array of Outcome IDs to watch
 - `limit` (number) - **Optional**: Optional limit for orderbook depth
+- `params` (Record<string, any>): Optional exchange-specific parameters
 
 **Returns:** Promise<Record<string, OrderBook>> - Promise that resolves with order books keyed by ID
 
 **Example:**
 
 ```typescript
-await exchange.watchOrderBooks(["12345"], 10)
+await exchange.watchOrderBooks("12345", "...", { limit: 10 })
 ```
 
 
@@ -2160,6 +2161,7 @@ const result = await exchange.callApi('operationName', { param: 'value' });
 | `getDataTrades` | `GET` | `/data/trades` | Get Trades | Required |
 | `getOrderScoring` | `GET` | `/order-scoring` | Check Order Reward Scoring | Required |
 | `postOrdersScoring` | `POST` | `/orders-scoring` | Check Multiple Orders Scoring | Required |
+| `updateBalanceAllowance` | `GET` | `/balance-allowance/update` | Update balance and allowance cache | Required |
 | `getGeoblock` | `GET` | `/geoblock` | Check Geoblock Status | Public |
 | `getDataApiHealth` | `GET` | `/` | Data API Health check | Public |
 | `getPositions` | `GET` | `/positions` | Get current positions for a user | Public |
@@ -2743,6 +2745,16 @@ Check Order Reward Scoring *(Auth required)*
 **POST** `/orders-scoring`
 
 Check Multiple Orders Scoring *(Auth required)*
+
+**Parameters:**
+- `` (, string)
+
+---
+##### `updateBalanceAllowance`
+
+**GET** `/balance-allowance/update`
+
+Update balance and allowance cache *(Auth required)*
 
 **Parameters:**
 - `` (, string)

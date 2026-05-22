@@ -3859,7 +3859,7 @@ All messages are JSON text frames. A single connection supports multiple concurr
 ##### Subscribe
 
 ```json
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
+{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 50] }
 ```
 
 ##### Data event
@@ -4158,7 +4158,7 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 # Stream orderbook updates — each call returns the next snapshot
 while True:
-book = exchange.watch_order_book("OUTCOME_ID")
+book = exchange.watch_order_book("OUTCOME_ID", limit=10)
 if not book.bids or not book.asks:
     continue
 print(f"Best bid: {book.bids[0].price} ({book.bids[0].size} contracts)")
@@ -4173,7 +4173,7 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 // Stream orderbook updates — each call returns the next snapshot
 while (true) {
-  const book = await exchange.watchOrderBook("OUTCOME_ID");
+  const book = await exchange.watchOrderBook("OUTCOME_ID", 10);
   if (!book.bids.length || !book.asks.length) continue;
   console.log(`Best bid: ${book.bids[0].price} (${book.bids[0].size} contracts)`);
   console.log(`Best ask: ${book.asks[0].price} (${book.asks[0].size} contracts)`);
@@ -4183,7 +4183,7 @@ while (true) {
 
 ```json WebSocket
 // → Subscribe
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
+{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 10] }
 
 // ← Subscription confirmed
 { "event": "subscribed", "id": "req-1" }
@@ -4304,6 +4304,8 @@ Supported venues: `polymarket`, `kalshi`, `limitless`, `opinion`.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `outcomeIds` | string[] | Yes | Array of outcome token IDs to watch |
+| `limit` | number | No | Optional depth limit for each streamed order book |
+| `params` | object | No | Optional exchange-specific parameters |
 
 #### Response
 
@@ -4326,7 +4328,7 @@ exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 ids = ["OUTCOME_ID_1", "OUTCOME_ID_2", "OUTCOME_ID_3"]
 while True:
-books = exchange.watch_order_books(ids)
+books = exchange.watch_order_books(ids, limit=10)
 for outcome_id, book in books.items():
     bid = book.bids[0].price if book.bids else None
     ask = book.asks[0].price if book.asks else None
@@ -4340,7 +4342,7 @@ const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 const ids = ["OUTCOME_ID_1", "OUTCOME_ID_2", "OUTCOME_ID_3"];
 while (true) {
-  const books = await exchange.watchOrderBooks(ids);
+  const books = await exchange.watchOrderBooks(ids, 10);
   for (const [id, book] of Object.entries(books)) {
 console.log(`${id.slice(0, 20)}... bid=${book.bids[0]?.price} ask=${book.asks[0]?.price}`);
   }
@@ -4353,7 +4355,7 @@ console.log(`${id.slice(0, 20)}... bid=${book.bids[0]?.price} ask=${book.asks[0]
   "id": "req-1",
   "action": "subscribe",
   "method": "watchOrderBooks",
-  "args": [["OUTCOME_ID_1", "OUTCOME_ID_2", "OUTCOME_ID_3"]]
+  "args": [["OUTCOME_ID_1", "OUTCOME_ID_2", "OUTCOME_ID_3"], 10]
 }
 
 // ← One data event per outcome, per update
