@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.5] - 2026-05-22
+
+### Fixed
+
+- **Python SDK**: `fetch_order_book` now works — fixed `_compat_kwargs` typo, added `None` placeholder for params positioning, and array response handling for range queries.
+- **Python SDK**: Added `dt` field to `OrderBook` model (maps to `datetime` in API response).
+
 ## [2.43.4] - 2026-05-22
 
 ### Fixed
