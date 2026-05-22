@@ -857,14 +857,6 @@ export abstract class PredictionMarketExchange {
      * reconstructed L2 books from the archive. Range queries return up to
      * `limit` snapshots (default 100, max 1000).
      *
-     * Example — 2028 Presidential Election order book from last week:
-     *
-     *     const book = await poly.fetchOrderBook(
-     *       '0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a',
-     *       undefined,
-     *       { since: Date.now() - 7 * 24 * 60 * 60 * 1000 }
-     *     );
-     *
      * @param outcomeId - The Outcome ID (outcomeId) or market slug
      * @param limit - Max number of bid/ask levels to return. For range
      *   queries (since + until), limits the number of snapshots returned
