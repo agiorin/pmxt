@@ -16,8 +16,11 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
     let outcomePrices: string[] = [];
 
     try {
-        outcomeLabels = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : (market.outcomes || []);
-        outcomePrices = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : (market.outcomePrices || []);
+        // Polymarket returns "null" (string) for resolved markets whose prices
+        // have been cleared. JSON.parse("null") returns JS null, which bypasses
+        // the || [] fallback, so we null-coalesce after parsing.
+        outcomeLabels = (typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : market.outcomes) || [];
+        outcomePrices = (typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices) || [];
     } catch (e) {
         console.warn(`Error parsing outcomes for market ${market.id}:`, e);
     }
@@ -25,7 +28,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
     // Extract CLOB token IDs for granular operations
     let clobTokenIds: string[] = [];
     try {
-        clobTokenIds = typeof market.clobTokenIds === 'string' ? JSON.parse(market.clobTokenIds) : (market.clobTokenIds || []);
+        clobTokenIds = (typeof market.clobTokenIds === 'string' ? JSON.parse(market.clobTokenIds) : market.clobTokenIds) || [];
     } catch (e) {
         console.warn(`Error parsing clobTokenIds for market ${market.id}:`, e);
     }
@@ -124,10 +127,11 @@ export function mapIntervalToFidelity(interval: CandleInterval): number {
 
 /**
  * Fetch all results from Gamma API using parallel pagination for best DX.
- * Polymarket Gamma API has a hard limit of 500 results per request.
+ * Polymarket Gamma API silently clamps responses to 100 items per request
+ * and rejects offsets above 10,000.
  */
 export async function paginateParallel(url: string, params: any, http: any, maxResults: number = 10000): Promise<any[]> {
-    const PAGE_SIZE = 500;
+    const PAGE_SIZE = 100;
     const initialLimit = Math.min(params.limit || PAGE_SIZE, PAGE_SIZE);
 
     // 1. Fetch the first page to see if we even need more
@@ -143,12 +147,16 @@ export async function paginateParallel(url: string, params: any, http: any, maxR
     }
 
     // 2. Determine how many more pages to fetch
-    const targetLimit = params.limit || maxResults;
+    // Gamma rejects offsets above 10,000, so cap enumerable results at ~10,100.
+    const MAX_OFFSET = 10000;
+    const targetLimit = Math.min(params.limit || maxResults, MAX_OFFSET + PAGE_SIZE);
     const numPages = Math.ceil(targetLimit / PAGE_SIZE);
 
-    const offsets = [];
+    const offsets: number[] = [];
     for (let i = 1; i < numPages; i++) {
-        offsets.push(i * PAGE_SIZE);
+        const offset = i * PAGE_SIZE;
+        if (offset > MAX_OFFSET) break;
+        offsets.push(offset);
     }
 
     // 3. Fetch remaining pages in parallel
