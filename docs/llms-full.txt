@@ -3178,7 +3178,7 @@ Batch variant of {@link fetchOrderBook}. Fetches order books for multiple outcom
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_order_books()
@@ -3186,10 +3186,10 @@ result = exchange.fetch_order_books()
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchOrderBooks();
@@ -3216,7 +3216,7 @@ Fetch raw trade history for a specific outcome.
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_trades(
@@ -3229,10 +3229,10 @@ result = exchange.fetch_trades(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchTrades({
@@ -3353,10 +3353,7 @@ Place a new order on the exchange.
 import pmxt
 
 # Runs locally — never proxied through PMXT servers
-exchange = pmxt.Kalshi(
-    api_key="YOUR_API_KEY",
-    private_key="YOUR_PRIVATE_KEY",
-)
+exchange = pmxt.Router()
 result = exchange.create_order(
     market_id="12345",
     outcome_id="67890",
@@ -3373,13 +3370,10 @@ result = exchange.create_order(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // Runs locally — never proxied through PMXT servers
-const exchange = new Kalshi({
-  apiKey: "YOUR_API_KEY",
-  privateKey: "YOUR_PRIVATE_KEY",
-});
+const exchange = new Router();
 const result = await exchange.createOrder({
   marketId: "12345",
   outcomeId: "67890",
@@ -3423,10 +3417,7 @@ Build an order payload without submitting it to the exchange. Returns the exchan
 import pmxt
 
 # Runs locally — never proxied through PMXT servers
-exchange = pmxt.Kalshi(
-    api_key="YOUR_API_KEY",
-    private_key="YOUR_PRIVATE_KEY",
-)
+exchange = pmxt.Router()
 result = exchange.build_order(
     market_id="12345",
     outcome_id="67890",
@@ -3443,13 +3434,10 @@ result = exchange.build_order(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // Runs locally — never proxied through PMXT servers
-const exchange = new Kalshi({
-  apiKey: "YOUR_API_KEY",
-  privateKey: "YOUR_PRIVATE_KEY",
-});
+const exchange = new Router();
 const result = await exchange.buildOrder({
   marketId: "12345",
   outcomeId: "67890",
@@ -3488,23 +3476,17 @@ Submit a pre-built order returned by buildOrder().
 import pmxt
 
 # Runs locally — never proxied through PMXT servers
-exchange = pmxt.Kalshi(
-    api_key="YOUR_API_KEY",
-    private_key="YOUR_PRIVATE_KEY",
-)
+exchange = pmxt.Router()
 built = exchange.build_order(market_id="12345", side="buy", type="limit", amount=10, price=0.55)
 result = exchange.submit_order(built)
 ```
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // Runs locally — never proxied through PMXT servers
-const exchange = new Kalshi({
-  apiKey: "YOUR_API_KEY",
-  privateKey: "YOUR_PRIVATE_KEY",
-});
+const exchange = new Router();
 const built = await exchange.buildOrder({ marketId: "12345", side: "buy", type: "limit", amount: 10, price: 0.55 });
 const result = await exchange.submitOrder(built);
 ```
@@ -3523,22 +3505,16 @@ Cancel an existing open order.
 import pmxt
 
 # Runs locally — never proxied through PMXT servers
-exchange = pmxt.Kalshi(
-    api_key="YOUR_API_KEY",
-    private_key="YOUR_PRIVATE_KEY",
-)
+exchange = pmxt.Router()
 result = exchange.cancel_order(order_id="ord-001")
 ```
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // Runs locally — never proxied through PMXT servers
-const exchange = new Kalshi({
-  apiKey: "YOUR_API_KEY",
-  privateKey: "YOUR_PRIVATE_KEY",
-});
+const exchange = new Router();
 const result = await exchange.cancelOrder({ orderId: "ord-001" });
 ```
 
@@ -3563,7 +3539,7 @@ Fetch a specific order by ID.
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_order(order_id="ord-001")
@@ -3571,10 +3547,10 @@ result = exchange.fetch_order(order_id="ord-001")
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchOrder({ orderId: "ord-001" });
@@ -3598,7 +3574,7 @@ Fetch all open orders, optionally filtered by market.
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_open_orders(market_id="12345")
@@ -3606,10 +3582,10 @@ result = exchange.fetch_open_orders(market_id="12345")
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchOpenOrders({ marketId: "12345" });
@@ -3636,7 +3612,7 @@ const result = await exchange.fetchOpenOrders({ marketId: "12345" });
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_my_trades(
@@ -3651,10 +3627,10 @@ result = exchange.fetch_my_trades(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchMyTrades({
@@ -3687,7 +3663,7 @@ const result = await exchange.fetchMyTrades({
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_closed_orders(
@@ -3701,10 +3677,10 @@ result = exchange.fetch_closed_orders(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchClosedOrders({
@@ -3736,7 +3712,7 @@ const result = await exchange.fetchClosedOrders({
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_all_orders(
@@ -3750,10 +3726,10 @@ result = exchange.fetch_all_orders(
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchAllOrders({
@@ -3783,7 +3759,7 @@ Fetch current user positions across all markets.
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_positions(address="0xabc...")
@@ -3791,10 +3767,10 @@ result = exchange.fetch_positions(address="0xabc...")
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchPositions({ address: "0xabc..." });
@@ -3818,7 +3794,7 @@ Fetch account balances.
 import pmxt
 
 # API key optional — enables faster catalog-backed lookups
-exchange = pmxt.Kalshi(
+exchange = pmxt.Router(
     pmxt_api_key="YOUR_PMXT_API_KEY",
 )
 result = exchange.fetch_balance(address="0xabc...")
@@ -3826,10 +3802,10 @@ result = exchange.fetch_balance(address="0xabc...")
 
 **TypeScript:**
 ```typescript
-import { Kalshi } from "pmxtjs";
+import { Router } from "pmxtjs";
 
 // API key optional — enables faster catalog-backed lookups
-const exchange = new Kalshi({
+const exchange = new Router({
   pmxtApiKey: "YOUR_PMXT_API_KEY",
 });
 const result = await exchange.fetchBalance({ address: "0xabc..." });
@@ -3859,7 +3835,7 @@ All messages are JSON text frames. A single connection supports multiple concurr
 ##### Subscribe
 
 ```json
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 50] }
+{ "id": "req-1", "action": "subscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID", 50] }
 ```
 
 ##### Data event
@@ -3882,7 +3858,7 @@ All messages are JSON text frames. A single connection supports multiple concurr
 ##### Unsubscribe
 
 ```json
-{ "id": "req-1", "action": "unsubscribe" }
+{ "id": "req-1", "action": "unsubscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
 ```
 
 ##### Error
@@ -4183,7 +4159,7 @@ while (true) {
 
 ```json WebSocket
 // → Subscribe
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 10] }
+{ "id": "req-1", "action": "subscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID", 10] }
 
 // ← Subscription confirmed
 { "event": "subscribed", "id": "req-1" }
@@ -4203,7 +4179,7 @@ while (true) {
 }
 
 // → Unsubscribe
-{ "id": "req-1", "action": "unsubscribe" }
+{ "id": "req-1", "action": "unsubscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
 ```
 
 </CodeGroup>
@@ -4354,6 +4330,7 @@ console.log(`${id.slice(0, 20)}... bid=${book.bids[0]?.price} ask=${book.asks[0]
 {
   "id": "req-1",
   "action": "subscribe",
+  "exchange": "polymarket",
   "method": "watchOrderBooks",
   "args": [["OUTCOME_ID_1", "OUTCOME_ID_2", "OUTCOME_ID_3"], 10]
 }
@@ -4478,7 +4455,7 @@ console.log(`${trade.side.toUpperCase()} ${trade.amount} contracts @ ${(trade.pr
 
 ```json WebSocket
 // → Subscribe
-{ "id": "req-1", "action": "subscribe", "method": "watchTrades", "args": ["OUTCOME_ID"] }
+{ "id": "req-1", "action": "subscribe", "exchange": "polymarket", "method": "watchTrades", "args": ["OUTCOME_ID"] }
 
 // ← Data event
 {
