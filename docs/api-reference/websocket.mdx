@@ -19,7 +19,7 @@ All messages are JSON text frames. A single connection supports multiple concurr
 ### Subscribe
 
 ```json
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 50] }
+{ "id": "req-1", "action": "subscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID", 50] }
 ```
 
 ### Data event
@@ -42,7 +42,7 @@ All messages are JSON text frames. A single connection supports multiple concurr
 ### Unsubscribe
 
 ```json
-{ "id": "req-1", "action": "unsubscribe" }
+{ "id": "req-1", "action": "unsubscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
 ```
 
 ### Error

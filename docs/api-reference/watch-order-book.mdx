@@ -65,7 +65,7 @@ while (true) {
 
 ```json WebSocket
 // → Subscribe
-{ "id": "req-1", "action": "subscribe", "method": "watchOrderBook", "args": ["OUTCOME_ID", 10] }
+{ "id": "req-1", "action": "subscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID", 10] }
 
 // ← Subscription confirmed
 { "event": "subscribed", "id": "req-1" }
@@ -85,7 +85,7 @@ while (true) {
 }
 
 // → Unsubscribe
-{ "id": "req-1", "action": "unsubscribe" }
+{ "id": "req-1", "action": "unsubscribe", "exchange": "polymarket", "method": "watchOrderBook", "args": ["OUTCOME_ID"] }
 ```
 
 </CodeGroup>
