@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.1] - 2026-05-22
+
+### Fixed
+
+- **SDK**: `fetchOrderBook` now correctly inserts a `null` placeholder for `limit` when only `params` is provided, ensuring `params` lands at `args[2]` for the hosted API.
+- **SDK**: `fetchOrderBook` now handles array responses from range queries (`since` + `until`) instead of treating them as a single `OrderBook`.
+
 ## [2.43.0] - 2026-05-22
 
 ### Added
@@ -16,13 +23,6 @@ All notable changes to this project will be documented in this file.
 
 - **fetchOrderBook** signature widened from `(outcomeId, side?)` to `(outcomeId, limit?, params?)`. Backwards compatible — `side` moved to `params.side`. All 14 exchange implementations, Router, and SDK updated.
 - SDK `fetchOrderBook` return type widened to `OrderBook | OrderBook[]` (array when `since` + `until` are both provided).
-
-## [2.43.1] - 2026-05-22
-
-### Fixed
-
-- **SDK**: `fetchOrderBook` now correctly inserts a `null` placeholder for `limit` when only `params` is provided, ensuring `params` lands at `args[2]` for the hosted API.
-- **SDK**: `fetchOrderBook` now handles array responses from range queries (`since` + `until`) instead of treating them as a single `OrderBook`.
 
 ## [2.42.7] - 2026-05-22
 
