@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.8] - 2026-05-23
+
+### Fixed
+
+- **Build**: Commit missing `core/src/utils/logger.ts` and related file changes that were breaking CI.
+
 ## [2.43.7] - 2026-05-23
 
 ### Added
