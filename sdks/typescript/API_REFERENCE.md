@@ -782,6 +782,7 @@ async watchOrderBook(outcomeId: string, limit?: number): Promise<OrderBook>
 
 - `outcomeId` (string): The Outcome ID to watch
 - `limit` (number) - **Optional**: Optional limit for orderbook depth
+- `params` (object) - **Optional**: Optional exchange-specific parameters
 
 **Returns:** Promise<[OrderBook](#orderbook)> - Promise that resolves with the current orderbook state
 
