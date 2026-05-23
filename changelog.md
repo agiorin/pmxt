@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.11] - 2026-05-23
+
+### Fixed
+
+- **Cleanup**: Removed `testDummyMethod` stubs from `BaseExchange.ts`, TypeScript SDK client, and Python SDK client. Regenerated OpenAPI spec and method-verbs.
+
 ## [2.43.10] - 2026-05-23
 
 ### Fixed
