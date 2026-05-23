@@ -1608,39 +1608,6 @@ paths:
       description: >-
         Filter a list of events by criteria. Can filter by string query, structured criteria object, or custom filter
         function.
-  '/api/{exchange}/testDummyMethod':
-    post:
-      summary: Test Dummy Method
-      operationId: testDummyMethod
-      parameters:
-        - $ref: '#/components/parameters/ExchangeParam'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              title: TestDummyMethodRequest
-              type: object
-              properties:
-                args:
-                  type: array
-                  maxItems: 1
-                  items:
-                    type: string
-                credentials:
-                  $ref: '#/components/schemas/ExchangeCredentials'
-      responses:
-        '200':
-          description: Test Dummy Method response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: string
-      description: Test method for auto-generation verification.
   '/api/{exchange}/close':
     post:
       summary: Close
@@ -1667,6 +1634,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+      description: >-
+        Close all WebSocket connections and clean up resources. Call this when you're done streaming to properly release
+        connections.
   '/api/{exchange}/fetchMarketMatches':
     get:
       summary: Market Matches

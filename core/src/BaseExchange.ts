@@ -1384,13 +1384,6 @@ export abstract class PredictionMarketExchange {
      * Call this when you're done streaming to properly release connections.
      */
 
-    /**
-     * Test method for auto-generation verification.
-     */
-    async testDummyMethod(param?: string): Promise<string> {
-      throw new Error("Test method not implemented.");
-    }
-
     async close(): Promise<void> {
         // Default implementation: no-op
         // Exchanges with WebSocket support should override this

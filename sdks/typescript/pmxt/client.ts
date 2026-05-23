@@ -1115,31 +1115,6 @@ export abstract class Exchange {
         }
     }
 
-    async testDummyMethod(param?: string): Promise<string> {
-        await this.initPromise;
-        try {
-            const args: any[] = [];
-            if (param !== undefined) args.push(param);
-            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/testDummyMethod`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
-                body: JSON.stringify({ args, credentials: this.getCredentials() }),
-            });
-            if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                if (body.error && typeof body.error === "object") {
-                    throw fromServerError(body.error);
-                }
-                throw new PmxtError(body.error?.message || response.statusText);
-            }
-            const json = await response.json();
-            return this.handleResponse(json);
-        } catch (error) {
-            if (error instanceof PmxtError) throw error;
-            throw new PmxtError(`Failed to testDummyMethod: ${error}`);
-        }
-    }
-
     async close(): Promise<void> {
         await this.initPromise;
         try {

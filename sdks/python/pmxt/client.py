@@ -1114,27 +1114,6 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def test_dummy_method(self, param: Optional[str] = None) -> str:
-        try:
-            args = []
-            if param is not None:
-                args.append(param)
-            body: dict = {"args": args}
-            creds = self._get_credentials_dict()
-            if creds:
-                body["credentials"] = creds
-            url = f"{self._resolve_sidecar_host()}/api/{self.exchange_name}/testDummyMethod"
-            headers = {"Content-Type": "application/json", "Accept": "application/json"}
-            headers.update(self._get_auth_headers())
-            response = self._fetch_with_retry(
-                lambda: self._api_client.call_api(method="POST", url=url, body=body, header_params=headers)
-            )
-            response.read()
-            data = self._handle_response(json.loads(response.data))
-            return data
-        except ApiException as e:
-            raise self._parse_api_exception(e) from None
-
     def close(self) -> None:
         try:
             args = []
