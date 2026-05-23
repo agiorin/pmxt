@@ -2252,6 +2252,8 @@ const result = await exchange.loadMarkets();
 
 `POST /api/{exchange}/close`
 
+Close all WebSocket connections and clean up resources. Call this when you're done streaming to properly release connections.
+
 **Python:**
 ```python
 import pmxt
