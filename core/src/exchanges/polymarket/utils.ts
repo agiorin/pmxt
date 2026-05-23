@@ -1,5 +1,6 @@
 import { UnifiedMarket, MarketOutcome, CandleInterval } from '../../types';
 import { addBinaryOutcomes } from '../../utils/market-utils';
+import { logger } from '../../utils/logger';
 
 export const GAMMA_API_URL = process.env.POLYMARKET_GAMMA_URL || 'https://gamma-api.polymarket.com/events';
 export const GAMMA_SEARCH_URL = process.env.POLYMARKET_GAMMA_SEARCH_URL || 'https://gamma-api.polymarket.com/public-search';
@@ -22,7 +23,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
         outcomeLabels = (typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : market.outcomes) || [];
         outcomePrices = (typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices) || [];
     } catch (e) {
-        console.warn(`Error parsing outcomes for market ${market.id}:`, e);
+        logger.warn(`Error parsing outcomes for market ${market.id}`, { error: String(e) });
     }
 
     // Extract CLOB token IDs for granular operations
@@ -30,7 +31,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
     try {
         clobTokenIds = (typeof market.clobTokenIds === 'string' ? JSON.parse(market.clobTokenIds) : market.clobTokenIds) || [];
     } catch (e) {
-        console.warn(`Error parsing clobTokenIds for market ${market.id}:`, e);
+        logger.warn(`Error parsing clobTokenIds for market ${market.id}`, { error: String(e) });
     }
 
     // Extract candidate/option name from market question for better outcome labels

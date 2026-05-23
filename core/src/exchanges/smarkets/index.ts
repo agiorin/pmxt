@@ -30,6 +30,7 @@ import { SmarketsFetcher } from './fetcher';
 import { SmarketsNormalizer } from './normalizer';
 import { FetcherContext } from '../interfaces';
 import { toBasisPoints, toQuantityUnits } from './price';
+import { logger } from '../../utils/logger';
 
 export class SmarketsExchange extends PredictionMarketExchange {
     protected override readonly capabilityOverrides = {
@@ -238,8 +239,8 @@ export class SmarketsExchange extends PredictionMarketExchange {
         params: TradesParams | HistoryFilterParams,
     ): Promise<Trade[]> {
         if ('resolution' in params && params.resolution !== undefined) {
-            console.warn(
-                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
+            logger.warn(
+                'The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
                 'It will be removed in v3.0.0. Please remove it from your code.',
             );
         }

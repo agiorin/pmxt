@@ -1,4 +1,5 @@
 import { OrderBook, Trade } from '../../types';
+import { logger } from '../../utils/logger';
 
 // Myriad API v2 does not expose a WebSocket endpoint.
 // We implement a poll-based fallback that resolves promises
@@ -100,7 +101,7 @@ export class MyriadWebSocket {
             } catch (error: unknown) {
                 const failures = (this.orderBookFailureCount.get(id) || 0) + 1;
                 this.orderBookFailureCount.set(id, failures);
-                console.warn(`[Myriad] watchOrderBook poll failed for outcomeId=${id} (consecutive failures: ${failures}):`, error);
+                logger.warn(`Myriad watchOrderBook poll failed for outcomeId=${id} (consecutive failures: ${failures})`, { error: String(error) });
 
                 if (failures >= MAX_CONSECUTIVE_FAILURES) {
                     const timer = this.orderBookTimers.get(id);
@@ -172,7 +173,7 @@ export class MyriadWebSocket {
             } catch (error: unknown) {
                 const failures = (this.tradeFailureCount.get(id) || 0) + 1;
                 this.tradeFailureCount.set(id, failures);
-                console.warn(`[Myriad] watchTrades poll failed for outcomeId=${id} (consecutive failures: ${failures}):`, error);
+                logger.warn(`Myriad watchTrades poll failed for outcomeId=${id} (consecutive failures: ${failures})`, { error: String(error) });
 
                 if (failures >= MAX_CONSECUTIVE_FAILURES) {
                     const timer = this.tradeTimers.get(id);

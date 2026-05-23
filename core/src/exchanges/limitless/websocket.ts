@@ -7,6 +7,7 @@ import {
 } from "../../subscriber/external/goldsky";
 import { AddressWatcher, WatcherConfig } from "../../subscriber/watcher";
 import { OrderBook, Trade } from '../../types';
+import { logger } from '../../utils/logger';
 // Limitless uses USDC with 6 decimals
 const USDC_DECIMALS = 6;
 const USDC_SCALE = Math.pow(10, USDC_DECIMALS);
@@ -126,7 +127,7 @@ export class LimitlessWebSocket {
             try {
                 return await this.fetchOrderBookSnapshot(marketSlug);
             } catch (err) {
-                console.warn(`[LimitlessWS] Failed to fetch initial snapshot:`, err);
+                logger.warn('LimitlessWS: Failed to fetch initial snapshot', { error: String(err) });
             }
         }
 
@@ -145,7 +146,7 @@ export class LimitlessWebSocket {
             try {
                 return await this.fetchOrderBookSnapshot(marketSlug);
             } catch (err) {
-                console.warn(`[LimitlessWS] Failed to fetch refresh snapshot:`, err);
+                logger.warn('LimitlessWS: Failed to fetch refresh snapshot', { error: String(err) });
             }
         }
 
@@ -166,7 +167,7 @@ export class LimitlessWebSocket {
                         const snapshot = await this.fetchOrderBookSnapshot(marketSlug);
                         resolve(snapshot);
                     } catch (err) {
-                        console.warn(`[LimitlessWS] Failed to fetch timeout fallback snapshot:`, err);
+                        logger.warn('LimitlessWS: Failed to fetch timeout fallback snapshot', { error: String(err) });
                         // Resolve with empty orderbook rather than rejecting
                         resolve(this.getEmptyOrderbook());
                     }
@@ -240,9 +241,9 @@ export class LimitlessWebSocket {
      * Legacy method - watch trades (not directly supported, falls back to orderbook)
      */
     async watchTrades(marketSlug: string, address?: string): Promise<Trade[]> {
-        console.warn(
-            '[LimitlessWS] watchTrades is not directly supported. ' +
-            'Use watchOrderBook() for real-time orderbook updates or fetchOHLCV() for historical data.'
+        logger.warn(
+            'LimitlessWS: watchTrades is not directly supported. ' +
+            'Use watchOrderBook() for real-time orderbook updates or fetchOHLCV() for historical data.',
         );
         return [];
     }
@@ -339,15 +340,15 @@ export class LimitlessWebSocket {
 
         // Handle connection events
         this.client.on('connect', () => {
-            console.log('[LimitlessWS] Connected to WebSocket');
+            logger.info('LimitlessWS: Connected to WebSocket');
         });
 
         this.client.on('disconnect', (reason: string) => {
-            console.log(`[LimitlessWS] Disconnected from WebSocket: ${reason}`);
+            logger.info(`LimitlessWS: Disconnected from WebSocket: ${reason}`);
         });
 
         this.client.on('error', (error: Error) => {
-            console.error('[LimitlessWS] WebSocket error:', error);
+            logger.error('LimitlessWS: WebSocket error', { error: String(error) });
         });
     }
 

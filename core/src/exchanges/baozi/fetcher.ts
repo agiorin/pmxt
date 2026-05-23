@@ -21,6 +21,7 @@ import {
     Cache,
 } from './utils';
 import { baoziErrorMapper } from './errors';
+import { logger } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
 // Raw venue-native types returned by the fetcher
@@ -98,11 +99,11 @@ export class BaoziFetcher implements IExchangeFetcher<BaoziRawMarket, BaoziRawMa
                     markets.push({ pubkey: account.pubkey.toString(), parsed } as BaoziRawBooleanMarket);
                 } catch (parseError: unknown) {
                     booleanSkipped++;
-                    console.warn(`[Baozi] fetchRawMarkets: failed to parse boolean market account pubkey=${account.pubkey.toString()}:`, parseError);
+                    logger.warn(`Baozi fetchRawMarkets: failed to parse boolean market account pubkey=${account.pubkey.toString()}`, { error: String(parseError) });
                 }
             }
             if (booleanSkipped > 0) {
-                console.warn(`[Baozi] fetchRawMarkets: skipped ${booleanSkipped} malformed boolean market account(s) out of ${booleanAccounts.length}`);
+                logger.warn(`Baozi fetchRawMarkets: skipped ${booleanSkipped} malformed boolean market account(s) out of ${booleanAccounts.length}`);
             }
 
             let raceSkipped = 0;
@@ -112,11 +113,11 @@ export class BaoziFetcher implements IExchangeFetcher<BaoziRawMarket, BaoziRawMa
                     markets.push({ pubkey: account.pubkey.toString(), parsed } as BaoziRawRaceMarket);
                 } catch (parseError: unknown) {
                     raceSkipped++;
-                    console.warn(`[Baozi] fetchRawMarkets: failed to parse race market account pubkey=${account.pubkey.toString()}:`, parseError);
+                    logger.warn(`Baozi fetchRawMarkets: failed to parse race market account pubkey=${account.pubkey.toString()}`, { error: String(parseError) });
                 }
             }
             if (raceSkipped > 0) {
-                console.warn(`[Baozi] fetchRawMarkets: skipped ${raceSkipped} malformed race market account(s) out of ${raceAccounts.length}`);
+                logger.warn(`Baozi fetchRawMarkets: skipped ${raceSkipped} malformed race market account(s) out of ${raceAccounts.length}`);
             }
 
             marketsCache.set(markets);
@@ -195,11 +196,11 @@ export class BaoziFetcher implements IExchangeFetcher<BaoziRawMarket, BaoziRawMa
                     booleanPositions.push({ pubkey: account.pubkey.toString(), parsed });
                 } catch (parseError: unknown) {
                     boolPosSkipped++;
-                    console.warn(`[Baozi] fetchRawUserPositions: failed to parse boolean position account pubkey=${account.pubkey.toString()}:`, parseError);
+                    logger.warn(`Baozi fetchRawUserPositions: failed to parse boolean position account pubkey=${account.pubkey.toString()}`, { error: String(parseError) });
                 }
             }
             if (boolPosSkipped > 0) {
-                console.warn(`[Baozi] fetchRawUserPositions: skipped ${boolPosSkipped} malformed boolean position account(s) out of ${booleanAccounts.length}`);
+                logger.warn(`Baozi fetchRawUserPositions: skipped ${boolPosSkipped} malformed boolean position account(s) out of ${booleanAccounts.length}`);
             }
 
             const racePositions: BaoziRawRacePosition[] = [];
@@ -210,11 +211,11 @@ export class BaoziFetcher implements IExchangeFetcher<BaoziRawMarket, BaoziRawMa
                     racePositions.push({ pubkey: account.pubkey.toString(), parsed });
                 } catch (parseError: unknown) {
                     racePosSkipped++;
-                    console.warn(`[Baozi] fetchRawUserPositions: failed to parse race position account pubkey=${account.pubkey.toString()}:`, parseError);
+                    logger.warn(`Baozi fetchRawUserPositions: failed to parse race position account pubkey=${account.pubkey.toString()}`, { error: String(parseError) });
                 }
             }
             if (racePosSkipped > 0) {
-                console.warn(`[Baozi] fetchRawUserPositions: skipped ${racePosSkipped} malformed race position account(s) out of ${raceAccounts.length}`);
+                logger.warn(`Baozi fetchRawUserPositions: skipped ${racePosSkipped} malformed race position account(s) out of ${raceAccounts.length}`);
             }
 
             return { booleanPositions, racePositions };

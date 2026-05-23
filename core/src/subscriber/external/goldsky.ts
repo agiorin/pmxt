@@ -6,6 +6,7 @@ import {
     SubscriberConfig,
     SubscriptionOption,
 } from '../base';
+import { logger } from '../../utils/logger';
 
 // ----------------------------------------------------------------------------
 // GoldSky Config
@@ -353,18 +354,18 @@ export class GoldSkySubscriber implements BaseSubscriber {
                 signal,
             });
             if (!res.ok) {
-                console.warn(`[GoldSkySubscriber] HTTP ${res.status} from ${q.url}`);
+                logger.warn(`GoldSkySubscriber: HTTP ${res.status} from ${q.url}`);
                 return null;
             }
             const json = await res.json() as any;
             if (json?.errors) {
-                console.warn(`[GoldSkySubscriber] GraphQL errors from ${q.url}:`, JSON.stringify(json.errors));
+                logger.warn(`GoldSkySubscriber: GraphQL errors from ${q.url}`, { errors: JSON.stringify(json.errors) });
                 return null;
             }
             return json?.data ?? null;
         } catch (err: any) {
             if (err?.name !== 'AbortError') {
-                console.warn(`[GoldSkySubscriber] Fetch failed for ${q.url}:`, err);
+                logger.warn(`GoldSkySubscriber: Fetch failed for ${q.url}`, { error: String(err) });
             }
             return null;
         }

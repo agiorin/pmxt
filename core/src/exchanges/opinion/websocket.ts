@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { OrderBook, Trade, OrderLevel, QueuedPromise } from "../../types";
+import { logger } from '../../utils/logger';
 import { DEFAULT_WATCH_TIMEOUT_MS, withWatchTimeout } from "../../utils/watch-timeout";
 
 export interface OpinionWebSocketConfig {
@@ -70,7 +71,7 @@ export class OpinionWebSocket {
           this.isConnected = true;
           this.isConnecting = false;
           this.connectionPromise = undefined;
-          console.log("Opinion WebSocket connected");
+          logger.info("Opinion WebSocket connected");
 
           this.resubscribeAll();
           resolve();
@@ -81,12 +82,12 @@ export class OpinionWebSocket {
             const message = JSON.parse(data.toString());
             this.handleMessage(message);
           } catch (error) {
-            console.error("Error parsing Opinion WebSocket message:", error);
+            logger.error("Error parsing Opinion WebSocket message", { error: String(error) });
           }
         });
 
         this.ws.on("error", (error: Error) => {
-          console.error("Opinion WebSocket error:", error);
+          logger.error("Opinion WebSocket error", { error: String(error) });
           this.isConnecting = false;
           this.connectionPromise = undefined;
           reject(error);
@@ -94,7 +95,7 @@ export class OpinionWebSocket {
 
         this.ws.on("close", () => {
           if (!this.isTerminated) {
-            console.log("Opinion WebSocket closed, scheduling reconnect");
+            logger.info("Opinion WebSocket closed, scheduling reconnect");
             this.scheduleReconnect();
           }
           this.isConnected = false;
@@ -120,8 +121,8 @@ export class OpinionWebSocket {
     }
 
     this.reconnectTimer = setTimeout(() => {
-      console.log("Attempting to reconnect Opinion WebSocket...");
-      this.connect().catch(console.error);
+      logger.info("Attempting to reconnect Opinion WebSocket...");
+      this.connect().catch((err) => logger.error("Opinion WebSocket reconnect failed", { error: String(err) }));
     }, this.config.reconnectIntervalMs ?? 5000);
   }
 

@@ -2,6 +2,7 @@ import { AxiosInstance } from "axios";
 import { CreateOrderParams, Order, MarketOutcome } from "../../types";
 import { AuthenticationError, InvalidOrder, ValidationError } from "../../errors";
 import { metaculusErrorMapper } from "./errors";
+import { logger } from '../../utils/logger';
 
 // ---------------------------------------------------------------------------
 // OutcomeId Parsing
@@ -319,14 +320,14 @@ export async function createOrder(
 
         // 5. Log warnings for params that don't apply to Metaculus
         if (params.side && params.side !== "buy") {
-            console.warn(
-                `[pmxt/Metaculus] Ignoring side="${params.side}" -- Metaculus forecasts are probability submissions, not buy/sell. `
+            logger.warn(
+                `Metaculus: Ignoring side="${params.side}" -- Metaculus forecasts are probability submissions, not buy/sell. `
                 + "Set the probability via the `price` parameter instead.",
             );
         }
         if (params.type && params.type !== "market") {
-            console.warn(
-                `[pmxt/Metaculus] Ignoring type="${params.type}" -- Metaculus forecasts execute instantly (no limit orders).`,
+            logger.warn(
+                `Metaculus: Ignoring type="${params.type}" -- Metaculus forecasts execute instantly (no limit orders).`,
             );
         }
 

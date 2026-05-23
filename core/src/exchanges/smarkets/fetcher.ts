@@ -3,6 +3,7 @@ import { IExchangeFetcher, FetcherContext } from '../interfaces';
 import { smarketsErrorMapper } from './errors';
 import { NotFound } from '../../errors';
 import { validateIdFormat } from '../../utils/validation';
+import { logger } from '../../utils/logger';
 
 // ----------------------------------------------------------------------------
 // Raw venue-native types
@@ -513,13 +514,10 @@ export class SmarketsFetcher implements IExchangeFetcher<SmarketsRawEventWithMar
                     return (data.volumes || []) as SmarketsRawVolume[];
                 } catch (err: unknown) {
                     // Volumes are non-critical; return empty on failure but log it.
-                    console.warn(
-                        '[smarkets] volume fetch failed for batch',
-                        {
-                            marketIds: batch,
-                            error: err instanceof Error ? err.message : String(err),
-                        },
-                    );
+                    logger.warn('smarkets: volume fetch failed for batch', {
+                        marketIds: batch.join(','),
+                        error: err instanceof Error ? err.message : String(err),
+                    });
                     return [] as SmarketsRawVolume[];
                 }
             })

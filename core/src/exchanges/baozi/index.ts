@@ -43,6 +43,7 @@ import {
     mapBooleanToUnified,
     mapRaceToUnified,
 } from './utils';
+import { logger } from '../../utils/logger';
 
 export interface BaoziExchangeOptions {
     credentials?: ExchangeCredentials;
@@ -165,7 +166,7 @@ export class BaoziExchange extends PredictionMarketExchange {
                             if (unified) marketLookup.set(marketPdaStr, unified);
                         }
                     } catch (error: unknown) {
-                        console.warn(`[Baozi] fetchPositions: failed to fetch boolean market account for PDA=${marketPdaStr}:`, error);
+                        logger.warn(`Baozi fetchPositions: failed to fetch boolean market account for PDA=${marketPdaStr}`, { error: String(error) });
                         throw error;
                     }
                 }
@@ -183,7 +184,7 @@ export class BaoziExchange extends PredictionMarketExchange {
                             if (unified) marketLookup.set(racePdaStr, unified);
                         }
                     } catch (error: unknown) {
-                        console.warn(`[Baozi] fetchPositions: failed to fetch race market account for PDA=${racePdaStr}:`, error);
+                        logger.warn(`Baozi fetchPositions: failed to fetch race market account for PDA=${racePdaStr}`, { error: String(error) });
                         throw error;
                     }
                 }

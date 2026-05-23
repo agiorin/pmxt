@@ -37,6 +37,7 @@ import { LimitlessFetcher } from './fetcher';
 import { LimitlessNormalizer } from './normalizer';
 import { DEFAULT_LIMITLESS_API_URL } from './utils';
 import { LimitlessWebSocket, LimitlessWebSocketConfig } from './websocket';
+import { logger } from '../../utils/logger';
 
 export type { LimitlessWebSocketConfig, WatcherConfig };
 export { LIMITLESS_DEFAULT_SUBSCRIPTION, buildLimitlessBalanceActivity };
@@ -115,7 +116,7 @@ export class LimitlessExchange extends PredictionMarketExchange {
             } catch (error) {
                 // If auth initialization fails, continue without it
                 // Some methods (like fetchMarkets) work without auth
-                console.warn('Failed to initialize Limitless auth:', error);
+                logger.warn('Failed to initialize Limitless auth', { error: String(error) });
             }
         }
 
@@ -241,9 +242,9 @@ export class LimitlessExchange extends PredictionMarketExchange {
 
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         if ('resolution' in params && params.resolution !== undefined) {
-            console.warn(
-                '[pmxt] Warning: The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
-                'It will be removed in v3.0.0. Please remove it from your code.'
+            logger.warn(
+                'The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +
+                'It will be removed in v3.0.0. Please remove it from your code.',
             );
         }
         const slug = await this.resolveSlug(outcomeId);

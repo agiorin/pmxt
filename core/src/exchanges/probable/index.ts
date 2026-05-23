@@ -31,6 +31,7 @@ import { DEFAULT_BASE_URL } from './utils';
 import { ProbableFetcher } from './fetcher';
 import { ProbableNormalizer } from './normalizer';
 import { FetcherContext } from '../interfaces';
+import { logger } from '../../utils/logger';
 
 const BSC_USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
 
@@ -424,7 +425,7 @@ export class ProbableExchange extends PredictionMarketExchange {
 
                 total = parseFloat(formatUnits(balance as bigint, 18));
             } catch (chainError: unknown) {
-                console.warn('[Probable] fetchBalance: on-chain USDT balance fetch failed:', chainError);
+                logger.warn('Probable fetchBalance: on-chain USDT balance fetch failed', { error: String(chainError) });
                 throw chainError;
             }
 
@@ -438,7 +439,7 @@ export class ProbableExchange extends PredictionMarketExchange {
                     }
                 }
             } catch (ordersError: unknown) {
-                console.warn('[Probable] fetchBalance: failed to fetch open orders for locked balance calculation:', ordersError);
+                logger.warn('Probable fetchBalance: failed to fetch open orders for locked balance calculation', { error: String(ordersError) });
                 throw ordersError;
             }
 

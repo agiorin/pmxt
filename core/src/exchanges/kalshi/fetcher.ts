@@ -4,6 +4,7 @@ import { kalshiErrorMapper } from './errors';
 import { NotFound } from '../../errors';
 import { validateIdFormat } from '../../utils/validation';
 import { mapIntervalToKalshi } from './utils';
+import { logger } from '../../utils/logger';
 
 // ----------------------------------------------------------------------------
 // Raw venue-native types
@@ -381,13 +382,10 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
                 }
             } catch (err: unknown) {
                 // Non-critical — tags are enrichment only.
-                console.warn(
-                    '[kalshi] series tag fetch failed',
-                    {
-                        series_ticker: event.series_ticker,
-                        error: err instanceof Error ? err.message : String(err),
-                    },
-                );
+                logger.warn('kalshi: series tag fetch failed', {
+                    series_ticker: event.series_ticker,
+                    error: err instanceof Error ? err.message : String(err),
+                });
             }
         }
 

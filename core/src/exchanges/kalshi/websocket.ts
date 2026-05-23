@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { OrderBook, Trade, OrderLevel } from "../../types";
+import { logger } from '../../utils/logger';
 import { DEFAULT_WATCH_TIMEOUT_MS, withWatchTimeout } from "../../utils/watch-timeout";
 import { KalshiAuth } from "./auth";
 
@@ -63,9 +64,7 @@ export class KalshiWebSocket {
         const url = new URL(this.wsUrl);
         const path = url.pathname;
 
-        console.log(
-          `Kalshi WS: Connecting to ${this.wsUrl} (using path ${path} for signature)`,
-        );
+        logger.info(`Kalshi WS: Connecting to ${this.wsUrl} (using path ${path} for signature)`);
 
         // Get authentication headers
         const headers = this.auth.getHeaders("GET", path);
@@ -76,7 +75,7 @@ export class KalshiWebSocket {
           this.isConnected = true;
           this.isConnecting = false;
           this.connectionPromise = undefined;
-          console.log("Kalshi WebSocket connected");
+          logger.info("Kalshi WebSocket connected");
 
           // Resubscribe to all tickers if reconnecting
           if (this.subscribedOrderBookTickers.size > 0) {
@@ -96,12 +95,12 @@ export class KalshiWebSocket {
             const message = JSON.parse(data.toString());
             this.handleMessage(message);
           } catch (error) {
-            console.error("Error parsing Kalshi WebSocket message:", error);
+            logger.error("Error parsing Kalshi WebSocket message", { error: String(error) });
           }
         });
 
         this.ws.on("error", (error: Error) => {
-          console.error("Kalshi WebSocket error:", error);
+          logger.error("Kalshi WebSocket error", { error: String(error) });
           this.isConnecting = false;
           this.connectionPromise = undefined;
           reject(error);
@@ -109,7 +108,7 @@ export class KalshiWebSocket {
 
         this.ws.on("close", () => {
           if (!this.isTerminated) {
-            console.log("Kalshi WebSocket closed");
+            logger.info("Kalshi WebSocket closed");
             this.scheduleReconnect();
           }
           this.isConnected = false;
@@ -135,8 +134,8 @@ export class KalshiWebSocket {
     }
 
     this.reconnectTimer = setTimeout(() => {
-      console.log("Attempting to reconnect Kalshi WebSocket...");
-      this.connect().catch(console.error);
+      logger.info("Attempting to reconnect Kalshi WebSocket...");
+      this.connect().catch((err) => logger.error("Kalshi WebSocket reconnect failed", { error: String(err) }));
     }, this.config.reconnectIntervalMs || 5000);
   }
 
@@ -203,14 +202,13 @@ export class KalshiWebSocket {
         break;
 
       case "error":
-        console.error(
-          "Kalshi WebSocket error:",
-          message.msg || message.error || message.data,
-        );
+        logger.error("Kalshi WebSocket error", {
+          detail: String(message.msg || message.error || message.data),
+        });
         break;
 
       case "subscribed":
-        console.log("Kalshi subscription confirmed:", JSON.stringify(message));
+        logger.info("Kalshi subscription confirmed", { message });
         break;
 
       case "pong":
