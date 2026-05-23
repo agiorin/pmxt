@@ -7,7 +7,7 @@ openapi: GET /api/{exchange}/fetchOrderBook
 
 ### Live order book
 
-Fetch the current L2 order book for an outcome:
+Fetch the current L2 order book for an outcome. If you already have an outcome token ID, pass it directly:
 
 <CodeGroup>
 ```python Python
@@ -36,19 +36,26 @@ curl "https://api.pmxt.dev/api/polymarket/fetchOrderBook?outcomeId=1049326100321
 
 Get the order book at a specific point in time. Pass `since` as a Unix timestamp in milliseconds — returns the nearest snapshot at or before that time.
 
+For binary markets, you can pass the market ID and choose the side with `params.outcome`. Use `"yes"` or `"no"` instead of copying the long outcome token ID:
+
 <CodeGroup>
 ```python Python
 import pmxt
-from datetime import datetime
 
 poly = pmxt.Polymarket(pmxt_api_key="pmxt_...")
 
-# 2028 Presidential Election — order book from last week
-book = poly.fetch_order_book(
-    "0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a",
-    params={"since": int(datetime(2026, 5, 20, 12, 0).timestamp() * 1000)}
+market = poly.fetch_market(
+    slug="will-spacex-starship-flight-test-12-launch-by-may-22-354-721"
 )
-print(f"{book.dt} — {len(book.bids)} bids, {len(book.asks)} asks")
+
+book = poly.fetch_order_book(
+    market.market_id,
+    params={"since": 1779487200000, "outcome": "yes"},
+)
+
+print(f"{book.dt}: {len(book.bids)} bids, {len(book.asks)} asks")
+print(f"  best bid: {max(b.price for b in book.bids):.3f}")
+print(f"  best ask: {min(a.price for a in book.asks):.3f}")
 ```
 
 ```javascript JavaScript
@@ -56,20 +63,25 @@ import { Polymarket } from "pmxtjs";
 
 const poly = new Polymarket({ pmxtApiKey: "pmxt_..." });
 
-// 2028 Presidential Election — order book from last week
+const market = await poly.fetchMarket({
+  slug: "will-spacex-starship-flight-test-12-launch-by-may-22-354-721",
+});
+
 const book = await poly.fetchOrderBook(
-  "0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a",
+  market.marketId,
   undefined,
-  { since: new Date("2026-05-20T12:00:00Z").getTime() }
+  { since: 1779487200000, outcome: "yes" }
 );
-console.log(`${book.datetime} — ${book.bids.length} bids, ${book.asks.length} asks`);
+console.log(`${book.datetime}: ${book.bids.length} bids, ${book.asks.length} asks`);
+console.log(`  best bid: ${Math.max(...book.bids.map((b) => b.price)).toFixed(3)}`);
+console.log(`  best ask: ${Math.min(...book.asks.map((a) => a.price)).toFixed(3)}`);
 ```
 
 ```bash curl
 curl -X POST "https://api.pmxt.dev/api/polymarket/fetchOrderBook" \
   -H "Authorization: Bearer $PMXT_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"args":["0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a", null, {"since": 1747742400000}]}'
+  -d '{"args":["61b0ed20-7f42-41fd-af15-7b86153f6bb7", null, {"since": 1779487200000, "outcome": "yes"}]}'
 ```
 </CodeGroup>
 
@@ -82,17 +94,19 @@ Default 100 snapshots per request, max 1000.
 <CodeGroup>
 ```python Python
 import pmxt
-import time
 
 poly = pmxt.Polymarket(pmxt_api_key="pmxt_...")
 
-# 2028 Presidential Election — every order book change over the last hour
-now = int(time.time() * 1000)
+market = poly.fetch_market(
+    slug="will-spacex-starship-flight-test-12-launch-by-may-22-354-721"
+)
+
 books = poly.fetch_order_book(
-    "0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a",
+    market.market_id,
     params={
-        "since": now - 60 * 60 * 1000,
-        "until": now,
+        "since": 1779480000000,
+        "until": 1779487200000,
+        "outcome": "yes",
     }
 )
 print(f"{len(books)} snapshots")
@@ -105,12 +119,14 @@ import { Polymarket } from "pmxtjs";
 
 const poly = new Polymarket({ pmxtApiKey: "pmxt_..." });
 
-// 2028 Presidential Election — every order book change over the last hour
-const now = Date.now();
+const market = await poly.fetchMarket({
+  slug: "will-spacex-starship-flight-test-12-launch-by-may-22-354-721",
+});
+
 const books = await poly.fetchOrderBook(
-  "0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a",
+  market.marketId,
   undefined,
-  { since: now - 60 * 60 * 1000, until: now }
+  { since: 1779480000000, until: 1779487200000, outcome: "yes" }
 );
 console.log(`${books.length} snapshots`);
 books.slice(0, 3).forEach((ob) =>
@@ -122,7 +138,7 @@ books.slice(0, 3).forEach((ob) =>
 curl -X POST "https://api.pmxt.dev/api/polymarket/fetchOrderBook" \
   -H "Authorization: Bearer $PMXT_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"args":["0xce9a5fa30fe74e323b4a8f15afbb0b7a41a537aa880779ddf7dee22223b2f34a", null, {"since": 1779300000000, "until": 1779400000000}]}'
+  -d '{"args":["61b0ed20-7f42-41fd-af15-7b86153f6bb7", null, {"since": 1779480000000, "until": 1779487200000, "outcome": "yes"}]}'
 ```
 </CodeGroup>
 

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.14] - 2026-05-24
+
+### Fixed
+
+- **Docs**: Updated the `fetchOrderBook` API reference examples to show the recommended historical order book flow: fetch a market by slug, pass `market_id` / `marketId`, and select the side with `params.outcome: "yes"` or `"no"`.
+
 ## [2.43.13] - 2026-05-24
 
 ### Fixed
