@@ -46,10 +46,6 @@
   </a>
 </p>
 
-## Why pmxt?
-
-Different prediction market platforms have different APIs, data formats, and conventions. pmxt provides a single, consistent interface to work with all of them.
-
 ### Supported Exchanges
 
 <p align="center">
@@ -79,6 +75,16 @@ Different prediction market platforms have different APIs, data formats, and con
 
 [Feature Support & Compliance](core/COMPLIANCE.md).
 
+## Why pmxt?
+
+Different prediction market platforms have different APIs, data formats, and conventions. pmxt provides a single, consistent interface to work with all of them.
+
+- **Language-agnostic.** Python and TypeScript SDKs today, with HTTP access for any other language. No lock-in to a single ecosystem.
+- **Open source (MIT).** No API key required, no vendor dependency, no rate-limit business model. Self-host and run locally, or hit our hosted api.
+- **Drop-in Dome API replacement.** Automatic codemod (`dome-to-pmxt`) for teams migrating after the Polymarket acquisition.
+- **Unified trading, not just data.** Place orders across Polymarket, Kalshi, and Limitless with a single interface.
+- **[MCP-native](https://pmxt.dev/mcp).** Use pmxt directly from Claude, Cursor, and other AI agents.
+  
 
 ## Installation
 
