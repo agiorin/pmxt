@@ -23,6 +23,7 @@ import {
 import { SmarketsAuth } from './auth';
 import { smarketsErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { validateTradesLimit } from '../../utils/validation';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { smarketsApiSpec } from './api';
 import { getSmarketsConfig, SmarketsApiConfig } from './config';
@@ -238,6 +239,7 @@ export class SmarketsExchange extends PredictionMarketExchange {
         outcomeId: string,
         params: TradesParams | HistoryFilterParams,
     ): Promise<Trade[]> {
+        validateTradesLimit(params.limit);
         if ('resolution' in params && params.resolution !== undefined) {
             logger.warn(
                 'The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +

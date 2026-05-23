@@ -241,8 +241,8 @@ export class MyriadFetcher implements IExchangeFetcher<MyriadRawMarket, MyriadRa
             id: marketId,
             network_id: Number(networkId),
             page: 1,
-            limit: params.limit || 100,
         };
+        if (params.limit) queryParams.limit = params.limit;
 
         if (params.start) queryParams.since = Math.floor(ensureDate(params.start).getTime() / 1000);
         if (params.end) queryParams.until = Math.floor(ensureDate(params.end).getTime() / 1000);

@@ -233,14 +233,15 @@ export class SmarketsFetcher implements IExchangeFetcher<SmarketsRawEventWithMar
 
     async fetchRawTradeActivity(
         marketId: string,
-        _params: TradesParams,
+        params: TradesParams,
     ): Promise<SmarketsRawActivityRow[]> {
-        const data = await this.ctx.callApi('get_activity', {
+        const query: Record<string, any> = {
             market_id: [marketId],
             source: ['order.execute', 'order.execute.confirm'],
-            limit: 100,
             sort: '-seq,-subseq',
-        });
+        };
+        if (params.limit) query.limit = params.limit;
+        const data = await this.ctx.callApi('get_activity', query);
 
         return (data.account_activity || []) as SmarketsRawActivityRow[];
     }

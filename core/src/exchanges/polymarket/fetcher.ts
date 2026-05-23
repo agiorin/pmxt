@@ -270,6 +270,7 @@ export class PolymarketFetcher implements IExchangeFetcher<PolymarketRawEvent, P
                 asset_id: id,
             };
 
+            if (params.limit) queryParams.limit = params.limit;
             if (params.start) {
                 queryParams.after = Math.floor(ensureDate(params.start).getTime() / 1000);
             }

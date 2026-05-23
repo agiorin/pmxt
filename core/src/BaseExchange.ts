@@ -145,13 +145,16 @@ export interface OHLCVParams {
 /**
  * Parameters for fetching trade history. No resolution parameter - trades are discrete events.
  */
+/** Maximum allowed value for `TradesParams.limit`. */
+export const MAX_TRADES_LIMIT = 1000;
+
 export interface TradesParams {
     // No resolution - trades are discrete events, not aggregated
     /** Start of the time range */
     start?: Date;
     /** End of the time range */
     end?: Date;
-    /** Maximum number of results to return */
+    /** Maximum number of results to return (max {@link MAX_TRADES_LIMIT}) */
     limit?: number;
 }
 

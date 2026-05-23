@@ -4,6 +4,7 @@ import { MyriadAuth } from './auth';
 import { MyriadWebSocket } from './websocket';
 import { myriadErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { validateTradesLimit } from '../../utils/validation';
 import { DEFAULT_BASE_URL } from './utils';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { myriadApiSpec } from './api';
@@ -129,6 +130,7 @@ export class MyriadExchange extends PredictionMarketExchange {
     }
 
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        validateTradesLimit(params.limit);
         if ('resolution' in params && params.resolution !== undefined) {
             logger.warn(
                 'The "resolution" parameter is deprecated for fetchTrades() and will be ignored. ' +

@@ -29,7 +29,7 @@ import {
     UserTrade,
 } from '../../types';
 import { parseOpenApiSpec } from '../../utils/openapi';
-import { validateIdFormat, validateOutcomeId } from '../../utils/validation';
+import { validateIdFormat, validateOutcomeId, validateTradesLimit } from '../../utils/validation';
 import { FetcherContext } from '../interfaces';
 import { polymarketClobSpec } from './api-clob';
 import { polymarketDataSpec } from './api-data';
@@ -185,6 +185,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
         validateIdFormat(outcomeId, 'Trades');
         validateOutcomeId(outcomeId, 'Trades');
+        validateTradesLimit(params.limit);
         if ('resolution' in params && params.resolution !== undefined) {
             logger.warn('The "resolution" parameter is deprecated for fetchTrades() and will be ignored. It will be removed in v3.0.0.');
         }

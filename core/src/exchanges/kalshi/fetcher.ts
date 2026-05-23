@@ -300,10 +300,9 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
 
     async fetchRawTrades(id: string, params: TradesParams): Promise<KalshiRawTrade[]> {
         const ticker = id.replace(/-NO$/, '');
-        const data = await this.ctx.callApi('GetTrades', {
-            ticker,
-            limit: params.limit || 100,
-        });
+        const query: Record<string, any> = { ticker };
+        if (params.limit) query.limit = params.limit;
+        const data = await this.ctx.callApi('GetTrades', query);
         return data.trades || [];
     }
 

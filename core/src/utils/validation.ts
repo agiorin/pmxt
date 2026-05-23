@@ -1,4 +1,5 @@
 import { ValidationError } from '../errors';
+import { MAX_TRADES_LIMIT } from '../BaseExchange';
 
 /**
  * Validates that the provided ID is an outcomeId
@@ -22,6 +23,15 @@ export function validateIdFormat(id: string, context: string): void {
         throw new ValidationError(
             `Invalid ID for ${context}: ID cannot be empty`,
             'id'
+        );
+    }
+}
+
+export function validateTradesLimit(limit: number | undefined): void {
+    if (limit !== undefined && limit > MAX_TRADES_LIMIT) {
+        throw new ValidationError(
+            `limit exceeds maximum of ${MAX_TRADES_LIMIT}`,
+            'limit'
         );
     }
 }

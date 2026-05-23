@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.12] - 2026-05-23
+
+### Fixed
+
+- **fetchTrades**: Polymarket fetcher now forwards the `limit` parameter to the CLOB API. Previously, `limit` was silently ignored and Polymarket's API defaulted to 100 results per request — making it impossible to fetch more than 100 trades in a single call.
+- **fetchTrades**: Removed hardcoded `limit: 100` defaults from Kalshi, Myriad, and Smarkets fetchers. When no limit is specified, the upstream API's own default is used instead of our arbitrary cap.
+- **fetchTrades**: Smarkets fetcher now respects the user-provided `limit` parameter instead of ignoring it entirely.
+- **fetchTrades**: Added `MAX_TRADES_LIMIT = 1000` validation across all venues (Polymarket, Kalshi, Smarkets, Myriad, Probable). Passing `limit > 1000` now throws a `ValidationError` instead of silently returning fewer results.
+
 ## [2.43.11] - 2026-05-23
 
 ### Fixed

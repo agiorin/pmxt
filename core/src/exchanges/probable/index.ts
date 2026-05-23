@@ -24,6 +24,7 @@ import { ProbableAuth } from './auth';
 import { ProbableWebSocket, ProbableWebSocketConfig } from './websocket';
 import { probableErrorMapper } from './errors';
 import { AuthenticationError } from '../../errors';
+import { validateTradesLimit } from '../../utils/validation';
 import { OrderSide } from '@prob/clob';
 import { parseOpenApiSpec } from '../../utils/openapi';
 import { probableApiSpec } from './api';
@@ -198,6 +199,7 @@ export class ProbableExchange extends PredictionMarketExchange {
     }
 
     async fetchTrades(outcomeId: string, params: TradesParams | HistoryFilterParams): Promise<Trade[]> {
+        validateTradesLimit(params.limit);
         const auth = this.ensureAuth();
         const client = auth.getClobClient();
 
