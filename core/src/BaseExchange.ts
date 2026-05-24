@@ -102,6 +102,8 @@ export interface EventFetchParams {
     query?: string;  // For keyword search
     /** Maximum number of results to return */
     limit?: number;
+    /** Opaque venue pagination cursor, where supported. */
+    cursor?: string;
     /** Pagination offset — number of results to skip */
     offset?: number;
     /** Sort order for results */

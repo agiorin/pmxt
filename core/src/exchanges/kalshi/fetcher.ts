@@ -51,6 +51,11 @@ export interface KalshiRawEvent {
     [key: string]: unknown;
 }
 
+export interface KalshiRawEventPage {
+    events: KalshiRawEvent[];
+    cursor?: string | null;
+}
+
 export interface KalshiRawCandlestick {
     end_period_ts: number;
     volume?: number;
@@ -192,7 +197,7 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
                 return this.fetchRawEventByTicker(params.slug);
             }
 
-            const status = params?.status || 'active';
+            const status = (params?.status as string | undefined) || 'active';
 
             if (status === 'all') {
                 const [openEvents, closedEvents, settledEvents] = await Promise.all([
@@ -210,6 +215,24 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
             }
 
             return this.fetchAllWithStatus('open');
+        } catch (error: any) {
+            throw kalshiErrorMapper.mapError(error);
+        }
+    }
+
+    async fetchRawEventPage(params: EventFetchParams = {}): Promise<KalshiRawEventPage> {
+        try {
+            const status = (params?.status as string | undefined) || 'active';
+            if (status === 'all') {
+                throw new Error('Kalshi cursor pagination supports a single status at a time.');
+            }
+
+            let apiStatus = 'open';
+            if (status === 'closed' || status === 'inactive') apiStatus = 'closed';
+            if (status === 'settled') apiStatus = 'settled';
+
+            const limit = Math.max(1, Math.floor(params.limit || BATCH_SIZE));
+            return this.fetchPageWithStatus(apiStatus, limit, params.cursor);
         } catch (error: any) {
             throw kalshiErrorMapper.mapError(error);
         }
@@ -496,5 +519,40 @@ export class KalshiFetcher implements IExchangeFetcher<KalshiRawEvent, KalshiRaw
         } while (cursor && page < MAX_PAGES);
 
         return allEvents;
+    }
+
+    private async fetchPageWithStatus(
+        apiStatus: string,
+        maxEvents: number,
+        initialCursor?: string,
+    ): Promise<KalshiRawEventPage> {
+        let allEvents: KalshiRawEvent[] = [];
+        let cursor: string | null | undefined = initialCursor || null;
+        let page = 0;
+
+        do {
+            const remaining = maxEvents - allEvents.length;
+            if (remaining <= 0) break;
+
+            const queryParams: any = {
+                limit: Math.min(BATCH_SIZE, remaining),
+                with_nested_markets: true,
+                status: apiStatus,
+            };
+            if (cursor) queryParams.cursor = cursor;
+
+            const data = await this.ctx.callApi('GetEvents', queryParams);
+            const events = data.events || [];
+            cursor = data.cursor || null;
+            page++;
+
+            if (events.length === 0) break;
+            allEvents = allEvents.concat(events);
+        } while (cursor && allEvents.length < maxEvents && page < MAX_PAGES);
+
+        return {
+            events: allEvents.slice(0, maxEvents),
+            cursor,
+        };
     }
 }

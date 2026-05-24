@@ -186,6 +186,27 @@ export class KalshiExchange extends PredictionMarketExchange {
             .slice(0, limit);
     }
 
+    async fetchEventsPage(
+        params: EventFetchParams = {},
+    ): Promise<{ events: UnifiedEvent[]; cursor: string | null; nextCursor: string | null }> {
+        const page = await this.fetcher.fetchRawEventPage(params);
+        const query = (params?.query || '').toLowerCase();
+
+        const filtered = query
+            ? page.events.filter((event) => (event.title || '').toLowerCase().includes(query))
+            : page.events;
+
+        const events = filtered
+            .map((raw) => this.normalizer.normalizeEvent(raw))
+            .filter((e): e is UnifiedEvent => e !== null);
+
+        return {
+            events,
+            cursor: page.cursor || null,
+            nextCursor: page.cursor || null,
+        };
+    }
+
     async fetchOHLCV(
         outcomeId: string,
         params: OHLCVParams,

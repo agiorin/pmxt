@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.17] - 2026-05-24
+
+### Added
+
+- **Kalshi**: Added cursor-aware event page fetching for bounded catalog ingestion. `fetchEventsPage()` returns a normalized event batch plus the next Kalshi cursor, and the underlying fetcher caps each upstream page to the remaining requested rows.
+
 ## [2.43.16] - 2026-05-24
 
 ### Fixed
