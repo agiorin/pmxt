@@ -96,7 +96,7 @@ export function mapMarketToUnified(event: any, market: any, options: { useQuesti
         description: market.description || event.description,
         slug: typeof market.slug === 'string' && market.slug.length > 0 ? market.slug : undefined,
         outcomes: outcomes,
-        resolutionDate: market.endDate ? new Date(market.endDate) : (market.end_date_iso ? new Date(market.end_date_iso) : new Date()),
+        resolutionDate: market.endDate ? new Date(market.endDate) : (market.endDateIso ? new Date(market.endDateIso) : new Date()),
         volume24h: Number(market.volume24hr || market.volume_24h || 0),
         volume: Number(market.volume || 0),
         liquidity: Number(market.liquidity || market.rewards?.liquidity || 0),
