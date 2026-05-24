@@ -65,9 +65,29 @@ export class OpinionWebSocket {
 
     this.connectionPromise = new Promise<void>((resolve, reject) => {
       try {
+        const CONNECTION_TIMEOUT_MS = 30_000;
+        let settled = false;
+
+        const connectionTimer = setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            this.isConnecting = false;
+            this.connectionPromise = undefined;
+            logger.error("Opinion WebSocket connection timed out", { timeoutMs: CONNECTION_TIMEOUT_MS });
+            if (this.ws) {
+              this.ws.terminate();
+              this.ws = undefined;
+            }
+            reject(new Error(`Opinion WebSocket connection timed out after ${CONNECTION_TIMEOUT_MS}ms`));
+          }
+        }, CONNECTION_TIMEOUT_MS);
+
         this.ws = new WebSocket(this.wsUrl);
 
         this.ws.on("open", () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(connectionTimer);
           this.isConnected = true;
           this.isConnecting = false;
           this.connectionPromise = undefined;
@@ -87,6 +107,9 @@ export class OpinionWebSocket {
         });
 
         this.ws.on("error", (error: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(connectionTimer);
           logger.error("Opinion WebSocket error", { error: String(error) });
           this.isConnecting = false;
           this.connectionPromise = undefined;
@@ -318,10 +341,12 @@ export class OpinionWebSocket {
     }
 
     const dataPromise = new Promise<OrderBook>((resolve, reject) => {
-      if (!this.orderBookResolvers.has(marketId)) {
-        this.orderBookResolvers.set(marketId, []);
+      const existing = this.orderBookResolvers.get(marketId);
+      if (existing) {
+        existing.push({ resolve, reject });
+      } else {
+        this.orderBookResolvers.set(marketId, [{ resolve, reject }]);
       }
-      this.orderBookResolvers.get(marketId)!.push({ resolve, reject });
     });
 
     return withWatchTimeout(
@@ -353,10 +378,12 @@ export class OpinionWebSocket {
     }
 
     const dataPromise = new Promise<Trade[]>((resolve, reject) => {
-      if (!this.tradeResolvers.has(marketId)) {
-        this.tradeResolvers.set(marketId, []);
+      const existing = this.tradeResolvers.get(marketId);
+      if (existing) {
+        existing.push({ resolve, reject });
+      } else {
+        this.tradeResolvers.set(marketId, [{ resolve, reject }]);
       }
-      this.tradeResolvers.get(marketId)!.push({ resolve, reject });
     });
 
     return withWatchTimeout(
