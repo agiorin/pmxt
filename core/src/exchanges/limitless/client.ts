@@ -309,14 +309,20 @@ export class LimitlessClient {
      * Cancel a specific order by ID.
      */
     async cancelOrder(orderId: string) {
-        return await this.orderClient!.cancel(orderId);
+        if (!this.orderClient) {
+            throw new Error('[limitless] Order client not initialized -- trading credentials required');
+        }
+        return await this.orderClient.cancel(orderId);
     }
 
     /**
      * Cancel all orders for a specific market.
      */
     async cancelAllOrders(marketSlug: string) {
-        return await this.orderClient!.cancelAll(marketSlug);
+        if (!this.orderClient) {
+            throw new Error('[limitless] Order client not initialized -- trading credentials required');
+        }
+        return await this.orderClient.cancelAll(marketSlug);
     }
 
     /**
@@ -385,7 +391,10 @@ export class LimitlessClient {
         });
         const contract = new Contract(USDC_ADDRESS, ABI, provider);
 
-        const balance = await contract.balanceOf(this.signer!.address);
+        if (!this.signer) {
+            throw new Error('[limitless] Signer not initialized -- wallet private key required');
+        }
+        const balance = await contract.balanceOf(this.signer.address);
         const decimals = await contract.decimals(); // Should be 6
 
         return parseFloat(utils.formatUnits(balance, decimals));

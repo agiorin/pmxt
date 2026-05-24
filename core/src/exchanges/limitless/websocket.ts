@@ -117,7 +117,8 @@ export class LimitlessWebSocket {
         // 1. If we have buffered data, return it immediately
         const buffer = this.orderbookBuffers.get(marketSlug);
         if (buffer && buffer.length > 0) {
-            return buffer.shift()!;
+            const entry = buffer.shift();
+            if (entry) return entry;
         }
 
         // 2. Special case: If this is the FIRST call for this market and we have no data,
@@ -152,15 +153,31 @@ export class LimitlessWebSocket {
 
         // Wait for WebSocket update with timeout
         try {
+            const resolverEntry: { resolve: (ob: OrderBook) => void; reject: (err: any) => void } = {
+                resolve: () => {},
+                reject: () => {},
+            };
+
             const wsUpdatePromise = new Promise<OrderBook>((resolve, reject) => {
+                resolverEntry.resolve = resolve;
+                resolverEntry.reject = reject;
                 if (!this.orderbookResolvers.has(marketSlug)) {
                     this.orderbookResolvers.set(marketSlug, []);
                 }
-                this.orderbookResolvers.get(marketSlug)!.push({ resolve, reject });
+                const resolvers = this.orderbookResolvers.get(marketSlug);
+                if (resolvers) {
+                    resolvers.push(resolverEntry);
+                }
             });
 
             const timeoutPromise = new Promise<OrderBook>((resolve) => {
                 setTimeout(async () => {
+                    // Timeout won the race -- remove the stale resolver (#372)
+                    const resolvers = this.orderbookResolvers.get(marketSlug);
+                    if (resolvers) {
+                        const idx = resolvers.indexOf(resolverEntry);
+                        if (idx !== -1) resolvers.splice(idx, 1);
+                    }
                     // Timeout: fetch REST snapshot as fallback
                     try {
                         this.lastOrderbookTimestamps.set(marketSlug, Date.now());
@@ -278,6 +295,14 @@ export class LimitlessWebSocket {
     async close(): Promise<void> {
         this.orderbookCallbacks.clear();
         this.priceCallbacks.clear();
+        // Reject any pending resolvers before clearing (#372)
+        for (const [, resolvers] of this.orderbookResolvers) {
+            for (const resolver of resolvers) {
+                resolver.reject(new Error('WebSocket closed'));
+            }
+        }
+        this.orderbookResolvers.clear();
+        this.orderbookBuffers.clear();
         await this.client.disconnect();
         this.watcher.close();
     }
@@ -315,17 +340,21 @@ export class LimitlessWebSocket {
             const resolvers = this.orderbookResolvers.get(marketSlug) || [];
             if (resolvers.length > 0) {
                 // If someone is waiting, give it to them immediately
-                const resolver = resolvers.shift()!;
-                resolver.resolve(pmxtOrderbook);
+                const resolver = resolvers.shift();
+                if (resolver) {
+                    resolver.resolve(pmxtOrderbook);
+                }
             } else {
                 // Otherwise, buffer it for the next call
                 if (!this.orderbookBuffers.has(marketSlug)) {
                     this.orderbookBuffers.set(marketSlug, []);
                 }
-                const buffer = this.orderbookBuffers.get(marketSlug)!;
-                buffer.push(pmxtOrderbook);
-                // Keep buffer size reasonable
-                if (buffer.length > 100) buffer.shift();
+                const buffer = this.orderbookBuffers.get(marketSlug);
+                if (buffer) {
+                    buffer.push(pmxtOrderbook);
+                    // Keep buffer size reasonable
+                    if (buffer.length > 100) buffer.shift();
+                }
             }
         });
 
