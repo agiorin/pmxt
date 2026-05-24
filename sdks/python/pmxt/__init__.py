@@ -46,6 +46,7 @@ from .models import (
     OrderLevel,
     Trade,
     UserTrade,
+    FirehoseEvent,
     PaginatedMarketsResult,
     PaginatedEventsResult,
     Order,
@@ -60,6 +61,7 @@ from .models import (
     EventMatchResult,
     PriceComparison,
     ArbitrageOpportunity,
+    SubscribedAddressSnapshot,
     MatchRelation,
 )
 
@@ -179,6 +181,7 @@ __all__ = [
     "OrderLevel",
     "Trade",
     "UserTrade",
+    "FirehoseEvent",
     "PaginatedMarketsResult",
     "PaginatedEventsResult",
     "Order",
@@ -189,5 +192,6 @@ __all__ = [
     "EventMatchResult",
     "PriceComparison",
     "ArbitrageOpportunity",
+    "SubscribedAddressSnapshot",
     "MatchRelation",
 ]
