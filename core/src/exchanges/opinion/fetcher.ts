@@ -538,7 +538,7 @@ export class OpinionFetcher implements IExchangeFetcher<OpinionRawMarket, Opinio
 
             if (!list || list.length === 0) break;
 
-            allItems = [...allItems, ...list];
+            allItems.push(...list);
 
             if (allItems.length >= total) break;
             if (targetCount !== undefined && allItems.length >= targetCount) break;
