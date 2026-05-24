@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.43.18] - 2026-05-24
+
+### Fixed
+
+- **Python SDK**: Python 3.8-compatible annotations in `errors.py` (`from __future__ import annotations`). Fixes #561.
+- **Python SDK**: Replace bare `list[T]` with `List[T]` in `models.py` for Python 3.8 compat. Fixes #562.
+- **Python SDK**: Add missing exports (`MarketFilterCriteria`, `EventFilterCriteria`, `SortOption`, `OrderSide`, etc.) to `__init__.py` and `__all__`. Add return type annotations to `stop_server()`/`restart_server()`. Fixes #565, #471.
+- **Python SDK**: Remove dangerous defaults (`side="buy"`, `amount=0`) from `create_order`/`build_order` — now required keyword-only params. Fixes #466.
+- **Python SDK**: Rename `type` parameter to `order_type` to avoid shadowing Python built-in. Add `_convert_params_to_camel()` for `MarketFetchParams`/`EventFetchParams`. Rename `OrderBook.dt` to `datetime`. Add concrete return types to 9 router proxy methods. Fixes #563, #449, #452, #456, #496.
+- **Python SDK**: Add `SubscriptionOption` type, typed `BuiltOrder.params`/`BuiltOrder.tx`, `MatchResult`/`EventMatchResult` inheritance from unified types. Fixes #467, #500, #501, #497, #498.
+- **Server**: Validate query params in `feed-routes.ts` with runtime `typeof` checks instead of unsafe `as string` casts. Fixes #558.
+- **Server**: Validate `parsed.method` in WebSocket handler before use. Fixes #559.
+- **Limitless**: Replace 9 non-null assertions on optional interface methods with guard-and-throw checks. Fixes #560.
+- **Hyperliquid**: Correct `allMids` lookup key — use `@{outcomeId}` instead of `#{encoding}`, fixing prices hardcoded to 0.5. Fixes #441.
+- **Hyperliquid**: Add `quoteToken` to `HyperliquidRawOutcome` interface. Fixes #555.
+- **Hyperliquid**: Add `builderFee` to `HyperliquidRawFill`, `users` to `HyperliquidRawTrade`, make `origSz` optional. Fixes #547, #546, #520.
+- **Kalshi**: Read `liquidity_dollars` instead of deprecated `liquidity` field. Fixes #554.
+- **Kalshi**: Remove deprecated `mututals_description` from event normalizer. Fixes #443.
+- **Kalshi**: Handle missing `image_url` in event normalizer. Fixes #442.
+- **Kalshi**: Sync spec — add `ts_ms` to Order, remove `client_order_id` from Fill, add `balance_dollars` to GetBalance, add `subaccount` query param. Fixes #542, #517, #522, #433.
+- **Polymarket**: Use camelCase `endDateIso` instead of snake_case `end_date_iso` in normalizer. Fixes #557.
+- **Polymarket US**: Map `cashValue` to `unrealizedPnL` and `currentPrice` instead of hardcoding 0. Fixes #533.
+- **Gemini Titan**: Use dedicated `volume24h` field instead of `volume` for 24h volume. Fixes #444.
+- **Gemini Titan**: Type `GeminiRawEvent.series` as `Record<string, any> | null` to match live API. Fixes #439.
+- **Metaculus**: Handle 403 `api_forecasting_not_enabled` error. Fixes #515.
+- **Baozi**: Correct category field mapping — was returning tier instead of topic category. Fixes #540.
+- **Opinion**: Update base URL from `openapi.opinion.trade` to `proxy.opinion.trade:8443`. Fixes #516.
+- **Smarkets**: Sync spec — add CFTC jurisdiction, `cftc` object, `original_price`, `original_bets`, relax fullcover required fields. Fixes #543, #544, #545, #527, #528.
+- **GoldSky**: Add 30s timeout to subscriber fetch. Fixes #512.
+- **Probable**: Clean up `orderBookResolvers` after resolution to prevent memory leak. Fixes #550.
+- **TypeScript SDK**: Add `question` getter, `bestBid`/`bestAsk` on `MarketOutcome`, type `fetchMarketsPaginated` params, sync `getExecutionPrice` to match core. Fixes #453, #454, #462, #470, #502, #503.
+
+### Changed
+
+- **Router**: `compareMarketPrices`, `fetchRelatedMarkets`, and `fetchHedges` now accept optional `params`. Fixes #448.
+
+### Performance
+
+- **Metaculus**: Replace O(n²) `array.concat()` with `push()` in `fetchMarkets` and `fetchEvents` pagination. Fixes #551, #552.
+
+### Infrastructure
+
+- **RPC endpoints**: Add `LIMITLESS_RPC_URL` and `OPINION_RPC_URL` env var fallbacks for hardcoded blockchain RPC URLs. Fixes #507.
+- **Service URLs**: Add `PMXT_API_URL`, `POLYMARKET_GOLDSKY_URL`, `OPINION_API_URL`, `OPINION_WS_URL` env var fallbacks. Fixes #508.
+
 ## [2.43.17] - 2026-05-24
 
 ### Added
