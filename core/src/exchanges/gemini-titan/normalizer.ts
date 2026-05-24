@@ -39,8 +39,8 @@ function mapOrderStatus(geminiStatus: string): Order['status'] {
         case 'open': return 'open';
         case 'accepted': return 'open';
         case 'filled': return 'filled';
-        case 'cancelled': return 'cancelled';
-        case 'canceled': return 'cancelled';
+        case 'cancelled': return 'canceled';
+        case 'canceled': return 'canceled';
         case 'rejected': return 'rejected';
         default: return 'open';
     }

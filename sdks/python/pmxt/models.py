@@ -364,7 +364,7 @@ class PaginatedEventsResult:
 
 @dataclass
 class Order:
-    """An order (open, filled, or cancelled)."""
+    """An order (open, filled, or canceled)."""
     
     id: str
     """Order ID"""
@@ -385,7 +385,7 @@ class Order:
     """Order amount (contracts)"""
     
     status: str
-    """Order status (pending, open, filled, cancelled, rejected)"""
+    """Order status (pending, open, filled, canceled, rejected)"""
     
     filled: float
     """Amount filled"""

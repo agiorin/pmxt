@@ -271,7 +271,7 @@ export interface Trade {
 }
 
 /**
- * An order (open, filled, or cancelled).
+ * An order (open, filled, or canceled).
  */
 export interface Order {
     /** Order ID */

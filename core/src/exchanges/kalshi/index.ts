@@ -352,7 +352,7 @@ export class KalshiExchange extends PredictionMarketExchange {
             side: order.side === 'yes' ? 'buy' : 'sell',
             type: 'limit',
             amount: order.count,
-            status: 'cancelled',
+            status: 'canceled',
             filled: order.count - (order.remaining_count || 0),
             remaining: 0,
             timestamp: new Date(order.created_time).getTime(),

@@ -330,7 +330,7 @@ export class PolymarketExchange extends PredictionMarketExchange {
                 side: 'buy',
                 type: 'limit',
                 amount: 0,
-                status: 'cancelled',
+                status: 'canceled',
                 filled: 0,
                 remaining: 0,
                 timestamp: Date.now(),

@@ -10307,7 +10307,7 @@
               "pending",
               "open",
               "filled",
-              "cancelled",
+              "canceled",
               "rejected"
             ],
             "description": "Lifecycle status of the order."

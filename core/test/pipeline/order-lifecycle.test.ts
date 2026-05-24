@@ -375,7 +375,7 @@ describe('Partial fill', () => {
 // ---------------------------------------------------------------------------
 
 describe('Cancel', () => {
-    it('cancelling an open resting order sets status to cancelled', async () => {
+    it('cancelling an open resting order sets status to canceled', async () => {
         const ex = makeExchange({ limitOrderMode: 'resting' });
         const order = await ex.createOrder({
             marketId: MARKET_ID,
@@ -386,8 +386,8 @@ describe('Cancel', () => {
             amount: 10,
         });
 
-        const cancelled = await ex.cancelOrder(order.id);
-        expect(cancelled.status).toBe('cancelled');
+        const canceled = await ex.cancelOrder(order.id);
+        expect(canceled.status).toBe('canceled');
     });
 
     it('cancelling returns locked funds to available', async () => {
@@ -903,7 +903,7 @@ describe('Order query methods', () => {
         expect(open.some(o => o.id === orderB.id)).toBe(true);
     });
 
-    it('fetchClosedOrders returns filled and cancelled orders', async () => {
+    it('fetchClosedOrders returns filled and canceled orders', async () => {
         const ex = makeExchange({ limitOrderMode: 'resting', balance: 1000 });
 
         const orderA = await ex.createOrder({

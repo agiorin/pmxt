@@ -896,7 +896,7 @@ class TestConvertOrder:
             "side": "buy",
             "type": "limit",
             "amount": 111.0,
-            "status": "cancelled",
+            "status": "canceled",
             "filled": 22.0,
             "remaining": 89.0,
             "timestamp": 3333333333333,
@@ -910,7 +910,7 @@ class TestConvertOrder:
         assert order.side == "buy"
         assert order.type == "limit"
         assert order.amount == 111.0
-        assert order.status == "cancelled"
+        assert order.status == "canceled"
         assert order.filled == 22.0
         assert order.remaining == 89.0
         assert order.timestamp == 3333333333333

@@ -190,7 +190,7 @@ export interface Order {
     price?: number;  // For limit orders
     amount: number;  // Size in contracts/shares
     /** Lifecycle status of the order. */
-    status: 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected';
+    status: 'pending' | 'open' | 'filled' | 'canceled' | 'rejected';
     filled: number;  // Amount filled (USDC cost for buys, shares for sells)
     /** Amount filled in shares/contracts (if different from USDC-denominated `filled`). */
     filledShares?: number;

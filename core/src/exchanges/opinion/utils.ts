@@ -54,12 +54,12 @@ export function mapIntervalToOpinion(interval: CandleInterval): string {
 }
 
 // Map Opinion order status code to pmxt status string
-export function mapOrderStatus(status: number): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+export function mapOrderStatus(status: number): 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' {
     switch (status) {
         case OPINION_ORDER_STATUS.PENDING: return 'pending';
         case OPINION_ORDER_STATUS.FILLED: return 'filled';
-        case OPINION_ORDER_STATUS.CANCELED: return 'cancelled';
-        case OPINION_ORDER_STATUS.EXPIRED: return 'cancelled'; // expired -> cancelled
+        case OPINION_ORDER_STATUS.CANCELED: return 'canceled';
+        case OPINION_ORDER_STATUS.EXPIRED: return 'canceled'; // expired -> canceled
         case OPINION_ORDER_STATUS.FAILED: return 'rejected';   // failed -> rejected
         default: return 'pending';
     }
