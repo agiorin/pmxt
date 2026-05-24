@@ -165,7 +165,7 @@ export class ChainlinkFeed extends BaseDataFeed {
         const sub: Subscription = { symbol: symbol.toUpperCase(), callback };
         this.subscriptions = [...this.subscriptions, sub];
         this.ensureConnected().catch((err: unknown) => {
-            logger.error('[ChainlinkFeed] initial connect failed in watchTickerImpl:', err instanceof Error ? err.message : String(err));
+            logger.error('[ChainlinkFeed] initial connect failed in watchTickerImpl', { error: err instanceof Error ? err.message : String(err) });
         });
 
         return () => {
@@ -328,7 +328,7 @@ export class ChainlinkFeed extends BaseDataFeed {
             this.reconnectTimer = null;
             if (!this.isTerminated) {
                 this.connect().catch((err: unknown) => {
-                    logger.error('[ChainlinkFeed] reconnect failed:', err instanceof Error ? err.message : String(err));
+                    logger.error('[ChainlinkFeed] reconnect failed', { error: err instanceof Error ? err.message : String(err) });
                 });
             }
         }, this.reconnectIntervalMs);
