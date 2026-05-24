@@ -54,8 +54,11 @@ export interface GoldSkyConfig extends Omit<SubscriberConfig, 'buildSubscription
 // ----------------------------------------------------------------------------
 
 // Reference: https://docs.polymarket.com/market-data/subgraph
-const POLYMARKET_TRADES_ENDPOINT =
+const POLYMARKET_TRADES_ENDPOINT = process.env.POLYMARKET_GOLDSKY_URL ||
     'https://api.goldsky.com/api/public/project_cl6mb8i9h0003e201j6li0diw/subgraphs/orderbook-subgraph/prod/gn';
+
+const GOLDSKY_MAKER_TRADES_LIMIT = 5;
+const GOLDSKY_TAKER_TRADES_LIMIT = 20;
 
 // NOTE: orderBy must use `id` (primary key) on pnl-subgraph and positions-subgraph.
 // Sorting by any unindexed column (e.g. amount, balance) causes a statement timeout.
@@ -80,7 +83,7 @@ const BUILD_POLYMARKET_TRADES_AS_MAKER_QUERY = (address: string, url?: string): 
         query GetPolymarketTradesMaker($address: Bytes!) {
             orderFilledEvents(
                 where: { maker: $address }
-                first: 5
+                first: ${GOLDSKY_MAKER_TRADES_LIMIT}
                 orderBy: timestamp
                 orderDirection: desc
             ) {${TRADES_FIELDS}
@@ -96,7 +99,7 @@ const BUILD_POLYMARKET_TRADES_AS_TAKER_QUERY = (address: string, url?: string): 
         query GetPolymarketTradesTaker($address: Bytes!) {
             orderFilledEvents(
                 where: { taker: $address }
-                first: 20
+                first: ${GOLDSKY_TAKER_TRADES_LIMIT}
                 orderBy: timestamp
                 orderDirection: desc
             ) {${TRADES_FIELDS}

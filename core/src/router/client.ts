@@ -15,7 +15,7 @@ import type {
     RouterEventSearchParams,
 } from './types';
 
-const DEFAULT_BASE_URL = 'https://api.pmxt.dev';
+const DEFAULT_BASE_URL = process.env.PMXT_API_URL || 'https://api.pmxt.dev';
 
 export class PmxtApiClient {
     private readonly http: AxiosInstance;
