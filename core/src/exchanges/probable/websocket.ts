@@ -70,15 +70,25 @@ export class ProbableWebSocket {
         }
 
         // Return a promise that resolves on the next orderbook update
+        let resolver: QueuedPromise<OrderBook>;
         const dataPromise = new Promise<OrderBook>((resolve, reject) => {
-            this.getOrderBookQueue(tokenId).push({ resolve, reject });
+            resolver = { resolve, reject };
+            this.getOrderBookQueue(tokenId).push(resolver);
         });
 
         return withWatchTimeout(
             dataPromise,
             this.config.watchTimeoutMs ?? DEFAULT_WATCH_TIMEOUT_MS,
             `watchOrderBook('${tokenId}')`,
-        );
+        ).finally(() => {
+            const queue = this.orderBookResolvers.get(tokenId);
+            if (queue) {
+                const idx = queue.indexOf(resolver!);
+                if (idx !== -1) {
+                    queue.splice(idx, 1);
+                }
+            }
+        });
     }
 
     private handleOrderBookUpdate(tokenId: string, data: any) {
