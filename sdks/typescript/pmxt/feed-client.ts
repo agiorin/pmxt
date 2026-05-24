@@ -11,7 +11,7 @@ import { PmxtError } from "./errors.js";
 
 export interface Ticker {
     symbol: string;
-    info: any;
+    info: Record<string, unknown>;
     timestamp: number | undefined;
     datetime: string | undefined;
     high: number | undefined;
@@ -44,7 +44,7 @@ export interface Market {
     quote: string;
     active: boolean;
     type: string;
-    info: any;
+    info: Record<string, unknown>;
 }
 
 export interface OracleRound {
@@ -125,7 +125,10 @@ export class FeedClient {
 
         const url = `${this.baseUrl}/api/feeds/${this.feedName}/${method}${qs ? '?' + qs : ''}`;
 
-        const response = await fetch(url, { headers: this.headers });
+        const response = await fetch(url, {
+            headers: this.headers,
+            signal: AbortSignal.timeout(30_000),
+        });
 
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
