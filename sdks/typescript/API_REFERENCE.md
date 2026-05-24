@@ -1927,6 +1927,7 @@ similarityThreshold?: number; // For semantic search (used by Limitless)
 interface EventFetchParams {
 query?: string; // For keyword search
 limit?: number; // Maximum number of results to return
+cursor?: string; // Opaque venue pagination cursor, where supported.
 offset?: number; // Pagination offset — number of results to skip
 sort?: string; // Sort order for results
 status?: string; // Filter by event status (default: 'active', 'inactive' and 'closed' are interchangeable)
@@ -3368,6 +3369,8 @@ Update Order Group Limit *(Auth required)*
 
 Get Balance *(Auth required)*
 
+**Parameters:**
+- `subaccount` (query, integer) — Subaccount number (0 for primary, 1-32 for subaccounts). When provided, returns only that subaccount's balance.
 
 ---
 ##### `CreateSubaccount`

@@ -687,7 +687,7 @@ export abstract class Exchange {
         }
     }
 
-    async fetchMarketsPaginated(params?: MarketFetchParams): Promise<PaginatedMarketsResult> {
+    async fetchMarketsPaginated(params?: any): Promise<PaginatedMarketsResult> {
         await this.initPromise;
         try {
             const args: any[] = [];
