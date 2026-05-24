@@ -86,7 +86,7 @@ export class KalshiNormalizer implements IExchangeNormalizer<KalshiRawEvent, Kal
             resolutionDate: new Date(market.expiration_time),
             volume24h: parseFloat(market.volume_24h_fp ?? '') || Number(market.volume_24h || market.volume || 0),
             volume: parseFloat(market.volume_fp ?? '') || Number(market.volume || 0),
-            liquidity: Number(market.liquidity || 0),
+            liquidity: parseFloat(String(market.liquidity_dollars || market.liquidity || '0')) || 0,
             openInterest: parseFloat(market.open_interest_fp ?? '') || Number(market.open_interest || 0),
             url: `https://kalshi.com/events/${event.event_ticker}`,
             category: event.category,
@@ -361,7 +361,7 @@ function eventVolume(event: any): number {
 }
 
 function eventLiquidity(event: any): number {
-    return (event.markets || []).reduce((sum: number, m: any) => sum + (parseFloat(m.open_interest_fp ?? '') || Number(m.open_interest || m.liquidity || 0)), 0);
+    return (event.markets || []).reduce((sum: number, m: any) => sum + (parseFloat(m.open_interest_fp ?? '') || parseFloat(m.liquidity_dollars || m.open_interest || m.liquidity || '0') || 0), 0);
 }
 
 function eventNewest(event: any): number {
