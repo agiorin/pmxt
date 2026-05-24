@@ -6,6 +6,7 @@
  */
 
 import { Exchange, ExchangeOptions } from "./client.js";
+import { logger } from "./logger.js";
 import {
     MatchResult,
     MatchRelation,
@@ -204,7 +205,7 @@ export class Router extends Exchange {
         limit?: number;
         includePrices?: boolean;
     } = {}): Promise<MatchResult[]> {
-        console.warn('[pmxt] fetchMatches is deprecated, use fetchMarketMatches instead');
+        logger.warn('fetchMatches is deprecated, use fetchMarketMatches instead');
         return this.fetchMarketMatches(marketOrParams as any);
     }
 
