@@ -335,26 +335,33 @@ function updateDocsNavigation(openApiPaths) {
   // group, before the auto-generated OpenAPI endpoint pages.
   const ENTERPRISE_GUIDE_PAGES = ['sql'];
 
-  const newGroups = [];
-  if (crossExchangePages.length > 0) {
-    newGroups.push({
-      group: 'Cross Exchange',
-      openapi: HOSTED_OPENAPI_REF,
-      pages: crossExchangePages,
-    });
-  }
-  newGroups.push({
+  const crossExchangeGroup = crossExchangePages.length > 0 ? {
+    group: 'Cross Exchange',
+    openapi: HOSTED_OPENAPI_REF,
+    pages: crossExchangePages,
+  } : null;
+  const enterpriseGroup = {
     group: 'Enterprise',
     openapi: HOSTED_OPENAPI_REF,
     pages: [...ENTERPRISE_GUIDE_PAGES, ...enterpriseEndpointPages],
-  });
+  };
 
   // Remove any existing groups that point at the hosted spec (regardless of
-  // name) to avoid duplicates, then append the new one.
+  // name) to avoid duplicates, then reinsert them in their intended places.
   const withoutHosted = apiRefTab.groups.filter(
     (g) => g.openapi !== HOSTED_OPENAPI_REF
   );
-  const updatedGroups = [...withoutHosted, ...newGroups];
+  const updatedGroups = [];
+  for (const group of withoutHosted) {
+    updatedGroups.push(group);
+    if (group.group === 'Events & Markets' && crossExchangeGroup) {
+      updatedGroups.push(crossExchangeGroup);
+    }
+  }
+  if (crossExchangeGroup && !updatedGroups.includes(crossExchangeGroup)) {
+    updatedGroups.push(crossExchangeGroup);
+  }
+  updatedGroups.push(enterpriseGroup);
 
   const updatedApiRefTab = { ...apiRefTab, groups: updatedGroups };
   const updatedTabs = docsJson.navigation.tabs.map((t) =>

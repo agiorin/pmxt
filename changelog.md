@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.44.2] - 2026-05-24
+
+### Fixed
+
+- **Docs navigation**: Move API Reference `Cross Exchange` directly after `Events & Markets` so matched-cluster endpoints sit next to catalog discovery.
+- **Hosted docs sync**: Insert synced Cross Exchange hosted routes after `Events & Markets` instead of appending them near the bottom of the sidebar.
+
 ## [2.44.1] - 2026-05-24
 
 ### Fixed
