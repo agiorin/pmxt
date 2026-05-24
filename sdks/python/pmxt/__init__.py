@@ -63,6 +63,11 @@ from .models import (
     ArbitrageOpportunity,
     SubscribedAddressSnapshot,
     MatchRelation,
+    SortOption,
+    SearchIn,
+    OrderSide,
+    OrderType,
+    CandleInterval,
 )
 
 
@@ -111,7 +116,7 @@ server = _ServerNamespace(_default_manager)
 
 
 # Deprecated flat aliases. Prefer ``pmxt.server.stop()`` / ``pmxt.server.restart()``.
-def stop_server():
+def stop_server() -> None:
     """Deprecated: use ``pmxt.server.stop()`` instead."""
     import warnings
     warnings.warn(
@@ -122,7 +127,7 @@ def stop_server():
     _default_manager.stop()
 
 
-def restart_server():
+def restart_server() -> None:
     """Deprecated: use ``pmxt.server.restart()`` instead."""
     import warnings
     warnings.warn(
@@ -195,4 +200,13 @@ __all__ = [
     "ArbitrageOpportunity",
     "SubscribedAddressSnapshot",
     "MatchRelation",
+    "MarketFilterCriteria",
+    "EventFilterCriteria",
+    "MarketFetchParams",
+    "EventFetchParams",
+    "SortOption",
+    "SearchIn",
+    "OrderSide",
+    "OrderType",
+    "CandleInterval",
 ]
