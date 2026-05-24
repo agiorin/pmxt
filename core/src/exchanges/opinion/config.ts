@@ -1,5 +1,5 @@
-export const DEFAULT_OPINION_API_URL = "https://proxy.opinion.trade:8443/openapi";
-export const OPINION_WS_URL = "wss://ws.opinion.trade";
+export const DEFAULT_OPINION_API_URL = process.env.OPINION_API_URL || "https://proxy.opinion.trade:8443/openapi";
+export const OPINION_WS_URL = process.env.OPINION_WS_URL || "wss://ws.opinion.trade";
 export const OPINION_MAX_PAGE_SIZE = 20;
 
 // CLOB SDK chain constants
