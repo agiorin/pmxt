@@ -259,7 +259,15 @@ export class ChainlinkFeed extends BaseDataFeed {
             const url = `${this.wsUrl}?key=${this.wsApiKey}`;
             const ws = new WebSocket(url);
 
+            const connectionTimeout = setTimeout(() => {
+                ws.close();
+                this.ws = null;
+                this.connectionPromise = null;
+                reject(new Error('ChainlinkFeed: WebSocket connection timed out (30s)'));
+            }, 30_000);
+
             ws.on('open', () => {
+                clearTimeout(connectionTimeout);
                 this.ws = ws;
                 this.connectionPromise = null;
                 ws.send(JSON.stringify({ op: 'subscribe_all' }));
@@ -271,12 +279,14 @@ export class ChainlinkFeed extends BaseDataFeed {
             });
 
             ws.on('close', () => {
+                clearTimeout(connectionTimeout);
                 this.ws = null;
                 this.connectionPromise = null;
                 if (!this.isTerminated) this.scheduleReconnect();
             });
 
             ws.on('error', (err: Error) => {
+                clearTimeout(connectionTimeout);
                 this.ws = null;
                 this.connectionPromise = null;
                 if (!this.isTerminated) this.scheduleReconnect();

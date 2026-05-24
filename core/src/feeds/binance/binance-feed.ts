@@ -152,7 +152,15 @@ export class BinanceFeed extends BaseDataFeed {
 
             const ws = new WebSocket(url);
 
+            const connectionTimeout = setTimeout(() => {
+                ws.close();
+                this.ws = null;
+                this.connectionPromise = null;
+                reject(new Error('BinanceFeed: WebSocket connection timed out (30s)'));
+            }, 30_000);
+
             ws.on('open', () => {
+                clearTimeout(connectionTimeout);
                 this.ws = ws;
                 this.connectionPromise = null;
                 ws.send(JSON.stringify({ op: 'subscribe_all' }));
@@ -164,6 +172,7 @@ export class BinanceFeed extends BaseDataFeed {
             });
 
             ws.on('close', () => {
+                clearTimeout(connectionTimeout);
                 this.ws = null;
                 this.connectionPromise = null;
                 if (!this.isTerminated) {
@@ -172,6 +181,7 @@ export class BinanceFeed extends BaseDataFeed {
             });
 
             ws.on('error', (err: Error) => {
+                clearTimeout(connectionTimeout);
                 this.ws = null;
                 this.connectionPromise = null;
                 if (!this.isTerminated) {
