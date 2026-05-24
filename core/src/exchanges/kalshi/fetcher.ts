@@ -41,7 +41,6 @@ export interface KalshiRawMarket {
 export interface KalshiRawEvent {
     event_ticker: string;
     title: string;
-    mututals_description?: string;
     image_url?: string;
     category?: string;
     tags?: string[];

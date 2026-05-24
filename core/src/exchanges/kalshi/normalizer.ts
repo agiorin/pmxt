@@ -106,7 +106,7 @@ export class KalshiNormalizer implements IExchangeNormalizer<KalshiRawEvent, Kal
         return {
             id: raw.event_ticker,
             title: raw.title,
-            description: raw.mututals_description || this.deriveEventDescription(raw.markets || []),
+            description: this.deriveEventDescription(raw.markets || []),
             slug: raw.event_ticker,
             markets,
             volume24h: markets.reduce((sum, m) => sum + m.volume24h, 0),
