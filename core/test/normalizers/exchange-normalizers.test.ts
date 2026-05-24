@@ -398,7 +398,6 @@ describe('KalshiNormalizer', () => {
     const rawEvent: Readonly<KalshiRawEvent> = freeze({
         event_ticker: 'FED-25JAN29',
         title: 'Fed Funds Rate Decision - January 2025',
-        mututals_description: 'Markets on the Federal Reserve interest rate decision.',
         image_url: 'https://kalshi.com/img/fed.png',
         category: 'Economics',
         tags: ['Federal Reserve', 'Interest Rates'],
@@ -593,8 +592,8 @@ describe('KalshiNormalizer', () => {
             expect(event.title).toBe('Fed Funds Rate Decision - January 2025');
         });
 
-        it('maps description from mututals_description', () => {
-            expect(event.description).toBe('Markets on the Federal Reserve interest rate decision.');
+        it('derives description from market rules', () => {
+            expect(event.description).toBe('This market resolves YES if the Fed Funds Rate is above 4.75% on Jan 29, 2025.');
         });
 
         it('populates nested markets array', () => {
