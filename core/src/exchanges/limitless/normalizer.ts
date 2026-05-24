@@ -71,10 +71,12 @@ export class LimitlessNormalizer implements IExchangeNormalizer<LimitlessRawMark
         }).sort((a, b) => a.timestamp - b.timestamp);
 
         if (params.start) {
-            candles = candles.filter((c) => c.timestamp >= params.start!.getTime());
+            const start = params.start;
+            candles = candles.filter((c) => c.timestamp >= start.getTime());
         }
         if (params.end) {
-            candles = candles.filter((c) => c.timestamp <= params.end!.getTime());
+            const end = params.end;
+            candles = candles.filter((c) => c.timestamp <= end.getTime());
         }
         if (params.limit) {
             candles = candles.slice(0, params.limit);
