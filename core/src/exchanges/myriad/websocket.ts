@@ -43,8 +43,14 @@ export class MyriadWebSocket {
                 this.orderBookResolvers.set(outcomeId, []);
                 this.orderBookRejecters.set(outcomeId, []);
             }
-            this.orderBookResolvers.get(outcomeId)!.push(resolve);
-            this.orderBookRejecters.get(outcomeId)!.push(reject);
+            const resolvers = this.orderBookResolvers.get(outcomeId);
+            const rejecters = this.orderBookRejecters.get(outcomeId);
+            if (!resolvers || !rejecters) {
+                reject(new Error(`Failed to initialize orderBook resolvers for outcomeId=${outcomeId}`));
+                return;
+            }
+            resolvers.push(resolve);
+            rejecters.push(reject);
 
             if (!this.orderBookTimers.has(outcomeId)) {
                 this.startOrderBookPolling(outcomeId);
@@ -60,8 +66,14 @@ export class MyriadWebSocket {
                 this.tradeResolvers.set(outcomeId, []);
                 this.tradeRejecters.set(outcomeId, []);
             }
-            this.tradeResolvers.get(outcomeId)!.push(resolve);
-            this.tradeRejecters.get(outcomeId)!.push(reject);
+            const resolvers = this.tradeResolvers.get(outcomeId);
+            const rejecters = this.tradeRejecters.get(outcomeId);
+            if (!resolvers || !rejecters) {
+                reject(new Error(`Failed to initialize trade resolvers for outcomeId=${outcomeId}`));
+                return;
+            }
+            resolvers.push(resolve);
+            rejecters.push(reject);
 
             if (!this.tradeTimers.has(outcomeId)) {
                 this.startTradePolling(outcomeId);
