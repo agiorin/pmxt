@@ -277,11 +277,11 @@ export class KalshiNormalizer implements IExchangeNormalizer<KalshiRawEvent, Kal
 
     // -- Helpers ---------------------------------------------------------------
 
-    private mapOrderStatus(status: string | undefined): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+    private mapOrderStatus(status: string | undefined): 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' {
         switch ((status ?? '').toLowerCase()) {
             case 'resting': return 'open';
             case 'canceled':
-            case 'cancelled': return 'cancelled';
+            case 'cancelled': return 'canceled';
             case 'executed':
             case 'filled': return 'filled';
             default: return 'open';

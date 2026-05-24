@@ -309,7 +309,7 @@ export class ProbableExchange extends PredictionMarketExchange {
                 side: 'buy',
                 type: 'limit',
                 amount: 0,
-                status: 'cancelled',
+                status: 'canceled',
                 filled: 0,
                 remaining: 0,
                 timestamp: Date.now(),
@@ -490,12 +490,12 @@ function parseCompoundId(compoundId: string): [string, string | undefined] {
     return [compoundId.substring(0, colonIndex), compoundId.substring(colonIndex + 1)];
 }
 
-function mapOrderStatus(status: string): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+function mapOrderStatus(status: string): 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' {
     if (!status) return 'open';
     const lower = status.toLowerCase();
     if (lower === 'new' || lower === 'open' || lower === 'partially_filled') return 'open';
     if (lower === 'filled' || lower === 'trade') return 'filled';
-    if (lower === 'canceled' || lower === 'cancelled' || lower === 'expired') return 'cancelled';
+    if (lower === 'canceled' || lower === 'cancelled' || lower === 'expired') return 'canceled';
     if (lower === 'rejected') return 'rejected';
     return 'open';
 }

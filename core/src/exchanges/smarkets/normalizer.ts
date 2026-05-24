@@ -232,7 +232,7 @@ export class SmarketsNormalizer implements IExchangeNormalizer<SmarketsRawEventW
         const availableQty = raw.available_quantity || 0;
         const quantity = raw.quantity || (totalExecuted + availableQty);
 
-        let status: 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' = 'open';
+        let status: 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' = 'open';
         if (totalExecuted > 0 && availableQty === 0) {
             status = 'filled';
         } else if (totalExecuted > 0) {
@@ -287,7 +287,7 @@ export class SmarketsNormalizer implements IExchangeNormalizer<SmarketsRawEventW
 
     // -- Private helpers ------------------------------------------------------
 
-    private mapOrderStatus(state: string): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+    private mapOrderStatus(state: string): 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' {
         switch (state) {
             case 'created':
                 return 'pending';

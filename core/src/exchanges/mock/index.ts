@@ -631,7 +631,7 @@ export class MockExchange extends PredictionMarketExchange {
             this._freeCash += rest;
             this._lockedByBuy.delete(orderId);
         }
-        const u: Order = { ...current, status: 'cancelled', remaining: 0, timestamp: Date.now() };
+        const u: Order = { ...current, status: 'canceled', remaining: 0, timestamp: Date.now() };
         this._orders.set(orderId, u);
         return { ...u };
     }
@@ -656,7 +656,7 @@ export class MockExchange extends PredictionMarketExchange {
 
     override async fetchClosedOrders(): Promise<Order[]> {
         return Array.from(this._orders.values())
-            .filter(o => o.status === 'filled' || o.status === 'cancelled' || o.status === 'rejected')
+            .filter(o => o.status === 'filled' || o.status === 'canceled' || o.status === 'rejected')
             .map(o => ({ ...o }));
     }
 

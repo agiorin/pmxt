@@ -36,7 +36,7 @@ export interface CancelOrderContext {
  *
  * @param orderId  The Metaculus question ID to withdraw the forecast from.
  * @param ctx      HTTP client and auth context.
- * @returns A synthetic Order with status "cancelled".
+ * @returns A synthetic Order with status "canceled".
  *
  * @throws {AuthenticationError} If no API token is configured.
  * @throws {ValidationError} If the orderId is not a valid numeric question ID.
@@ -75,7 +75,7 @@ export async function cancelOrder(
             headers: { "Content-Type": "application/json", ...headers },
         });
 
-        // 4. Return synthetic cancelled order
+        // 4. Return synthetic canceled order
         return {
             id: `mc-withdraw-${questionId}-${Date.now()}`,
             marketId: orderId,
@@ -83,7 +83,7 @@ export async function cancelOrder(
             side: "buy",
             type: "market",
             amount: 1,
-            status: "cancelled",
+            status: "canceled",
             filled: 0,
             remaining: 0,
             timestamp: Date.now(),

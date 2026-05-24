@@ -254,15 +254,15 @@ function mapOrderType(type: OrderType): 'market' | 'limit' {
     return type === 'ORDER_TYPE_MARKET' ? 'market' : 'limit';
 }
 
-// PMXT Order.status values: 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected'
-// Note: PMXT has no 'expired' status; expired orders are mapped to 'cancelled'.
-function mapOrderStatus(state: OrderState): 'pending' | 'open' | 'filled' | 'cancelled' | 'rejected' {
+// PMXT Order.status values: 'pending' | 'open' | 'filled' | 'canceled' | 'rejected'
+// Note: PMXT has no 'expired' status; expired orders are mapped to 'canceled'.
+function mapOrderStatus(state: OrderState): 'pending' | 'open' | 'filled' | 'canceled' | 'rejected' {
     switch (state) {
         case 'ORDER_STATE_FILLED':
             return 'filled';
         case 'ORDER_STATE_CANCELED':
         case 'ORDER_STATE_EXPIRED':
-            return 'cancelled';
+            return 'canceled';
         case 'ORDER_STATE_REJECTED':
             return 'rejected';
         case 'ORDER_STATE_NEW':

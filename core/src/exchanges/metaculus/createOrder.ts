@@ -208,7 +208,7 @@ export function redistributeProbabilities(
  */
 function buildSyntheticOrder(
     params: CreateOrderParams,
-    status: "filled" | "cancelled",
+    status: "filled" | "canceled",
 ): Order {
     return {
         id: `mc-${params.marketId}-${Date.now()}`,
