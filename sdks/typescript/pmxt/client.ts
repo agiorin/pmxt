@@ -607,6 +607,28 @@ export abstract class Exchange {
         return response.json();
     }
 
+    /**
+     * Dispatch a sidecar POST method with positional args and credentials.
+     *
+     * @internal - shared transport for hand-maintained methods that should
+     * never use the GET read path.
+     */
+    protected async sidecarPostRequest(methodName: string, args: unknown[]): Promise<any> {
+        const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/${methodName}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+            body: JSON.stringify({ args, credentials: this.getCredentials() }),
+        });
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            if (body.error && typeof body.error === "object") {
+                throw fromServerError(body.error);
+            }
+            throw new PmxtError(body.error?.message || response.statusText);
+        }
+        return response.json();
+    }
+
     // BEGIN GENERATED METHODS
 
     async loadMarkets(reload: boolean = false): Promise<Record<string, UnifiedMarket>> {
@@ -2445,6 +2467,23 @@ export class Polymarket extends Exchange {
             ...options
         };
         super("polymarket", polyOptions as ExchangeOptions);
+    }
+
+    /**
+     * Initialize Polymarket L2 API credentials for implicit API signing.
+     *
+     * Call this before private Polymarket implicit-API endpoints when the
+     * underlying CLOB credentials have not been created yet.
+     */
+    async initAuth(): Promise<void> {
+        await this.initPromise;
+        try {
+            const json = await this.sidecarPostRequest('initAuth', []);
+            this.handleResponse(json);
+        } catch (error) {
+            if (error instanceof PmxtError) throw error;
+            throw new PmxtError(`Failed to initAuth: ${error}`);
+        }
     }
 }
 

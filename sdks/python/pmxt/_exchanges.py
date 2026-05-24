@@ -58,6 +58,11 @@ class Polymarket(Exchange):
             creds["passphrase"] = self.passphrase
         return creds if creds else None
 
+    def init_auth(self) -> None:
+        """Initialize L2 API credentials for Polymarket implicit API signing."""
+        self._call_method("initAuth")
+        return None
+
 
 class Limitless(Exchange):
     """Limitless exchange client."""
