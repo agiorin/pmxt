@@ -191,7 +191,7 @@ export const buildPolymarketTradesActivity: SubscribedActivityBuilder = (data, a
 
     const addr = address.toLowerCase();
     const trades: Trade[] = filled.map((f: any): Trade => {
-        const isMaker = (f.maker as string)?.toLowerCase() === addr;
+        const isMaker = f.maker?.toLowerCase() === addr;
         const currAssetId = BigInt(isMaker ? f.makerAssetId : f.takerAssetId);
         const isBuying = currAssetId === 0n;
 
@@ -253,7 +253,7 @@ export const buildLimitlessBalanceActivity: SubscribedActivityBuilder = (data, a
 
     const t = transfers[0];
     const addr = address.toLowerCase();
-    const isIncoming = (t.to as string)?.toLowerCase() === addr;
+    const isIncoming = t.to?.toLowerCase() === addr;
     const delta = parseFloat(t.value) / 1e6;
     const newTotal = Math.max(0, isIncoming ? prev.total + delta : prev.total - delta);
 

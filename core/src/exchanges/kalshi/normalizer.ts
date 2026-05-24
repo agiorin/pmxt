@@ -288,8 +288,8 @@ export class KalshiNormalizer implements IExchangeNormalizer<KalshiRawEvent, Kal
 
     private deriveEventDescription(markets: any[]): string {
         const texts = markets
-            .map((m) => m.rules_primary as string)
-            .filter((t) => typeof t === 'string' && t.length > 0);
+            .map((m) => m.rules_primary)
+            .filter((t): t is string => typeof t === 'string' && t.length > 0);
 
         if (texts.length === 0) return '';
         if (texts.length === 1) return texts[0];
