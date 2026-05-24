@@ -18,6 +18,14 @@ const OVERRIDES = {
     polymarket: {
         // The Python SDK defaults to gnosis-safe to match historical behaviour.
         defaults: { signature_type: '"gnosis-safe"' },
+        methods: [
+            [
+                '    def init_auth(self) -> None:',
+                '        """Initialize L2 API credentials for Polymarket implicit API signing."""',
+                '        self._call_method("initAuth")',
+                '        return None',
+            ].join('\n'),
+        ],
     },
     myriad: {
         // Myriad uses privateKey as the wallet address, not a signing key.
@@ -108,6 +116,7 @@ function generateClass(exchange) {
     const aliases = ov.paramAliases || {};
     const defaults = ov.defaults || {};
     const paramDocs = ov.paramDocs || {};
+    const methods = ov.methods || [];
 
     const constructorParams = [];
     const superArgs = [`exchange_name="${name}"`];
@@ -205,6 +214,10 @@ function generateClass(exchange) {
             ...credOverrideLines,
             indent8('return creds if creds else None'),
         );
+    }
+
+    if (methods.length) {
+        lines.push('', ...methods);
     }
 
     return lines.join('\n');

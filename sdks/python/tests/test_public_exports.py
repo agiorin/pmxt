@@ -67,3 +67,30 @@ def test_legacy_polymarket_us_alias_stays_public():
     assert "Polymarket_us" in exchange_imports
     assert "Polymarket_us" in public_exports
     assert aliases["Polymarket_us"] == "PolymarketUS"
+
+
+def test_polymarket_init_auth_is_generated():
+    exchanges_path = Path(__file__).resolve().parents[1] / "pmxt" / "_exchanges.py"
+    tree = ast.parse(exchanges_path.read_text(encoding="utf-8"))
+
+    polymarket_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "Polymarket"
+    )
+    init_auth = next(
+        node
+        for node in polymarket_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "init_auth"
+    )
+
+    call = next(
+        node
+        for node in init_auth.body
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+    )
+    assert isinstance(call, ast.Expr)
+    assert isinstance(call.value, ast.Call)
+    assert isinstance(call.value.func, ast.Attribute)
+    assert call.value.func.attr == "_call_method"
+    assert call.value.args[0].value == "initAuth"

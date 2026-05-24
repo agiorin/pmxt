@@ -751,7 +751,7 @@ class Exchange(ABC):
             if kwargs:
                 params = {**(params or {}), **kwargs}
             if params is not None:
-                args.append(_convert_params_to_camel(params))
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -774,7 +774,7 @@ class Exchange(ABC):
             if kwargs:
                 params = {**(params or {}), **kwargs}
             if params is not None:
-                args.append(_convert_params_to_camel(params))
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -801,7 +801,7 @@ class Exchange(ABC):
             if kwargs:
                 params = {**(params or {}), **kwargs}
             if params is not None:
-                args.append(_convert_params_to_camel(params))
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -824,7 +824,7 @@ class Exchange(ABC):
             if kwargs:
                 params = {**(params or {}), **kwargs}
             if params is not None:
-                args.append(_convert_params_to_camel(params))
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -847,7 +847,7 @@ class Exchange(ABC):
             if kwargs:
                 params = {**(params or {}), **kwargs}
             if params is not None:
-                args.append(_convert_params_to_camel(params))
+                args.append(params)
             body: dict = {"args": args}
             creds = self._get_credentials_dict()
             if creds:
@@ -1144,7 +1144,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_market_matches(self, params: Optional[dict] = None, **kwargs) -> List[MatchResult]:
+    def fetch_market_matches(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1167,7 +1167,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_matches(self, params: dict, **kwargs) -> List[MatchResult]:
+    def fetch_matches(self, params: dict, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1189,7 +1189,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_event_matches(self, params: Optional[dict] = None, **kwargs) -> List[EventMatchResult]:
+    def fetch_event_matches(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1212,7 +1212,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def compare_market_prices(self, params: dict, **kwargs) -> List[PriceComparison]:
+    def compare_market_prices(self, params: dict, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1234,7 +1234,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_related_markets(self, params: dict, **kwargs) -> List[MatchResult]:
+    def fetch_related_markets(self, params: dict, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1256,7 +1256,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_matched_markets(self, params: Optional[dict] = None, **kwargs) -> List[MatchResult]:
+    def fetch_matched_markets(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1279,7 +1279,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_matched_prices(self, params: Optional[dict] = None, **kwargs) -> List[PriceComparison]:
+    def fetch_matched_prices(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1302,7 +1302,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_hedges(self, params: dict, **kwargs) -> List[PriceComparison]:
+    def fetch_hedges(self, params: dict, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
@@ -1324,7 +1324,7 @@ class Exchange(ABC):
         except ApiException as e:
             raise self._parse_api_exception(e) from None
 
-    def fetch_arbitrage(self, params: Optional[dict] = None, **kwargs) -> List[ArbitrageOpportunity]:
+    def fetch_arbitrage(self, params: Optional[dict] = None, **kwargs) -> List[Any]:
         try:
             args = []
             if kwargs:
