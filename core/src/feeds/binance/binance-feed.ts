@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { logger } from '../../utils/logger';
 import { BaseDataFeed, DataFeedOptions } from '../base-feed';
 import { Ticker, Tickers, OHLCV, OrderBook, Market, Dictionary } from '../types';
 import { BinanceFeedConfig, BinanceRelayMessage, BinanceRelayTradeEvent, BINANCE_RELAY_DEFAULTS } from './types';
@@ -122,7 +123,11 @@ export class BinanceFeed extends BaseDataFeed {
     protected watchTickerImpl(symbol: string, callback: (ticker: Ticker) => void): () => void {
         const sub: Subscription = { symbol, callback };
         this.subscriptions = [...this.subscriptions, sub];
-        this.ensureConnected();
+        this.ensureConnected().catch((err: unknown) => {
+            logger.error('[BinanceFeed] initial connect failed in watchTickerImpl', {
+                error: err instanceof Error ? err.message : String(err),
+            });
+        });
 
         return () => {
             this.subscriptions = this.subscriptions.filter((s) => s !== sub);
@@ -221,7 +226,11 @@ export class BinanceFeed extends BaseDataFeed {
         this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
             if (!this.isTerminated) {
-                this.connect();
+                this.connect().catch((err: unknown) => {
+                    logger.error('[BinanceFeed] reconnect failed', {
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                });
             }
         }, this.reconnectIntervalMs);
     }
