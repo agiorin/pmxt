@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.44.3] - 2026-05-24
+
+### Fixed
+
+- **Cross Exchange docs**: Add Python, TypeScript, and curl examples for matched market and event cluster API reference pages.
+- **Relation filters**: Document valid matched-cluster relation values (`identity`, `subset`, `superset`, `overlap`, `disjoint`) and expose the single-relation enum in OpenAPI.
+
 ## [2.44.2] - 2026-05-24
 
 ### Fixed

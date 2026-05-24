@@ -3,7 +3,7 @@
   "info": {
     "title": "PMXT Hosted Router API",
     "description": "Hosted-only endpoints for cross-venue search, matching, arbitrage, and SQL.",
-    "version": "9389e99"
+    "version": "04d3400"
   },
   "servers": [
     {
@@ -51,20 +51,48 @@
           },
           {
             "in": "query",
-            "name": "relations",
+            "name": "query",
             "schema": {
               "type": "string"
             },
-            "description": "Comma-separated relation filter.",
-            "example": "identity,overlap"
+            "description": "Text search across cluster titles.",
+            "example": "Satoshi"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter both sides of matched edges by event category.",
+            "example": "Crypto"
+          },
+          {
+            "in": "query",
+            "name": "relations",
+            "schema": {
+              "type": "string",
+              "default": "identity"
+            },
+            "description": "Comma-separated relation filter. Valid values: identity (same resolution), subset (A yes implies B yes), superset (B yes implies A yes), overlap (some shared scenarios), and disjoint (mutually exclusive). Defaults to identity. For subset and superset, direction follows the pairwise edge direction returned in rawMatches when includeRawMatches=true.\n",
+            "example": "identity"
           },
           {
             "in": "query",
             "name": "relation",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "identity",
+                "subset",
+                "superset",
+                "overlap",
+                "disjoint"
+              ],
+              "default": "identity"
             },
-            "description": "Single relation filter. Alias for relations."
+            "description": "Single relation filter. Alias for relations.",
+            "example": "identity"
           },
           {
             "in": "query",
@@ -175,6 +203,23 @@
             "description": "Matched event clusters."
           }
         },
+        "x-codeSamples": [
+          {
+            "lang": "python",
+            "label": "Python",
+            "source": "import pmxt\n\nrouter = pmxt.Router(pmxt_api_key=\"YOUR_PMXT_API_KEY\")\nclusters = router.fetch_matched_event_clusters(\n    query=\"Satoshi\",\n    relation=\"identity\",\n    min_venues=2,\n    include_raw_matches=True,\n    limit=5,\n)\n\nfor cluster in clusters:\n    venues = [event.source_exchange for event in cluster.events]\n    print(cluster.canonical_title, venues)\n"
+          },
+          {
+            "lang": "javascript",
+            "label": "TypeScript",
+            "source": "import { Router } from \"pmxtjs\";\n\nconst router = new Router({ pmxtApiKey: \"YOUR_PMXT_API_KEY\" });\n\nasync function main() {\n  const clusters = await router.fetchMatchedEventClusters({\n    query: \"Satoshi\",\n    relation: \"identity\",\n    minVenues: 2,\n    includeRawMatches: true,\n    limit: 5,\n  });\n\n  for (const cluster of clusters) {\n    console.log(\n      cluster.canonicalTitle,\n      cluster.events.map((event) => event.sourceExchange),\n    );\n  }\n}\n\nmain();\n"
+          },
+          {
+            "lang": "bash",
+            "label": "curl",
+            "source": "curl -G \"https://api.pmxt.dev/v0/matched-event-clusters\" \\\n  -H \"Authorization: Bearer $PMXT_API_KEY\" \\\n  --data-urlencode \"query=Satoshi\" \\\n  --data-urlencode \"relation=identity\" \\\n  --data-urlencode \"minVenues=2\" \\\n  --data-urlencode \"includeRawMatches=true\" \\\n  --data-urlencode \"limit=5\"\n"
+          }
+        ],
         "operationId": "getV0Matched-event-clusters"
       }
     },
@@ -212,20 +257,48 @@
           },
           {
             "in": "query",
-            "name": "relations",
+            "name": "query",
             "schema": {
               "type": "string"
             },
-            "description": "Comma-separated relation filter.",
-            "example": "identity,overlap"
+            "description": "Text search across cluster titles.",
+            "example": "Satoshi"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter both sides of matched edges by market category.",
+            "example": "Crypto"
+          },
+          {
+            "in": "query",
+            "name": "relations",
+            "schema": {
+              "type": "string",
+              "default": "identity"
+            },
+            "description": "Comma-separated relation filter. Valid values: identity (same resolution), subset (A yes implies B yes), superset (B yes implies A yes), overlap (some shared scenarios), and disjoint (mutually exclusive). Defaults to identity. For subset and superset, direction follows the pairwise edge direction returned in rawMatches when includeRawMatches=true.\n",
+            "example": "identity"
           },
           {
             "in": "query",
             "name": "relation",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "identity",
+                "subset",
+                "superset",
+                "overlap",
+                "disjoint"
+              ],
+              "default": "identity"
             },
-            "description": "Single relation filter. Alias for relations."
+            "description": "Single relation filter. Alias for relations.",
+            "example": "identity"
           },
           {
             "in": "query",
@@ -336,6 +409,23 @@
             "description": "Matched market clusters."
           }
         },
+        "x-codeSamples": [
+          {
+            "lang": "python",
+            "label": "Python",
+            "source": "import pmxt\n\nrouter = pmxt.Router(pmxt_api_key=\"YOUR_PMXT_API_KEY\")\nclusters = router.fetch_matched_market_clusters(\n    query=\"Satoshi\",\n    relation=\"identity\",\n    min_venues=2,\n    include_raw_matches=True,\n    limit=5,\n)\n\nfor cluster in clusters:\n    venues = [market.source_exchange for market in cluster.markets]\n    print(cluster.canonical_title, venues)\n"
+          },
+          {
+            "lang": "javascript",
+            "label": "TypeScript",
+            "source": "import { Router } from \"pmxtjs\";\n\nconst router = new Router({ pmxtApiKey: \"YOUR_PMXT_API_KEY\" });\n\nasync function main() {\n  const clusters = await router.fetchMatchedMarketClusters({\n    query: \"Satoshi\",\n    relation: \"identity\",\n    minVenues: 2,\n    includeRawMatches: true,\n    limit: 5,\n  });\n\n  for (const cluster of clusters) {\n    console.log(\n      cluster.canonicalTitle,\n      cluster.markets.map((market) => market.sourceExchange),\n    );\n  }\n}\n\nmain();\n"
+          },
+          {
+            "lang": "bash",
+            "label": "curl",
+            "source": "curl -G \"https://api.pmxt.dev/v0/matched-market-clusters\" \\\n  -H \"Authorization: Bearer $PMXT_API_KEY\" \\\n  --data-urlencode \"query=Satoshi\" \\\n  --data-urlencode \"relation=identity\" \\\n  --data-urlencode \"minVenues=2\" \\\n  --data-urlencode \"includeRawMatches=true\" \\\n  --data-urlencode \"limit=5\"\n"
+          }
+        ],
         "operationId": "getV0Matched-market-clusters"
       }
     },
