@@ -14,25 +14,29 @@ export function mapMarketToUnified(market: any): UnifiedMarket | null {
     // Use explicit key lookup — Object.entries order is not guaranteed to
     // match the prices array.
     if (market.tokens) {
+        if (!market.tokens.yes || !market.tokens.no) {
+            throw new Error(`[limitless] Market "${market.slug}" is missing token addresses`);
+        }
+
         const prices = Array.isArray(market.prices) ? market.prices : [];
         const yesPrice = prices[0] || 0;
         const noPrice = prices[1] || 0;
 
         outcomes.push({
-            outcomeId: market.tokens.yes as string,
+            outcomeId: market.tokens.yes,
             marketId: market.slug,
             label: 'Yes',
             price: yesPrice,
             priceChange24h: 0,
-            metadata: { clobTokenId: market.tokens.yes as string },
+            metadata: { clobTokenId: market.tokens.yes },
         });
         outcomes.push({
-            outcomeId: market.tokens.no as string,
+            outcomeId: market.tokens.no,
             marketId: market.slug,
             label: 'No',
             price: noPrice,
             priceChange24h: 0,
-            metadata: { clobTokenId: market.tokens.no as string },
+            metadata: { clobTokenId: market.tokens.no },
         });
     }
 
