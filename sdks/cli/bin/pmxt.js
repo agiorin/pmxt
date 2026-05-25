@@ -4,7 +4,7 @@
 const path = require("node:path");
 const { execute } = require("@oclif/core");
 const { normalizeArgvAliases } = require("../cli/argv-aliases.js");
-const { ROOT_HELP, shouldShowRootHelp } = require("../cli/help.js");
+const { formatRootHelp, shouldShowRootHelp } = require("../cli/help.js");
 
 const packageRoot =
   path.basename(path.dirname(__dirname)) === "dist"
@@ -13,7 +13,7 @@ const packageRoot =
 
 const rawArgs = process.argv.slice(2);
 if (shouldShowRootHelp(rawArgs)) {
-  process.stdout.write(`${ROOT_HELP}\n`);
+  process.stdout.write(`${formatRootHelp({ stream: process.stdout, env: process.env })}\n`);
   process.exit(0);
 }
 

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAuthSetExchange = runAuthSetExchange;
 // @ts-nocheck
 const core_1 = require("@oclif/core");
+const auth_output_js_1 = require("../../cli/auth-output.js");
 const auth_store_js_1 = require("../../cli/auth-store.js");
 const credentials_js_1 = require("../../cli/credentials.js");
 function credentialsFromFlags(flags) {
@@ -68,7 +69,7 @@ class AuthSetExchange extends core_1.Command {
     };
     async run() {
         const { args, flags } = await this.parse(AuthSetExchange);
-        this.log(await runAuthSetExchange(args.exchange, flags));
+        this.log((0, auth_output_js_1.formatOutcomeMessage)(await runAuthSetExchange(args.exchange, flags), { flags }));
     }
 }
 exports.default = AuthSetExchange;

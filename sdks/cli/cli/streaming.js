@@ -19,6 +19,7 @@ const fs_1 = require("fs");
 const os_1 = require("os");
 const path_1 = __importDefault(require("path"));
 const ws_1 = __importDefault(require("ws"));
+const color_js_1 = require("./colors.js");
 const constants_js_1 = require("./constants.js");
 const runtime_js_1 = require("./runtime.js");
 const server_manager_js_1 = require("./server-manager.js");
@@ -146,6 +147,7 @@ function resolveCliCredentials(flags, options = {}) {
     const runtime = (0, runtime_js_1.resolveRuntimeConfig)(flags, runtimeEnv, options.targetKind === "exchange" ? options.targetName : "polymarket");
     return {
         baseUrl: runtime.baseUrl,
+        color: (0, color_js_1.createColor)({ env, json: Boolean(flags.json), stream: process.stderr }),
         mode: runtime.mode,
         noSuggestHosted: Boolean(flags["no-suggest-hosted"]),
         ...(runtime.pmxtApiKey ? { pmxtApiKey: runtime.pmxtApiKey } : {}),
@@ -159,7 +161,7 @@ async function fetchPmxtData(pathname, credentials, query = {}) {
     });
     let localAccessToken;
     if (credentials.mode === "hosted" && resolved.isHosted && !resolved.pmxtApiKey) {
-        throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode));
+        throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode, credentials.color));
     }
     if (resolved.baseUrl === constants_js_1.LOCAL_URL || credentials.mode === "local") {
         const manager = new server_manager_js_1.ServerManager();
@@ -167,7 +169,7 @@ async function fetchPmxtData(pathname, credentials, query = {}) {
             await manager.ensureServerRunning();
         }
         catch (error) {
-            throw new Error(localUnavailableMessage(error));
+            throw new Error(localUnavailableMessage(error, credentials.color));
         }
         resolved = {
             ...resolved,
@@ -192,7 +194,7 @@ async function fetchPmxtData(pathname, credentials, query = {}) {
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         if (response.status === 401 || response.status === 403) {
-            throw new Error(authErrorMessage(errorMessage(body) || response.statusText, resolved.baseUrl, credentials.mode));
+            throw new Error(authErrorMessage(errorMessage(body) || response.statusText, resolved.baseUrl, credentials.mode, credentials.color));
         }
         throw new Error(errorMessage(body) || response.statusText);
     }
@@ -305,7 +307,7 @@ async function prepareWebSocket(credentials) {
     });
     if (resolved.isHosted) {
         if (!resolved.pmxtApiKey) {
-            throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode));
+            throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode, credentials.color));
         }
         return {
             url: buildWebSocketUrl(resolved.baseUrl, resolved.pmxtApiKey ? { name: "apiKey", value: resolved.pmxtApiKey } : undefined),
@@ -317,7 +319,7 @@ async function prepareWebSocket(credentials) {
             await manager.ensureServerRunning();
         }
         catch (error) {
-            throw new Error(localUnavailableMessage(error));
+            throw new Error(localUnavailableMessage(error, credentials.color));
         }
         const token = manager.getAccessToken();
         const baseUrl = `http://localhost:${manager.getRunningPort()}`;
@@ -368,51 +370,57 @@ function errorMessage(body) {
         return body.message;
     return undefined;
 }
-function authErrorMessage(message, baseUrl, mode = "hosted") {
+function commandLine(colors, command) {
+    return `  ${colors.command(command)}`;
+}
+function labeledValue(colors, label, value) {
+    return `${colors.label(label)} ${colors.url(value)}`;
+}
+function authErrorMessage(message, baseUrl, mode = "hosted", colors = (0, color_js_1.createColor)({ enabled: false })) {
     if (mode === "local") {
         return [
-            `Local PMXT rejected the request: ${message || "missing or invalid local access token"}.`,
+            `${colors.error("Local PMXT rejected the request")}: ${message || "missing or invalid local access token"}.`,
             "",
-            `Endpoint: ${baseUrl}`,
+            labeledValue(colors, "Endpoint:", baseUrl),
             "",
-            "Try restarting the local PMXT instance:",
-            "  pmxt server restart",
+            colors.warning("Try restarting the local PMXT instance:"),
+            commandLine(colors, "pmxt server restart"),
             "",
-            "Or use hosted PMXT:",
-            "  pmxt auth login --api-key <pmxt_api_key>",
-            "  pmxt <exchange> <command> --hosted",
+            colors.warning("Or use hosted PMXT:"),
+            commandLine(colors, "pmxt auth login --api-key <pmxt_api_key>"),
+            commandLine(colors, "pmxt <exchange> <command> --hosted"),
         ].join("\n");
     }
     const heading = mode === "hosted" ? "Hosted PMXT needs an API key" : "PMXT endpoint needs authentication";
     return [
-        `${heading}: ${message || "the key was missing or rejected"}.`,
+        `${colors.error(heading)}: ${message || "the key was missing or rejected"}.`,
         "",
-        `Endpoint: ${baseUrl}`,
+        labeledValue(colors, "Endpoint:", baseUrl),
         "",
-        "Hosted:",
-        "  pmxt auth login --api-key <pmxt_api_key>",
-        "  PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>",
-        "  pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>",
+        colors.warning("Hosted:"),
+        commandLine(colors, "pmxt auth login --api-key <pmxt_api_key>"),
+        commandLine(colors, "PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>"),
+        commandLine(colors, "pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>"),
         "",
-        "Local:",
-        "  pmxt <exchange> <command> --local",
-        "  npm install -g pmxt-core",
+        colors.warning("Local:"),
+        commandLine(colors, "pmxt <exchange> <command> --local"),
+        commandLine(colors, "npm install -g pmxt-core"),
         "",
-        "Check auth with: pmxt auth status",
+        `Check auth with: ${colors.command("pmxt auth status")}`,
     ].join("\n");
 }
-function localUnavailableMessage(error) {
+function localUnavailableMessage(error, colors = (0, color_js_1.createColor)({ enabled: false })) {
     const detail = error instanceof Error ? error.message : String(error);
     return [
-        "Local PMXT instance is not available.",
+        colors.error("Local PMXT instance is not available."),
         "",
-        detail,
+        colors.dim(detail),
         "",
-        "Use hosted PMXT instead:",
-        "  pmxt auth login --api-key <pmxt_api_key>",
-        "  pmxt <exchange> <command> --hosted",
+        colors.warning("Use hosted PMXT instead:"),
+        commandLine(colors, "pmxt auth login --api-key <pmxt_api_key>"),
+        commandLine(colors, "pmxt <exchange> <command> --hosted"),
         "",
-        "Hosted PMXT is faster for indexed search, router matches, and enterprise data.",
+        colors.warning("Hosted PMXT is faster for indexed search, router matches, and enterprise data."),
     ].join("\n");
 }
 function getStoreBuckets(store, profile, options) {

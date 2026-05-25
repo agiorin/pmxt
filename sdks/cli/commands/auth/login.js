@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAuthLogin = runAuthLogin;
 // @ts-nocheck
 const core_1 = require("@oclif/core");
+const auth_output_js_1 = require("../../cli/auth-output.js");
 const auth_store_js_1 = require("../../cli/auth-store.js");
 const credentials_js_1 = require("../../cli/credentials.js");
 function apiKeyFromFlags(flags) {
@@ -31,7 +32,7 @@ class AuthLogin extends core_1.Command {
     };
     async run() {
         const { flags } = await this.parse(AuthLogin);
-        this.log(await runAuthLogin(flags));
+        this.log((0, auth_output_js_1.formatOutcomeMessage)(await runAuthLogin(flags), { flags }));
     }
 }
 exports.default = AuthLogin;

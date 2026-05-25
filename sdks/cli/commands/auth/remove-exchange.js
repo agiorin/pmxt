@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAuthRemoveExchange = runAuthRemoveExchange;
 // @ts-nocheck
 const core_1 = require("@oclif/core");
+const auth_output_js_1 = require("../../cli/auth-output.js");
 const auth_store_js_1 = require("../../cli/auth-store.js");
 async function runAuthRemoveExchange(exchange, flags = {}, env = process.env) {
     const normalizedExchange = exchange.trim();
@@ -27,7 +28,7 @@ class AuthRemoveExchange extends core_1.Command {
     };
     async run() {
         const { args, flags } = await this.parse(AuthRemoveExchange);
-        this.log(await runAuthRemoveExchange(args.exchange, flags));
+        this.log((0, auth_output_js_1.formatOutcomeMessage)(await runAuthRemoveExchange(args.exchange, flags), { flags }));
     }
 }
 exports.default = AuthRemoveExchange;

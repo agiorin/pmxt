@@ -18,7 +18,7 @@ class ServerLogs extends core_1.Command {
     async run() {
         const { flags } = await this.parse(ServerLogs);
         const result = await (0, server_js_1.executeServerCommand)("logs", { lines: flags.lines });
-        this.log((0, server_js_1.formatServerCommandResult)(result));
+        this.log((0, server_js_1.formatServerCommandResult)(result, { json: flags.json }));
         return result;
     }
 }

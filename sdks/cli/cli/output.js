@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.outputResult = outputResult;
+const color_js_1 = require("./colors.js");
 function isRecord(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -19,13 +20,13 @@ function summarizeValue(value) {
         return String(value);
     return JSON.stringify(value);
 }
-function outputHuman(command, data, label = "result") {
+function outputHuman(command, data, label = "result", color = (0, color_js_1.createColorizer)({ enabled: false })) {
     if (data === undefined || data === null) {
-        command.log("ok");
+        command.log(color.success("ok"));
         return;
     }
     if (Array.isArray(data)) {
-        command.log(`${label}: ${data.length}`);
+        command.log(`${color.label(label)}: ${data.length}`);
         for (const item of data.slice(0, 10))
             command.log(`- ${summarizeValue(item)}`);
         if (data.length > 10)
@@ -36,10 +37,10 @@ function outputHuman(command, data, label = "result") {
         const primitiveEntries = Object.entries(data).filter(([, value]) => primitive(value));
         if (primitiveEntries.length > 0) {
             for (const [key, value] of primitiveEntries)
-                command.log(`${key}: ${String(value)}`);
+                command.log(`${color.dim(key)}: ${String(value)}`);
             for (const [key, value] of Object.entries(data))
                 if (Array.isArray(value))
-                    command.log(`${key}: ${value.length}`);
+                    command.log(`${color.dim(key)}: ${value.length}`);
             return;
         }
     }
@@ -50,5 +51,8 @@ function outputResult(command, data, flags, options = {}) {
         command.log(JSON.stringify(data ?? null, null, 2));
         return;
     }
-    outputHuman(command, data, options.label);
+    outputHuman(command, data, options.label, (0, color_js_1.createColorizer)({
+        enabled: !flags.json,
+        stream: process.stdout,
+    }));
 }

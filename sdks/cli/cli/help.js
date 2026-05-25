@@ -2,7 +2,9 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ROOT_HELP = void 0;
+exports.formatRootHelp = formatRootHelp;
 exports.shouldShowRootHelp = shouldShowRootHelp;
+const color_js_1 = require("./colors.js");
 
 exports.ROOT_HELP = `PMXT command-line interface
 
@@ -63,4 +65,22 @@ Run "pmxt <exchange>" for exchange-scoped examples.`;
 function shouldShowRootHelp(args) {
   return args.length === 0
     || (args.length === 1 && (args[0] === "--help" || args[0] === "-h" || args[0] === "help"));
+}
+
+function formatRootHelp(options = {}) {
+  const color = (0, color_js_1.createColorizer)({
+    env: options.env,
+    stream: options.stream ?? process.stdout,
+  });
+  return exports.ROOT_HELP.split("\n").map((line) => {
+    if (line === "PMXT command-line interface")
+      return color.bold(line);
+    if (/^[A-Z][A-Z ]+$/.test(line))
+      return color.bold(line);
+    if (/^  (pmxt|PMXT_API_KEY=)/.test(line))
+      return line.replace(/^(  )(.+?)(\s{2,}.+)?$/, (_match, indent, command, suffix = "") => `${indent}${color.command(command)}${suffix}`);
+    if (/^  --/.test(line))
+      return line.replace(/^(  )(--[^\s]+)/, (_match, indent, flag) => `${indent}${color.flag(flag)}`);
+    return line;
+  }).join("\n");
 }

@@ -8,6 +8,7 @@ const remove_exchange_js_1 = require("./auth/remove-exchange.js");
 const set_exchange_js_1 = require("./auth/set-exchange.js");
 const status_js_1 = require("./auth/status.js");
 const status_exchange_js_1 = require("./auth/status-exchange.js");
+const auth_output_js_1 = require("../cli/auth-output.js");
 
 const ACTION_ALIASES = {
     login: "login",
@@ -66,33 +67,33 @@ class Auth extends core_1.Command {
             throw new Error(`Unknown auth action: ${args.action}`);
         }
         if (action === "status") {
-            this.log(await (0, status_js_1.runAuthStatus)(flags));
+            this.log((0, auth_output_js_1.formatAuthStatusMessage)(await (0, status_js_1.runAuthStatus)(flags), { flags }));
             return;
         }
         if (action === "login") {
-            this.log(await (0, login_js_1.runAuthLogin)(flags));
+            this.log((0, auth_output_js_1.formatOutcomeMessage)(await (0, login_js_1.runAuthLogin)(flags), { flags }));
             return;
         }
         if (action === "logout") {
-            this.log(await (0, logout_js_1.runAuthLogout)(flags));
+            this.log((0, auth_output_js_1.formatOutcomeMessage)(await (0, logout_js_1.runAuthLogout)(flags), { flags }));
             return;
         }
         if (action === "set-exchange") {
             if (!args.exchange) {
                 throw new Error("Exchange is required. Example: pmxt auth set-exchange polymarket");
             }
-            this.log(await (0, set_exchange_js_1.runAuthSetExchange)(args.exchange, flags));
+            this.log((0, auth_output_js_1.formatOutcomeMessage)(await (0, set_exchange_js_1.runAuthSetExchange)(args.exchange, flags), { flags }));
             return;
         }
         if (action === "remove-exchange") {
             if (!args.exchange) {
                 throw new Error("Exchange is required. Example: pmxt auth remove-exchange polymarket");
             }
-            this.log(await (0, remove_exchange_js_1.runAuthRemoveExchange)(args.exchange, flags));
+            this.log((0, auth_output_js_1.formatOutcomeMessage)(await (0, remove_exchange_js_1.runAuthRemoveExchange)(args.exchange, flags), { flags }));
             return;
         }
         if (action === "status-exchange") {
-            this.log(await (0, status_exchange_js_1.runAuthStatusExchange)(args.exchange, flags));
+            this.log((0, auth_output_js_1.formatExchangeStatusMessage)(await (0, status_exchange_js_1.runAuthStatusExchange)(args.exchange, flags), { flags }));
         }
     }
 }

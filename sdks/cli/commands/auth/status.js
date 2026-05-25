@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAuthStatus = runAuthStatus;
 // @ts-nocheck
 const core_1 = require("@oclif/core");
+const auth_output_js_1 = require("../../cli/auth-output.js");
 const auth_store_js_1 = require("../../cli/auth-store.js");
 const credentials_js_1 = require("../../cli/credentials.js");
 async function runAuthStatus(flags = {}, env = process.env) {
@@ -33,7 +34,7 @@ class AuthStatus extends core_1.Command {
     };
     async run() {
         const { flags } = await this.parse(AuthStatus);
-        this.log(await runAuthStatus(flags));
+        this.log((0, auth_output_js_1.formatAuthStatusMessage)(await runAuthStatus(flags), { flags }));
     }
 }
 exports.default = AuthStatus;

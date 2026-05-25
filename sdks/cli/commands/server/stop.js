@@ -8,9 +8,9 @@ class ServerStop extends core_1.Command {
     static summary = "Stop the local PMXT instance";
     static description = "Stop the local PMXT instance and clean up the server lock file.";
     async run() {
-        await this.parse(ServerStop);
+        const { flags } = await this.parse(ServerStop);
         const result = await (0, server_js_1.executeServerCommand)("stop");
-        this.log((0, server_js_1.formatServerCommandResult)(result));
+        this.log((0, server_js_1.formatServerCommandResult)(result, { json: flags.json }));
         return result;
     }
 }

@@ -45,6 +45,7 @@ const fs = __importStar(require("node:fs"));
 const os = __importStar(require("node:os"));
 const path = __importStar(require("node:path"));
 const constants_js_1 = require("./constants.js");
+const color_js_1 = require("./colors.js");
 const server_manager_js_1 = require("./server-manager.js");
 exports.ALLOWED_EXCHANGES = new Set([
     "polymarket", "kalshi", "kalshi-demo", "limitless", "probable", "baozi",
@@ -135,6 +136,12 @@ function exchangeEnvPrefix(exchange) {
 }
 function trimTrailingSlash(url) {
     return url.replace(/\/+$/, "");
+}
+function commandLine(colors, command) {
+    return `  ${colors.command(command)}`;
+}
+function labeledValue(colors, label, value) {
+    return `${colors.label(label)} ${colors.url(value)}`;
 }
 function resolveAuthStorePath(explicitPath, env) {
     if (explicitPath)
@@ -315,55 +322,56 @@ function responseErrorMessage(parsed, fallback) {
 }
 function authErrorMessage(response, parsed, config) {
     const message = responseErrorMessage(parsed, response.statusText);
+    const colors = config.color ?? (0, color_js_1.createColor)({ enabled: false });
     if (config.mode === "local") {
         return [
-            `Local PMXT rejected the request: ${message ?? "missing or invalid local access token"}.`,
+            `${colors.error("Local PMXT rejected the request")}: ${message ?? "missing or invalid local access token"}.`,
             "",
-            `Endpoint: ${config.baseUrl}`,
+            labeledValue(colors, "Endpoint:", config.baseUrl),
             "",
-            "Try restarting the local PMXT instance:",
-            "  pmxt server restart",
+            colors.warning("Try restarting the local PMXT instance:"),
+            commandLine(colors, "pmxt server restart"),
             "",
-            "Or use hosted PMXT:",
-            "  pmxt auth login --api-key <pmxt_api_key>",
-            "  pmxt <exchange> <command> --hosted",
+            colors.warning("Or use hosted PMXT:"),
+            commandLine(colors, "pmxt auth login --api-key <pmxt_api_key>"),
+            commandLine(colors, "pmxt <exchange> <command> --hosted"),
         ].join("\n");
     }
     const heading = config.mode === "hosted"
         ? "Hosted PMXT needs an API key"
         : "PMXT endpoint needs authentication";
     return [
-        `${heading}: ${message ?? "the key was missing or rejected"}.`,
+        `${colors.error(heading)}: ${message ?? "the key was missing or rejected"}.`,
         "",
-        `Endpoint: ${config.baseUrl}`,
+        labeledValue(colors, "Endpoint:", config.baseUrl),
         "",
-        "Hosted:",
-        "  pmxt auth login --api-key <pmxt_api_key>",
-        "  PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>",
-        "  pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>",
+        colors.warning("Hosted:"),
+        commandLine(colors, "pmxt auth login --api-key <pmxt_api_key>"),
+        commandLine(colors, "PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>"),
+        commandLine(colors, "pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>"),
         "",
-        "Local:",
-        "  pmxt <exchange> <command> --local",
-        "  npm install -g pmxt-core",
+        colors.warning("Local:"),
+        commandLine(colors, "pmxt <exchange> <command> --local"),
+        commandLine(colors, "npm install -g pmxt-core"),
         "",
-        "Check auth with: pmxt auth status",
+        `Check auth with: ${colors.command("pmxt auth status")}`,
     ].join("\n");
 }
 function hostedMissingAuthMessage(config) {
     return authErrorMessage({ statusText: "missing api key" }, { error: { message: "missing api key" } }, config);
 }
-function localUnavailableMessage(error) {
+function localUnavailableMessage(error, color = (0, color_js_1.createColor)({ enabled: false })) {
     const detail = error instanceof Error ? error.message : String(error);
     return [
-        "Local PMXT instance is not available.",
+        color.error("Local PMXT instance is not available."),
         "",
-        detail,
+        color.dim(detail),
         "",
-        "Use hosted PMXT instead:",
-        "  pmxt auth login --api-key <pmxt_api_key>",
-        "  pmxt <exchange> <command> --hosted",
+        color.warning("Use hosted PMXT instead:"),
+        commandLine(color, "pmxt auth login --api-key <pmxt_api_key>"),
+        commandLine(color, "pmxt <exchange> <command> --hosted"),
         "",
-        "Hosted PMXT is faster for indexed search, router matches, and enterprise data.",
+        color.warning("Hosted PMXT is faster for indexed search, router matches, and enterprise data."),
     ].join("\n");
 }
 function isLoopbackUrl(baseUrl) {
@@ -382,6 +390,8 @@ function shouldSendHostedAuth(config) {
     return config.mode === "hosted" || !isLoopbackUrl(config.baseUrl);
 }
 async function prepareRuntimeConfig(config, flags = {}, env = process.env) {
+    const color = (0, color_js_1.createColor)({ env, json: Boolean(flags.json), stream: process.stderr });
+    config = { ...config, color };
     if (config.mode === "hosted" && config.baseUrl === constants_js_1.HOSTED_URL && !config.pmxtApiKey) {
         throw new Error(hostedMissingAuthMessage(config));
     }
@@ -391,7 +401,7 @@ async function prepareRuntimeConfig(config, flags = {}, env = process.env) {
             await manager.ensureServerRunning();
         }
         catch (error) {
-            throw new Error(localUnavailableMessage(error));
+            throw new Error(localUnavailableMessage(error, config.color));
         }
         maybeSuggestHosted(flags, env);
         return {
@@ -412,6 +422,7 @@ function shouldSuggestHosted(flags = {}, env = process.env) {
 function maybeSuggestHosted(flags = {}, env = process.env) {
     if (!shouldSuggestHosted(flags, env))
         return;
+    const color = (0, color_js_1.createColor)({ env, json: Boolean(flags.json), stream: process.stderr });
     const hintPath = path.join(env.HOME || os.homedir(), ".pmxt", "cli-hints.json");
     try {
         const parsed = fs.existsSync(hintPath) ? JSON.parse(fs.readFileSync(hintPath, "utf8")) : {};
@@ -424,9 +435,9 @@ function maybeSuggestHosted(flags = {}, env = process.env) {
         // Hint persistence is best-effort.
     }
     process.stderr.write([
-        "Using local PMXT instance.",
+        color.warning("Using local PMXT instance."),
         "Hosted PMXT is faster for indexed search, router matches, and enterprise data:",
-        "  pmxt auth login --api-key <pmxt_api_key>",
+        commandLine(color, "pmxt auth login --api-key <pmxt_api_key>"),
         "",
     ].join("\n"));
 }

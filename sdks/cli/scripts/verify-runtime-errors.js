@@ -21,6 +21,8 @@ const envKeys = [
   "PMXT_AUTH_STORE",
   "PMXT_AUTH_STORE_PATH",
   "PMXT_CLI_NO_SUGGEST_HOSTED",
+  "FORCE_COLOR",
+  "NO_COLOR",
 ];
 const originalEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pmxt-cli-runtime-"));
@@ -94,6 +96,37 @@ async function verifyHostedGuidance() {
       assert.match(error.message, /pmxt <exchange> <command> --local/);
       assert.match(error.message, /npm install -g pmxt-core/);
       assert.match(error.message, /pmxt auth status/);
+      return true;
+    },
+  );
+}
+
+async function verifyRuntimeColorPolicy() {
+  resetProcessEnv({ FORCE_COLOR: "1" });
+  await assert.rejects(
+    () => runVenueMethod("fetchMarkets", [{ query: "Trump" }], { hosted: true }),
+    (error) => {
+      assert.match(error.message, /\x1b\[31mHosted PMXT needs an API key\x1b\[39m/);
+      assert.match(error.message, /\x1b\[33mHosted:\x1b\[39m/);
+      assert.match(error.message, /\x1b\[36mpmxt auth login --api-key <pmxt_api_key>\x1b\[39m/);
+      return true;
+    },
+  );
+
+  resetProcessEnv({ FORCE_COLOR: "1" });
+  await assert.rejects(
+    () => runVenueMethod("fetchMarkets", [{ query: "Trump" }], { hosted: true, json: true }),
+    (error) => {
+      assert.doesNotMatch(error.message, /\x1b\[/, "--json should disable runtime error color");
+      return true;
+    },
+  );
+
+  resetProcessEnv({ NO_COLOR: "" });
+  await assert.rejects(
+    () => runVenueMethod("fetchMarkets", [{ query: "Trump" }], { hosted: true }),
+    (error) => {
+      assert.doesNotMatch(error.message, /\x1b\[/, "NO_COLOR should disable runtime error color");
       return true;
     },
   );
@@ -180,6 +213,7 @@ async function verifyCustomBaseUrlDoesNotStartLocal() {
 async function main() {
   await verifyRuntimeModes();
   await verifyHostedGuidance();
+  await verifyRuntimeColorPolicy();
   await verifyLocalDefaultRequest();
   await verifyLocalFlagOverridesHostedAuth();
   await verifyHostedRequest();

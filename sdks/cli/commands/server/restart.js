@@ -8,9 +8,9 @@ class ServerRestart extends core_1.Command {
     static summary = "Restart the local PMXT instance";
     static description = "Stop the current local PMXT instance, then start it again.";
     async run() {
-        await this.parse(ServerRestart);
+        const { flags } = await this.parse(ServerRestart);
         const result = await (0, server_js_1.executeServerCommand)("restart");
-        this.log((0, server_js_1.formatServerCommandResult)(result));
+        this.log((0, server_js_1.formatServerCommandResult)(result, { json: flags.json }));
         return result;
     }
 }

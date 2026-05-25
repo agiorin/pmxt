@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.2] - 2026-05-25
+
+### Fixed
+
+- **CLI color UX**: Add restrained semantic colors for human-readable help, auth status, local PMXT status, and hosted/local remediation guidance while keeping `--json`, non-TTY, and `NO_COLOR` output plain.
+
 ## [2.46.1] - 2026-05-25
 
 ### Fixed

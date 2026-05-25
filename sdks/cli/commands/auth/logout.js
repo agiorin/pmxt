@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAuthLogout = runAuthLogout;
 // @ts-nocheck
 const core_1 = require("@oclif/core");
+const auth_output_js_1 = require("../../cli/auth-output.js");
 const auth_store_js_1 = require("../../cli/auth-store.js");
 async function runAuthLogout(flags = {}, env = process.env) {
     const result = await (0, auth_store_js_1.clearStoredPmxtApiKey)((0, auth_store_js_1.authStoreOptionsFromFlags)(flags, env));
@@ -20,7 +21,7 @@ class AuthLogout extends core_1.Command {
     };
     async run() {
         const { flags } = await this.parse(AuthLogout);
-        this.log(await runAuthLogout(flags));
+        this.log((0, auth_output_js_1.formatOutcomeMessage)(await runAuthLogout(flags), { flags }));
     }
 }
 exports.default = AuthLogout;

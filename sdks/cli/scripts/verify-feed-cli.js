@@ -6,7 +6,7 @@ const path = require("node:path");
 const cliRoot = path.resolve(__dirname, "..");
 const commandsRoot = path.join(cliRoot, "commands");
 
-const envKeys = ["PMXT_API_KEY", "PMXT_BASE_URL", "PMXT_AUTH_STORE", "PMXT_AUTH_STORE_PATH"];
+const envKeys = ["PMXT_API_KEY", "PMXT_BASE_URL", "PMXT_AUTH_STORE", "PMXT_AUTH_STORE_PATH", "FORCE_COLOR", "NO_COLOR"];
 const calls = [];
 
 function assert(condition, message) {
@@ -24,6 +24,16 @@ async function assertRejects(fn, pattern, message) {
     return;
   }
   throw new Error(message);
+}
+
+async function rejected(fn) {
+  try {
+    await fn();
+  } catch (error) {
+    process.exitCode = undefined;
+    return error;
+  }
+  throw new Error("expected command to reject");
 }
 
 async function withEnv(env, fn) {
@@ -95,6 +105,20 @@ async function main() {
     );
   });
   assert(calls.length === 0, "hosted auth preflight should not make a feed HTTP call");
+
+  calls.length = 0;
+  await withEnv({ FORCE_COLOR: "1" }, async () => {
+    const error = await rejected(() => run("feeds", ["--hosted"]));
+    assert(/\x1b\[31mHosted PMXT needs an API key\x1b\[39m/.test(error.message), "streaming hosted auth should color error heading");
+    assert(/\x1b\[33mHosted:\x1b\[39m/.test(error.message), "streaming hosted auth should color guidance labels");
+    assert(/\x1b\[36mpmxt auth login --api-key <pmxt_api_key>\x1b\[39m/.test(error.message), "streaming hosted auth should color commands");
+  });
+  assert(calls.length === 0, "colored hosted auth preflight should not make a feed HTTP call");
+
+  await withEnv({ FORCE_COLOR: "1" }, async () => {
+    const error = await rejected(() => run("feeds", ["--hosted", "--json"]));
+    assert(!/\x1b\[/.test(error.message), "--json should disable streaming auth color");
+  });
 
   calls.length = 0;
   await withEnv({}, async () => {

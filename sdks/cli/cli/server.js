@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeServerCommand = executeServerCommand;
 exports.formatServerCommandResult = formatServerCommandResult;
 // @ts-nocheck
+const color_js_1 = require("./colors.js");
 const server_manager_js_1 = require("./server-manager.js");
 async function executeServerCommand(action, options = {}) {
     const manager = options.manager ?? new server_manager_js_1.ServerManager();
@@ -31,36 +32,44 @@ async function executeServerCommand(action, options = {}) {
         }
     }
 }
-function formatServerCommandResult(result) {
+function formatServerCommandResult(result, options = {}) {
+    const color = (0, color_js_1.createColor)({
+        env: options.env,
+        json: Boolean(options.json),
+        stream: options.stream ?? process.stdout,
+    });
     switch (result.action) {
         case "start":
-            return "Local PMXT instance started";
+            return color.success("Local PMXT instance started");
         case "stop":
-            return "Local PMXT instance stopped";
+            return color.success("Local PMXT instance stopped");
         case "restart":
-            return "Local PMXT instance restarted";
+            return color.success("Local PMXT instance restarted");
         case "status":
-            return formatStatus(result);
+            return formatStatus(result, color);
         case "health":
-            return result.healthy ? "Local PMXT instance healthy" : "Local PMXT instance unhealthy";
+            return result.healthy
+                ? color.success("Local PMXT instance healthy")
+                : color.warning("Local PMXT instance unhealthy");
         case "logs":
             return result.lines.length > 0
                 ? result.lines.join("\n")
-                : "No local PMXT logs found";
+                : color.warning("No local PMXT logs found");
     }
 }
-function formatStatus(status) {
-    const lines = [`Local PMXT instance ${status.running ? "running" : "stopped"}`];
+function formatStatus(status, color) {
+    const state = status.running ? color.success("running") : color.warning("stopped");
+    const lines = [`Local PMXT instance ${state}`];
     if (status.pid !== null)
-        lines.push(`pid: ${status.pid}`);
+        lines.push(`${color.dim("pid")}: ${status.pid}`);
     if (status.port !== null)
-        lines.push(`port: ${status.port}`);
+        lines.push(`${color.dim("port")}: ${status.port}`);
     if (status.version !== null)
-        lines.push(`version: ${status.version}`);
+        lines.push(`${color.dim("version")}: ${status.version}`);
     if (status.uptimeSeconds !== null) {
-        lines.push(`uptime: ${formatDuration(status.uptimeSeconds)}`);
+        lines.push(`${color.dim("uptime")}: ${formatDuration(status.uptimeSeconds)}`);
     }
-    lines.push(`lock: ${status.lockFile}`);
+    lines.push(`${color.dim("lock")}: ${status.lockFile}`);
     return lines.join("\n");
 }
 function formatDuration(seconds) {
