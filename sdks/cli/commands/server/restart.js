@@ -5,8 +5,8 @@ const core_1 = require("@oclif/core");
 const server_js_1 = require("../../cli/server.js");
 class ServerRestart extends core_1.Command {
     static enableJsonFlag = true;
-    static summary = "Restart the PMXT sidecar server";
-    static description = "Stop the current PMXT sidecar server, then start it again.";
+    static summary = "Restart the local PMXT instance";
+    static description = "Stop the current local PMXT instance, then start it again.";
     async run() {
         await this.parse(ServerRestart);
         const result = await (0, server_js_1.executeServerCommand)("restart");

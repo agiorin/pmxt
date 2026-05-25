@@ -45,10 +45,11 @@ const fs = __importStar(require("node:fs"));
 const os = __importStar(require("node:os"));
 const path = __importStar(require("node:path"));
 const constants_js_1 = require("./constants.js");
+const server_manager_js_1 = require("./server-manager.js");
 exports.ALLOWED_EXCHANGES = new Set([
     "polymarket", "kalshi", "kalshi-demo", "limitless", "probable", "baozi",
     "myriad", "opinion", "metaculus", "smarkets", "polymarket_us",
-    "gemini-titan", "hyperliquid", "mock", "router",
+    "gemini-titan", "hyperliquid", "suibets", "mock", "router",
 ]);
 exports.ALLOWED_VENUE_METHODS = new Set([
     "loadMarkets",
@@ -278,8 +279,18 @@ function resolveRuntimeConfig(flags = {}, env = process.env, exchangeOverride, o
         throw new Error(`Unsupported exchange '${exchange}'. Allowed exchanges: ${Array.from(exports.ALLOWED_EXCHANGES).join(", ")}`);
     }
     const pmxtApiKey = firstString(flags["pmxt-api-key"], env.PMXT_API_KEY, store.pmxtApiKey, store.pmxt?.apiKey);
-    const baseUrl = trimTrailingSlash(firstString(flags["base-url"], env.PMXT_BASE_URL, store.baseUrl, store.pmxt?.baseUrl) ?? constants_js_1.HOSTED_URL);
-    return { baseUrl, exchange, pmxtApiKey, credentials: resolveCredentials(flags, env, store, exchange, options) };
+    const explicitBaseUrl = firstString(flags["base-url"], env.PMXT_BASE_URL, store.baseUrl, store.pmxt?.baseUrl);
+    const local = Boolean(flags.local);
+    const hosted = Boolean(flags.hosted);
+    if (local && hosted) {
+        throw new Error("Choose either --local or --hosted, not both.");
+    }
+    if (explicitBaseUrl && (local || hosted)) {
+        throw new Error("Use either --base-url or --local/--hosted, not both.");
+    }
+    const mode = explicitBaseUrl ? "custom" : local ? "local" : hosted || pmxtApiKey ? "hosted" : "local";
+    const baseUrl = trimTrailingSlash(explicitBaseUrl ?? (mode === "local" ? constants_js_1.LOCAL_URL : constants_js_1.HOSTED_URL));
+    return { baseUrl, exchange, mode, pmxtApiKey, credentials: resolveCredentials(flags, env, store, exchange, options) };
 }
 function assertAllowedMethod(method, allowed, label) {
     if (exports.DEPRECATED_METHODS.has(method))
@@ -288,7 +299,14 @@ function assertAllowedMethod(method, allowed, label) {
         throw new Error(`Method '${method}' is not in the PMXT API Reference ${label} allowlist.`);
 }
 function authHeaders(config) {
-    return config.pmxtApiKey ? { Authorization: `Bearer ${config.pmxtApiKey}` } : {};
+    const headers = {};
+    if (shouldSendHostedAuth(config)) {
+        headers.Authorization = `Bearer ${config.pmxtApiKey}`;
+    }
+    if (config.localAccessToken) {
+        headers["x-pmxt-access-token"] = config.localAccessToken;
+    }
+    return headers;
 }
 function responseErrorMessage(parsed, fallback) {
     return isRecord(parsed) && isRecord(parsed.error)
@@ -297,18 +315,120 @@ function responseErrorMessage(parsed, fallback) {
 }
 function authErrorMessage(response, parsed, config) {
     const message = responseErrorMessage(parsed, response.statusText);
+    if (config.mode === "local") {
+        return [
+            `Local PMXT rejected the request: ${message ?? "missing or invalid local access token"}.`,
+            "",
+            `Endpoint: ${config.baseUrl}`,
+            "",
+            "Try restarting the local PMXT instance:",
+            "  pmxt server restart",
+            "",
+            "Or use hosted PMXT:",
+            "  pmxt auth login --api-key <pmxt_api_key>",
+            "  pmxt <exchange> <command> --hosted",
+        ].join("\n");
+    }
+    const heading = config.mode === "hosted"
+        ? "Hosted PMXT needs an API key"
+        : "PMXT endpoint needs authentication";
     return [
-        `Unauthorized: ${message ?? "the PMXT API key was missing or rejected"}.`,
+        `${heading}: ${message ?? "the key was missing or rejected"}.`,
         "",
         `Endpoint: ${config.baseUrl}`,
         "",
-        "Fix one of these ways:",
+        "Hosted:",
         "  pmxt auth login --api-key <pmxt_api_key>",
         "  PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>",
-        "  pmxt <exchange> <command> --pmxt-api-key <pmxt_api_key>",
+        "  pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>",
         "",
-        "Check current auth with: pmxt auth status",
+        "Local:",
+        "  pmxt <exchange> <command> --local",
+        "  npm install -g pmxt-core",
+        "",
+        "Check auth with: pmxt auth status",
     ].join("\n");
+}
+function hostedMissingAuthMessage(config) {
+    return authErrorMessage({ statusText: "missing api key" }, { error: { message: "missing api key" } }, config);
+}
+function localUnavailableMessage(error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return [
+        "Local PMXT instance is not available.",
+        "",
+        detail,
+        "",
+        "Use hosted PMXT instead:",
+        "  pmxt auth login --api-key <pmxt_api_key>",
+        "  pmxt <exchange> <command> --hosted",
+        "",
+        "Hosted PMXT is faster for indexed search, router matches, and enterprise data.",
+    ].join("\n");
+}
+function isLoopbackUrl(baseUrl) {
+    try {
+        const parsed = new URL(baseUrl);
+        return parsed.protocol === "http:"
+            && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "::1");
+    }
+    catch {
+        return false;
+    }
+}
+function shouldSendHostedAuth(config) {
+    if (!config.pmxtApiKey || config.mode === "local")
+        return false;
+    return config.mode === "hosted" || !isLoopbackUrl(config.baseUrl);
+}
+async function prepareRuntimeConfig(config, flags = {}, env = process.env) {
+    if (config.mode === "hosted" && config.baseUrl === constants_js_1.HOSTED_URL && !config.pmxtApiKey) {
+        throw new Error(hostedMissingAuthMessage(config));
+    }
+    if (config.mode === "local") {
+        const manager = new server_manager_js_1.ServerManager();
+        try {
+            await manager.ensureServerRunning();
+        }
+        catch (error) {
+            throw new Error(localUnavailableMessage(error));
+        }
+        maybeSuggestHosted(flags, env);
+        return {
+            ...config,
+            baseUrl: `http://localhost:${manager.getRunningPort()}`,
+            localAccessToken: manager.getAccessToken(),
+        };
+    }
+    return config;
+}
+function shouldSuggestHosted(flags = {}, env = process.env) {
+    if (flags.json || flags["no-suggest-hosted"])
+        return false;
+    if (env.CI || env.PMXT_NO_SUGGEST_HOSTED || env.PMXT_CLI_NO_SUGGEST_HOSTED)
+        return false;
+    return Boolean(process.stderr.isTTY);
+}
+function maybeSuggestHosted(flags = {}, env = process.env) {
+    if (!shouldSuggestHosted(flags, env))
+        return;
+    const hintPath = path.join(env.HOME || os.homedir(), ".pmxt", "cli-hints.json");
+    try {
+        const parsed = fs.existsSync(hintPath) ? JSON.parse(fs.readFileSync(hintPath, "utf8")) : {};
+        if (parsed.suggestedHosted)
+            return;
+        fs.mkdirSync(path.dirname(hintPath), { recursive: true, mode: 0o700 });
+        fs.writeFileSync(hintPath, `${JSON.stringify({ ...parsed, suggestedHosted: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 });
+    }
+    catch {
+        // Hint persistence is best-effort.
+    }
+    process.stderr.write([
+        "Using local PMXT instance.",
+        "Hosted PMXT is faster for indexed search, router matches, and enterprise data:",
+        "  pmxt auth login --api-key <pmxt_api_key>",
+        "",
+    ].join("\n"));
 }
 function throwForResponse(response, parsed, config) {
     if (response.status === 401 || response.status === 403) {
@@ -383,24 +503,24 @@ async function getJson(url, params, config) {
 }
 async function runVenueMethod(method, args, flags = {}) {
     assertAllowedMethod(method, exports.ALLOWED_VENUE_METHODS, "venue");
-    const config = resolveRuntimeConfig(flags, process.env, undefined, {
+    const config = await prepareRuntimeConfig(resolveRuntimeConfig(flags, process.env, undefined, {
         ignoreAmbientCredentials: PUBLIC_READ_METHODS.has(method) && !hasExplicitCredentialInput(flags),
-    });
+    }), flags);
     return postJson(`${config.baseUrl}/api/${config.exchange}/${method}`, { args, credentials: config.credentials }, config);
 }
 async function runRouterMethod(method, args, flags = {}) {
     assertAllowedMethod(method, exports.ALLOWED_ROUTER_METHODS, "router");
-    const config = resolveRuntimeConfig(flags, process.env, "router");
+    const config = await prepareRuntimeConfig(resolveRuntimeConfig(flags, process.env, "router"), flags);
     return postJson(`${config.baseUrl}/api/router/${method}`, { args, credentials: config.credentials }, config);
 }
 async function runEnterpriseGet(path, params = {}, flags = {}) {
     if (!path.startsWith("/v0/"))
         throw new Error(`Enterprise path must start with /v0/: ${path}`);
-    const config = resolveRuntimeConfig(flags);
+    const config = await prepareRuntimeConfig(resolveRuntimeConfig(flags), flags);
     return getJson(`${config.baseUrl}${path}`, params, config);
 }
 async function runEnterpriseSql(query, flags = {}) {
-    const config = resolveRuntimeConfig(flags);
+    const config = await prepareRuntimeConfig(resolveRuntimeConfig(flags), flags);
     return postJson(`${config.baseUrl}/v0/sql`, { query }, config);
 }
 async function runAllowedMethod(methodInput, args, flags = {}) {

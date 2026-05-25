@@ -66,6 +66,25 @@ async function main() {
   calls.length = 0;
   await withEnv({}, async () => {
     await run("enterprise/matched-markets", [
+      "--hosted",
+      "--pmxt-api-key", "hosted-key",
+      "--json",
+      "--limit", "1",
+    ]);
+  });
+  {
+    const call = lastCall();
+    const url = new URL(call.url);
+    assert(call.init.method === "GET", "hosted matched-markets should use GET");
+    assert(url.origin === "https://api.pmxt.dev", `unexpected hosted base URL ${url.origin}`);
+    assert(url.pathname === "/v0/matched-markets", `unexpected hosted path ${url.pathname}`);
+    assert(call.init.headers.Authorization === "Bearer hosted-key", "expected hosted PMXT API key header");
+    assertQuery(call.url, { limit: "1" });
+  }
+
+  calls.length = 0;
+  await withEnv({}, async () => {
+    await run("enterprise/matched-markets", [
       "--base-url", "https://flag.pmxt.test",
       "--pmxt-api-key", "flag-key",
       "--json",

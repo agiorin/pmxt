@@ -3,9 +3,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ServerManager = void 0;
 
-const { existsSync, readFileSync, unlinkSync } = require("node:fs");
+const { accessSync, constants: fsConstants, existsSync, readFileSync, unlinkSync } = require("node:fs");
 const { homedir } = require("node:os");
-const { dirname, join } = require("node:path");
+const { delimiter, dirname, join } = require("node:path");
 const { spawn } = require("node:child_process");
 
 class ServerManager {
@@ -92,19 +92,28 @@ class ServerManager {
     }
 
     const launcherPath = this.resolveLauncherPath();
+    if (!launcherPath) {
+      throw new Error(localInstallMessage());
+    }
     const spawnCmd = launcherPath.endsWith(".js") ? process.execPath : launcherPath;
     const spawnArgs = launcherPath.endsWith(".js") ? [launcherPath] : [];
 
     try {
-      const proc = spawn(spawnCmd, spawnArgs, { detached: true, stdio: "ignore" });
-      proc.unref();
+      await new Promise((resolve, reject) => {
+        const proc = spawn(spawnCmd, spawnArgs, { detached: true, stdio: "ignore" });
+        proc.once("error", reject);
+        proc.once("spawn", () => {
+          proc.unref();
+          resolve();
+        });
+      });
       await this.waitForServer();
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       throw new Error([
-        `Failed to start PMXT local server: ${detail}`,
+        `Failed to start local PMXT instance: ${detail}`,
         "",
-        "Local server commands require pmxt-core to be installed.",
+        "Local PMXT commands require pmxt-core to be installed.",
         "Install it with: npm install -g pmxt-core",
         "Or use the hosted API with: pmxt auth login --api-key <pmxt_api_key>",
       ].join("\n"));
@@ -120,7 +129,7 @@ class ServerManager {
     } catch {
       // Fall back to PATH.
     }
-    return launcherName;
+    return findExecutableOnPath(launcherName);
   }
 
   async isVersionMismatch() {
@@ -211,6 +220,42 @@ class ServerManager {
       // Best-effort lock cleanup.
     }
   }
+}
+
+function findExecutableOnPath(command) {
+  const pathValue = process.env.PATH || "";
+  const extensions = process.platform === "win32"
+    ? (process.env.PATHEXT || ".EXE;.CMD;.BAT;.COM").split(";")
+    : [""];
+  const candidates = process.platform === "win32" && !/\.[^\\/]+$/.test(command)
+    ? extensions.map((ext) => `${command}${ext}`)
+    : [command];
+  for (const dir of pathValue.split(delimiter)) {
+    if (!dir) continue;
+    for (const name of candidates) {
+      const candidate = join(dir, name);
+      try {
+        accessSync(candidate, fsConstants.X_OK);
+        return candidate;
+      } catch {
+        // Keep searching.
+      }
+    }
+  }
+  return undefined;
+}
+
+function localInstallMessage() {
+  return [
+    "Local PMXT is not installed.",
+    "",
+    "Install the local runtime:",
+    "  npm install -g pmxt-core",
+    "",
+    "Or use hosted PMXT:",
+    "  pmxt auth login --api-key <pmxt_api_key>",
+    "  pmxt <exchange> <command> --hosted",
+  ].join("\n");
 }
 
 exports.ServerManager = ServerManager;

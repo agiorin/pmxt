@@ -5,8 +5,8 @@ const core_1 = require("@oclif/core");
 const server_js_1 = require("../../cli/server.js");
 class ServerLogs extends core_1.Command {
     static enableJsonFlag = true;
-    static summary = "Show PMXT sidecar server logs";
-    static description = "Show recent PMXT sidecar server log lines.";
+    static summary = "Show local PMXT instance logs";
+    static description = "Show recent local PMXT instance log lines.";
     static flags = {
         lines: core_1.Flags.integer({
             char: "n",

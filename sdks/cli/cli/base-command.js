@@ -14,9 +14,12 @@ exports.numberFlag = core_1.Flags.custom({
 });
 exports.commonFlags = {
     json: core_1.Flags.boolean({ description: "Output raw response data as JSON." }),
-    "base-url": core_1.Flags.string({ description: "PMXT API base URL. Defaults to the hosted PMXT API." }),
+    local: core_1.Flags.boolean({ description: "Use a local PMXT instance." }),
+    hosted: core_1.Flags.boolean({ description: "Use the hosted PMXT API." }),
+    "base-url": core_1.Flags.string({ description: "Advanced: override the PMXT API base URL." }),
     "pmxt-api-key": core_1.Flags.string({ description: "PMXT API key. Precedence: flags > env > auth store. Env: PMXT_API_KEY." }),
     "auth-store": core_1.Flags.string({ description: "Path to a PMXT CLI auth store JSON file." }),
+    "no-suggest-hosted": core_1.Flags.boolean({ description: "Do not show hosted PMXT suggestions when using local mode." }),
 };
 exports.credentialFlags = {
     credentials: core_1.Flags.string({ description: "Venue credentials as a JSON object. Precedence: flags > env > auth store. Env: PMXT_<EXCHANGE>_CREDENTIALS." }),

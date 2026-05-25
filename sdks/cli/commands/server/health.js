@@ -5,8 +5,8 @@ const core_1 = require("@oclif/core");
 const server_js_1 = require("../../cli/server.js");
 class ServerHealth extends core_1.Command {
     static enableJsonFlag = true;
-    static summary = "Check PMXT sidecar server health";
-    static description = "Check whether the PMXT sidecar server is healthy without starting it.";
+    static summary = "Check local PMXT instance health";
+    static description = "Check whether the local PMXT instance is healthy without starting it.";
     async run() {
         await this.parse(ServerHealth);
         const result = await (0, server_js_1.executeServerCommand)("health");

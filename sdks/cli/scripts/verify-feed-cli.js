@@ -15,6 +15,17 @@ function assert(condition, message) {
   }
 }
 
+async function assertRejects(fn, pattern, message) {
+  try {
+    await fn();
+  } catch (error) {
+    process.exitCode = undefined;
+    assert(pattern.test(error.message), `${message}: ${error.message}`);
+    return;
+  }
+  throw new Error(message);
+}
+
 async function withEnv(env, fn) {
   const previous = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
   for (const key of envKeys) {
@@ -75,6 +86,30 @@ global.fetch = async (url, init = {}) => {
 };
 
 async function main() {
+  calls.length = 0;
+  await withEnv({}, async () => {
+    await assertRejects(
+      () => run("feeds", ["--hosted", "--json"]),
+      /Hosted PMXT needs an API key/,
+      "--hosted feed commands without PMXT auth should fail before network",
+    );
+  });
+  assert(calls.length === 0, "hosted auth preflight should not make a feed HTTP call");
+
+  calls.length = 0;
+  await withEnv({}, async () => {
+    await run("feeds", [
+      "--hosted",
+      "--pmxt-api-key", "hosted-key",
+      "--json",
+    ]);
+  });
+  assertCall(lastCall(), {
+    origin: "https://api.pmxt.dev",
+    pathname: "/api/feeds",
+    authorization: "Bearer hosted-key",
+  });
+
   calls.length = 0;
   await withEnv({}, async () => {
     await run("feeds", [

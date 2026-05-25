@@ -39,12 +39,21 @@ exports.pmxtCredentialFlags = {
         description: "Path to a PMXT CLI auth store JSON file",
     }),
     "base-url": core_1.Flags.string({
-        description: "PMXT API base URL",
+        description: "Advanced: override the PMXT API base URL",
         env: constants_js_1.ENV.BASE_URL,
+    }),
+    local: core_1.Flags.boolean({
+        description: "Use a local PMXT instance",
+    }),
+    hosted: core_1.Flags.boolean({
+        description: "Use the hosted PMXT API",
     }),
     "pmxt-api-key": core_1.Flags.string({
         description: "Hosted PMXT API key",
         env: constants_js_1.ENV.API_KEY,
+    }),
+    "no-suggest-hosted": core_1.Flags.boolean({
+        description: "Do not show hosted PMXT suggestions when using local mode",
     }),
 };
 exports.feedHttpFlags = {
@@ -137,15 +146,36 @@ function resolveCliCredentials(flags, options = {}) {
     const runtime = (0, runtime_js_1.resolveRuntimeConfig)(flags, runtimeEnv, options.targetKind === "exchange" ? options.targetName : "polymarket");
     return {
         baseUrl: runtime.baseUrl,
+        mode: runtime.mode,
+        noSuggestHosted: Boolean(flags["no-suggest-hosted"]),
         ...(runtime.pmxtApiKey ? { pmxtApiKey: runtime.pmxtApiKey } : {}),
         ...(options.targetKind === "exchange" && runtime.credentials ? { exchangeCredentials: runtime.credentials } : {}),
     };
 }
 async function fetchPmxtData(pathname, credentials, query = {}) {
-    const resolved = (0, constants_js_1.resolvePmxtBaseUrl)({
+    let resolved = (0, constants_js_1.resolvePmxtBaseUrl)({
         baseUrl: credentials.baseUrl,
         pmxtApiKey: credentials.pmxtApiKey,
     });
+    let localAccessToken;
+    if (credentials.mode === "hosted" && resolved.isHosted && !resolved.pmxtApiKey) {
+        throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode));
+    }
+    if (resolved.baseUrl === constants_js_1.LOCAL_URL || credentials.mode === "local") {
+        const manager = new server_manager_js_1.ServerManager();
+        try {
+            await manager.ensureServerRunning();
+        }
+        catch (error) {
+            throw new Error(localUnavailableMessage(error));
+        }
+        resolved = {
+            ...resolved,
+            baseUrl: `http://localhost:${manager.getRunningPort()}`,
+            isHosted: false,
+        };
+        localAccessToken = manager.getAccessToken();
+    }
     const url = new URL(pathname, ensureTrailingSlash(resolved.baseUrl));
     for (const [key, value] of Object.entries(query)) {
         if (value === undefined || value === null)
@@ -153,13 +183,16 @@ async function fetchPmxtData(pathname, credentials, query = {}) {
         url.searchParams.set(key, String(value));
     }
     const response = await fetch(url, {
-        headers: resolved.pmxtApiKey ? { Authorization: `Bearer ${resolved.pmxtApiKey}` } : {},
+        headers: {
+            ...(shouldSendHostedAuth(resolved, credentials.mode) ? { Authorization: `Bearer ${resolved.pmxtApiKey}` } : {}),
+            ...(localAccessToken ? { "x-pmxt-access-token": localAccessToken } : {}),
+        },
         signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         if (response.status === 401 || response.status === 403) {
-            throw new Error(authErrorMessage(errorMessage(body) || response.statusText, resolved.baseUrl));
+            throw new Error(authErrorMessage(errorMessage(body) || response.statusText, resolved.baseUrl, credentials.mode));
         }
         throw new Error(errorMessage(body) || response.statusText);
     }
@@ -272,22 +305,31 @@ async function prepareWebSocket(credentials) {
     });
     if (resolved.isHosted) {
         if (!resolved.pmxtApiKey) {
-            throw new Error(authErrorMessage("missing api key", resolved.baseUrl));
+            throw new Error(authErrorMessage("missing api key", resolved.baseUrl, credentials.mode));
         }
         return {
             url: buildWebSocketUrl(resolved.baseUrl, resolved.pmxtApiKey ? { name: "apiKey", value: resolved.pmxtApiKey } : undefined),
         };
     }
-    if (resolved.baseUrl === constants_js_1.LOCAL_URL) {
+    if (resolved.baseUrl === constants_js_1.LOCAL_URL || credentials.mode === "local") {
         const manager = new server_manager_js_1.ServerManager();
-        await manager.ensureServerRunning();
+        try {
+            await manager.ensureServerRunning();
+        }
+        catch (error) {
+            throw new Error(localUnavailableMessage(error));
+        }
         const token = manager.getAccessToken();
         const baseUrl = `http://localhost:${manager.getRunningPort()}`;
         return {
             url: buildWebSocketUrl(baseUrl, token ? { name: "token", value: token } : undefined),
         };
     }
-    return { url: buildWebSocketUrl(resolved.baseUrl) };
+    return {
+        url: buildWebSocketUrl(resolved.baseUrl, shouldSendHostedAuth(resolved, credentials.mode)
+            ? { name: "apiKey", value: resolved.pmxtApiKey }
+            : undefined),
+    };
 }
 function clean(value) {
     if (typeof value !== "string")
@@ -297,6 +339,21 @@ function clean(value) {
 }
 function ensureTrailingSlash(value) {
     return value.endsWith("/") ? value : `${value}/`;
+}
+function isLoopbackUrl(baseUrl) {
+    try {
+        const parsed = new URL(baseUrl);
+        return parsed.protocol === "http:"
+            && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "::1");
+    }
+    catch {
+        return false;
+    }
+}
+function shouldSendHostedAuth(resolved, mode) {
+    if (!resolved.pmxtApiKey || mode === "local")
+        return false;
+    return resolved.isHosted || !isLoopbackUrl(resolved.baseUrl);
 }
 function envPrefix(value) {
     return (value || "EXCHANGE").replace(/[^a-zA-Z0-9]/g, "_").toUpperCase();
@@ -311,18 +368,51 @@ function errorMessage(body) {
         return body.message;
     return undefined;
 }
-function authErrorMessage(message, baseUrl) {
+function authErrorMessage(message, baseUrl, mode = "hosted") {
+    if (mode === "local") {
+        return [
+            `Local PMXT rejected the request: ${message || "missing or invalid local access token"}.`,
+            "",
+            `Endpoint: ${baseUrl}`,
+            "",
+            "Try restarting the local PMXT instance:",
+            "  pmxt server restart",
+            "",
+            "Or use hosted PMXT:",
+            "  pmxt auth login --api-key <pmxt_api_key>",
+            "  pmxt <exchange> <command> --hosted",
+        ].join("\n");
+    }
+    const heading = mode === "hosted" ? "Hosted PMXT needs an API key" : "PMXT endpoint needs authentication";
     return [
-        `Unauthorized: ${message || "the PMXT API key was missing or rejected"}.`,
+        `${heading}: ${message || "the key was missing or rejected"}.`,
         "",
         `Endpoint: ${baseUrl}`,
         "",
-        "Fix one of these ways:",
+        "Hosted:",
         "  pmxt auth login --api-key <pmxt_api_key>",
         "  PMXT_API_KEY=<pmxt_api_key> pmxt <exchange> <command>",
-        "  pmxt <exchange> <command> --pmxt-api-key <pmxt_api_key>",
+        "  pmxt <exchange> <command> --hosted --pmxt-api-key <pmxt_api_key>",
         "",
-        "Check current auth with: pmxt auth status",
+        "Local:",
+        "  pmxt <exchange> <command> --local",
+        "  npm install -g pmxt-core",
+        "",
+        "Check auth with: pmxt auth status",
+    ].join("\n");
+}
+function localUnavailableMessage(error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return [
+        "Local PMXT instance is not available.",
+        "",
+        detail,
+        "",
+        "Use hosted PMXT instead:",
+        "  pmxt auth login --api-key <pmxt_api_key>",
+        "  pmxt <exchange> <command> --hosted",
+        "",
+        "Hosted PMXT is faster for indexed search, router matches, and enterprise data.",
     ].join("\n");
 }
 function getStoreBuckets(store, profile, options) {

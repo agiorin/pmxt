@@ -16,7 +16,7 @@ npx @pmxt/cli polymarket markets --query Trump --limit 5
 
 ## Usage
 
-Hosted PMXT API calls require a PMXT API key:
+PMXT uses hosted mode when an API key is configured. Without hosted auth, commands use a local PMXT instance.
 
 ```bash
 pmxt auth login --api-key pmxt_...
@@ -50,12 +50,15 @@ You can also use environment variables or one-shot flags:
 
 ```bash
 PMXT_API_KEY=pmxt_... pmxt markets --limit 5
-pmxt markets --pmxt-api-key pmxt_... --limit 5
+pmxt markets --hosted --pmxt-api-key pmxt_... --limit 5
 ```
 
-Local sidecar usage is explicit:
+Local usage is explicit when you want to force it:
 
 ```bash
+npm install -g pmxt-core
 pmxt server status
-pmxt markets --base-url http://localhost:3847 --limit 5
+pmxt markets --local --limit 5
 ```
+
+Use `--base-url` only for custom PMXT deployments.

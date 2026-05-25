@@ -34,23 +34,23 @@ async function executeServerCommand(action, options = {}) {
 function formatServerCommandResult(result) {
     switch (result.action) {
         case "start":
-            return "PMXT server started";
+            return "Local PMXT instance started";
         case "stop":
-            return "PMXT server stopped";
+            return "Local PMXT instance stopped";
         case "restart":
-            return "PMXT server restarted";
+            return "Local PMXT instance restarted";
         case "status":
             return formatStatus(result);
         case "health":
-            return result.healthy ? "PMXT server healthy" : "PMXT server unhealthy";
+            return result.healthy ? "Local PMXT instance healthy" : "Local PMXT instance unhealthy";
         case "logs":
             return result.lines.length > 0
                 ? result.lines.join("\n")
-                : "No PMXT server logs found";
+                : "No local PMXT logs found";
     }
 }
 function formatStatus(status) {
-    const lines = [`PMXT server ${status.running ? "running" : "stopped"}`];
+    const lines = [`Local PMXT instance ${status.running ? "running" : "stopped"}`];
     if (status.pid !== null)
         lines.push(`pid: ${status.pid}`);
     if (status.port !== null)

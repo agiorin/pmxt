@@ -15,6 +15,11 @@ QUICK START
   pmxt polymarket markets --query Trump --limit 5
   PMXT_API_KEY=<pmxt_api_key> pmxt kalshi events --query election --limit 5
 
+MODES
+  Hosted PMXT is used when an API key is configured.
+  Without hosted auth, commands use a local PMXT instance.
+  Use --hosted or --local to force a mode.
+
 COMMON COMMANDS
   pmxt <exchange> markets             Search markets
   pmxt <exchange> events              Search events
@@ -33,16 +38,20 @@ GROUPS
   pmxt feed                           Fetch data-feed tickers, candles, books, and streams
   pmxt watch                          Stream venue order books and trades as JSONL
   pmxt enterprise                     Run Enterprise matched-market and SQL commands
-  pmxt server                         Manage an installed local pmxt-core sidecar
+  pmxt server                         Manage a local PMXT instance
 
 FLAGS
   --pmxt-api-key <key>                One-shot hosted PMXT API key
-  --base-url <url>                    Override PMXT API base URL
+  --local                             Use a local PMXT instance
+  --hosted                            Use the hosted PMXT API
+  --base-url <url>                    Advanced PMXT API base URL override
   --json                              Print raw JSON
   --help                              Show command help
 
 EXAMPLES
   pmxt polymarket markets --query Trump --limit 5
+  pmxt polymarket markets --local --query Trump --limit 5
+  pmxt polymarket markets --hosted --query Trump --limit 5
   pmxt kalshi events --query "NBA" --limit 5 --json
   pmxt polymarket orderbook <outcome-id> --limit 20
   pmxt router market-matches --market-id <market-id>
