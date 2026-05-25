@@ -2780,7 +2780,6 @@ components:
           - polymarket_us
           - gemini-titan
           - hyperliquid
-          - suibets
           - mock
           - router
       required: true
@@ -4404,6 +4403,13 @@ x-sdk-constructors:
         tsName: apiSecret
         type: string
         description: API secret for authentication
+  suibets:
+    className: Suibets
+    params:
+      - name: pmxt_api_key
+        tsName: pmxtApiKey
+        type: string
+        description: PMXT API key for hosted access
   mock:
     className: Mock
     params:
