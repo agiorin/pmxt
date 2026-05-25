@@ -3,7 +3,7 @@
   "info": {
     "title": "PMXT Hosted API",
     "description": "One API for every prediction market. Cross-venue search in under 10ms, a single unified schema, and the complete venue surface from reads to trades.",
-    "version": "2.45.1"
+    "version": "2.46.0"
   },
   "servers": [
     {
@@ -6777,6 +6777,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -6948,6 +6949,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -7190,6 +7192,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -7339,6 +7342,7 @@
                 "type": "string",
                 "enum": [
                   "identity",
+                  "complement",
                   "subset",
                   "superset",
                   "overlap",
@@ -7443,6 +7447,7 @@
                 "type": "string",
                 "enum": [
                   "identity",
+                  "complement",
                   "subset",
                   "superset",
                   "overlap",
@@ -7577,6 +7582,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -7714,6 +7720,7 @@
                 "type": "string",
                 "enum": [
                   "identity",
+                  "complement",
                   "subset",
                   "superset",
                   "overlap",
@@ -10165,6 +10172,7 @@
             "polymarket_us",
             "gemini-titan",
             "hyperliquid",
+            "suibets",
             "mock",
             "router"
           ]
@@ -11500,6 +11508,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
@@ -11560,6 +11569,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
@@ -11595,6 +11605,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -11623,6 +11634,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
@@ -11694,6 +11706,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
@@ -11769,6 +11782,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
@@ -11809,6 +11823,7 @@
               "type": "string",
               "enum": [
                 "identity",
+                "complement",
                 "subset",
                 "superset",
                 "overlap",
@@ -11847,6 +11862,7 @@
             "type": "string",
             "enum": [
               "identity",
+              "complement",
               "subset",
               "superset",
               "overlap",
