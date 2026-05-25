@@ -88,6 +88,7 @@ paths:
               - metaculus
               - smarkets
               - polymarket_us
+              - suibets
               - router
           required: true
           description: The prediction market exchange to target.
@@ -292,6 +293,7 @@ paths:
               - metaculus
               - smarkets
               - polymarket_us
+              - suibets
               - router
           required: true
           description: The prediction market exchange to target.
@@ -711,6 +713,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - suibets
               - router
           required: true
           description: The prediction market exchange to target.
@@ -1388,6 +1391,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - suibets
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -2780,6 +2784,7 @@ components:
           - polymarket_us
           - gemini-titan
           - hyperliquid
+          - suibets
           - mock
           - router
       required: true
