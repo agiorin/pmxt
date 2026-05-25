@@ -1717,6 +1717,7 @@ paths:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -1821,6 +1822,7 @@ paths:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -1961,6 +1963,7 @@ paths:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -2050,6 +2053,7 @@ paths:
               type: string
               enum:
                 - identity
+                - complement
                 - subset
                 - superset
                 - overlap
@@ -2107,6 +2111,7 @@ paths:
               type: string
               enum:
                 - identity
+                - complement
                 - subset
                 - superset
                 - overlap
@@ -2182,6 +2187,7 @@ paths:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -2269,6 +2275,7 @@ paths:
               type: string
               enum:
                 - identity
+                - complement
                 - subset
                 - superset
                 - overlap
@@ -3788,6 +3795,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
@@ -3830,6 +3838,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
@@ -3855,6 +3864,7 @@ components:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -3873,6 +3883,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
@@ -3919,6 +3930,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
@@ -3968,6 +3980,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
@@ -3999,6 +4012,7 @@ components:
             type: string
             enum:
               - identity
+              - complement
               - subset
               - superset
               - overlap
@@ -4025,6 +4039,7 @@ components:
           type: string
           enum:
             - identity
+            - complement
             - subset
             - superset
             - overlap
