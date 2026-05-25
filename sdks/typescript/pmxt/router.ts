@@ -242,9 +242,9 @@ export class Router extends Exchange {
         const params = 'title' in marketOrParams ? { market: marketOrParams as UnifiedMarket } : marketOrParams;
         await this.initPromise;
         const query: Record<string, unknown> = {};
-        const marketId = params.marketId ?? params.market?.marketId;
+        const marketId = params.marketId ?? (!params.market?.slug ? params.market?.marketId : undefined);
         if (marketId) query.marketId = marketId;
-        if (params.slug) query.slug = params.slug;
+        if (params.slug ?? params.market?.slug) query.slug = params.slug ?? params.market?.slug;
         if (params.url) query.url = params.url;
         if (params.relation) query.relation = params.relation;
         if (params.minConfidence !== undefined) query.minConfidence = params.minConfidence;
@@ -255,6 +255,9 @@ export class Router extends Exchange {
             const json = await this.sidecarReadRequest('fetchMarketMatches', query, [query]);
             const data = this.handleResponse(json);
             if (!data) return [];
+            if (!Array.isArray(data)) {
+                throw new Error('fetchMarketMatches returned an unexpected response shape: expected an array');
+            }
             return (data as any[]).map(parseMatchResult);
         } catch (error) {
             if (error instanceof Error) throw error;
@@ -317,9 +320,9 @@ export class Router extends Exchange {
         const params = 'title' in eventOrParams && 'markets' in eventOrParams ? { event: eventOrParams as UnifiedEvent } : eventOrParams;
         await this.initPromise;
         const query: Record<string, unknown> = {};
-        const eventId = params.eventId ?? params.event?.id;
+        const eventId = params.eventId ?? (!params.event?.slug ? params.event?.id : undefined);
         if (eventId) query.eventId = eventId;
-        if (params.slug) query.slug = params.slug;
+        if (params.slug ?? params.event?.slug) query.slug = params.slug ?? params.event?.slug;
         if (params.relation) query.relation = params.relation;
         if (params.minConfidence !== undefined) query.minConfidence = params.minConfidence;
         if (params.limit !== undefined) query.limit = params.limit;
@@ -329,6 +332,9 @@ export class Router extends Exchange {
             const json = await this.sidecarReadRequest('fetchEventMatches', query, [query]);
             const data = this.handleResponse(json);
             if (!data) return [];
+            if (!Array.isArray(data)) {
+                throw new Error('fetchEventMatches returned an unexpected response shape: expected an array');
+            }
             return (data as any[]).map((entry) => {
                 const event = convertEvent(entry.event || {});
                 return {
