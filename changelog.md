@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.10] - 2026-05-26
+
+### Fixed
+
+- **Docs**: Clarify raw curl WebSocket API key usage for `watchAllOrderBooks()`, including the common mistake of placing quote characters inside the `apiKey` query parameter.
+
 ## [2.46.9] - 2026-05-26
 
 ### Fixed
