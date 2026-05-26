@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.6] - 2026-05-26
+
+### Fixed
+
+- **Docs**: Clarify `watchAllOrderBooks()` venue defaults. SDK `Router` examples now show all-venue streams, venue-client examples show single-venue defaults, and raw WebSocket examples remain explicit about omitting `args` for all venues.
+
 ## [2.46.5] - 2026-05-26
 
 ### Fixed

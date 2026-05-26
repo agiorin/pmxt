@@ -4123,17 +4123,23 @@ Source: https://pmxt.dev/docs/api-reference/watch-all-order-books
 **Hosted only** — This method requires a PMXT API key and connects to the hosted WebSocket API at `wss://api.pmxt.dev/ws?apiKey=YOUR_KEY`. Not available on the local sidecar.
 
 
+> **Note:**
+SDK defaults depend on which client you instantiate. `Router` streams all venues by default. Venue clients such as `Kalshi`, `Polymarket`, `Limitless`, and `Opinion` stream only their own venue by default. Pass an explicit `venues` list to override either default.
+
+
 #### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `venues` | string[] | No | Optional venue filter. Omit to receive all venues. |
+| `venues` | string[] | No | Optional venue filter. Omit to use the SDK client's default; pass `[]` to force all venues from SDK clients. |
 
 Available venues: `polymarket`, `kalshi`, `limitless`, `opinion`.
 
+Raw WebSocket subscriptions do not have an SDK client default. For raw WebSocket, omit `args` to stream all venues, or send `args: [["kalshi"]]` to stream only Kalshi.
+
 #### Response
 
-Returns a `FirehoseEvent` object for each orderbook update across all venues:
+Returns a `FirehoseEvent` object for each orderbook update in the selected stream:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -4143,17 +4149,17 @@ Returns a `FirehoseEvent` object for each orderbook update across all venues:
 
 #### Usage
 
-##### All venues
+##### All venues with Router
 
 <CodeGroup>
 
 ```python Python
 import pmxt
 
-exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+router = pmxt.Router(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 while True:
-event = exchange.watch_all_order_books()
+event = router.watch_all_order_books()
 book = event.orderbook
 if not book.bids or not book.asks:
     continue
@@ -4162,12 +4168,12 @@ print(f"  bid={book.bids[0].price} ask={book.asks[0].price}")
 ```
 
 ```javascript JavaScript
-import { Polymarket } from "pmxtjs";
+import { Router } from "pmxtjs";
 
-const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const router = new Router({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 while (true) {
-  const event = await exchange.watchAllOrderBooks();
+  const event = await router.watchAllOrderBooks();
   const { bids, asks } = event.orderbook;
   if (!bids.length || !asks.length) continue;
   console.log(`[${event.source}] ${event.symbol.slice(0, 20)}...`);
@@ -4199,31 +4205,63 @@ while (true) {
 
 </CodeGroup>
 
-##### Filtered by venue
+##### One venue with a venue client
 
 <CodeGroup>
 
 ```python Python
 import pmxt
 
-exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+kalshi = pmxt.Kalshi(pmxt_api_key="YOUR_PMXT_API_KEY")
+
+# Defaults to Kalshi events only
+while True:
+event = kalshi.watch_all_order_books()
+if not event.orderbook.asks:
+    continue
+print(f"[{event.source}] ask={event.orderbook.asks[0].price}")
+```
+
+```javascript JavaScript
+import { Kalshi } from "pmxtjs";
+
+const kalshi = new Kalshi({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+
+// Defaults to Kalshi events only
+while (true) {
+  const event = await kalshi.watchAllOrderBooks();
+  if (!event.orderbook.asks.length) continue;
+  console.log(`[${event.source}] ask=${event.orderbook.asks[0].price}`);
+}
+```
+
+</CodeGroup>
+
+##### Explicit venue filter
+
+<CodeGroup>
+
+```python Python
+import pmxt
+
+router = pmxt.Router(pmxt_api_key="YOUR_PMXT_API_KEY")
 
 # Only Polymarket and Limitless events
 while True:
-event = exchange.watch_all_order_books(["polymarket", "limitless"])
+event = router.watch_all_order_books(["polymarket", "limitless"])
 if not event.orderbook.bids:
     continue
 print(f"[{event.source}] bid={event.orderbook.bids[0].price}")
 ```
 
 ```javascript JavaScript
-import { Polymarket } from "pmxtjs";
+import { Router } from "pmxtjs";
 
-const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const router = new Router({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 
 // Only Polymarket and Limitless events
 while (true) {
-  const event = await exchange.watchAllOrderBooks(["polymarket", "limitless"]);
+  const event = await router.watchAllOrderBooks(["polymarket", "limitless"]);
   if (!event.orderbook.bids.length) continue;
   console.log(`[${event.source}] bid=${event.orderbook.bids[0].price}`);
 }
@@ -4241,6 +4279,30 @@ while (true) {
 
 </CodeGroup>
 
+##### Force all venues from a venue client
+
+<CodeGroup>
+
+```python Python
+import pmxt
+
+kalshi = pmxt.Kalshi(pmxt_api_key="YOUR_PMXT_API_KEY")
+
+# Empty list overrides the Kalshi default and streams all venues
+event = kalshi.watch_all_order_books([])
+```
+
+```javascript JavaScript
+import { Kalshi } from "pmxtjs";
+
+const kalshi = new Kalshi({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+
+// Empty array overrides the Kalshi default and streams all venues
+const event = await kalshi.watchAllOrderBooks([]);
+```
+
+</CodeGroup>
+
 #### Use cases
 
 ##### Cross-venue monitoring dashboard
@@ -4253,11 +4315,11 @@ Build a real-time dashboard showing all orderbook activity:
 import pmxt
 from collections import defaultdict
 
-exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+router = pmxt.Router(pmxt_api_key="YOUR_PMXT_API_KEY")
 counts = defaultdict(int)
 
 while True:
-event = exchange.watch_all_order_books()
+event = router.watch_all_order_books()
 counts[event.source] += 1
 total = sum(counts.values())
 if total % 100 == 0:
@@ -4265,13 +4327,13 @@ if total % 100 == 0:
 ```
 
 ```javascript JavaScript
-import { Polymarket } from "pmxtjs";
+import { Router } from "pmxtjs";
 
-const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const router = new Router({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 const counts = {};
 
 while (true) {
-  const event = await exchange.watchAllOrderBooks();
+  const event = await router.watchAllOrderBooks();
   counts[event.source] = (counts[event.source] || 0) + 1;
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   if (total % 100 === 0) {
@@ -4291,11 +4353,11 @@ Detect cross-venue price discrepancies as they happen:
 ```python Python
 import pmxt
 
-exchange = pmxt.Polymarket(pmxt_api_key="YOUR_PMXT_API_KEY")
+router = pmxt.Router(pmxt_api_key="YOUR_PMXT_API_KEY")
 latest = {}  # symbol -> {source -> mid_price}
 
 while True:
-event = exchange.watch_all_order_books()
+event = router.watch_all_order_books()
 book = event.orderbook
 if not book.bids or not book.asks:
     continue
@@ -4314,13 +4376,13 @@ if len(prices) >= 2:
 ```
 
 ```javascript JavaScript
-import { Polymarket } from "pmxtjs";
+import { Router } from "pmxtjs";
 
-const exchange = new Polymarket({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
+const router = new Router({ pmxtApiKey: "YOUR_PMXT_API_KEY" });
 const latest = new Map();
 
 while (true) {
-  const event = await exchange.watchAllOrderBooks();
+  const event = await router.watchAllOrderBooks();
   const { bids, asks } = event.orderbook;
   if (!bids.length || !asks.length) continue;
   const mid = (bids[0].price + asks[0].price) / 2;

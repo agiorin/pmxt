@@ -56,7 +56,7 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Fetch Positions](https://pmxt.dev/docs/api-reference/fetchPositions): Fetch current user positions across all markets.
 - [Fetch Balance](https://pmxt.dev/docs/api-reference/fetchBalance): Fetch account balances.
 - [WebSocket Overview](https://pmxt.dev/docs/api-reference/websocket): Real-time orderbook and trade streaming via WebSocket
-- [watchAllOrderBooks](https://pmxt.dev/docs/api-reference/watch-all-order-books): Stream all orderbook updates across all venues via WebSocket
+- [watchAllOrderBooks](https://pmxt.dev/docs/api-reference/watch-all-order-books): Stream live orderbook updates across one venue or all venues via WebSocket
 - [watchOrderBook](https://pmxt.dev/docs/api-reference/watch-order-book): Stream real-time orderbook updates for a single outcome via WebSocket
 - [watchOrderBooks](https://pmxt.dev/docs/api-reference/watch-order-books): Stream real-time orderbook updates for multiple outcomes via WebSocket
 - [watchTrades](https://pmxt.dev/docs/api-reference/watch-trades): Stream real-time trade updates for a single outcome via WebSocket
