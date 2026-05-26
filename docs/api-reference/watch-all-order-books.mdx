@@ -19,7 +19,7 @@ SDK defaults depend on which client you instantiate. `Router` streams all venues
 
 Available venues: `polymarket`, `kalshi`, `limitless`, `opinion`.
 
-Raw WebSocket subscriptions do not have an SDK client default. For raw WebSocket, omit `args` to stream all venues, or send `args: [["kalshi"]]` to stream only Kalshi.
+Raw WebSocket subscriptions do not have an SDK client default. For raw WebSocket, connect to the WebSocket URL, send one JSON text frame, then read JSON text frames. Omit `args` to stream all venues, or send `args: [["kalshi"]]` to stream only Kalshi.
 
 ## Response
 
@@ -65,37 +65,33 @@ while (true) {
 }
 ```
 
-```json WebSocket
-// → Subscribe to all venues
-{ "id": "req-1", "action": "subscribe", "method": "watchAllOrderBooks" }
+```bash curl
+export PMXT_API_KEY="YOUR_PMXT_API_KEY"
 
-// ← Subscription confirmed
-{ "event": "subscribed", "id": "req-1" }
-
-// ← Data events (continuous, all venues)
-{
-  "event": "data",
-  "id": "req-1",
-  "method": "watchAllOrderBooks",
-  "symbol": "OUTCOME_ID",
-  "source": "polymarket",
-  "data": {
-    "bids": [{ "price": 0.42, "size": 100 }],
-    "asks": [{ "price": 0.58, "size": 200 }],
-    "timestamp": 1778450010713
-  }
-}
+printf '%s\n' '{"id":"all-books","action":"subscribe","method":"watchAllOrderBooks"}' \
+  | curl --no-progress-meter --no-buffer --http1.1 -T . \
+      "wss://api.pmxt.dev/ws?apiKey=${PMXT_API_KEY}"
 ```
 
 </CodeGroup>
 
-### Raw WebSocket with curl
+### Raw WebSocket without an SDK
 
-Use this when you are not using the Python or TypeScript SDKs. It requires curl `8.16.0` or newer with `ws` and `wss` listed in `curl --version`. Older curl builds can open WebSocket URLs but cannot reliably send the subscription frame from stdin.
+Use this when you are not using the Python or TypeScript SDKs, or when you are implementing the stream in Rust, Go, Java, or another WebSocket client.
+
+| Environment | URL |
+|-------------|-----|
+| Hosted PMXT | `wss://api.pmxt.dev/ws?apiKey=YOUR_PMXT_API_KEY` |
+| Local hosted-compatible relay | `ws://localhost:5005/ws?apiKey=YOUR_PMXT_API_KEY` |
+
+curl supports WebSocket when `curl --version` lists `ws` and `wss` under protocols. These piped examples require curl `8.16.0` or newer so curl can send the subscription frame from stdin.
 
 ```bash
 export PMXT_API_KEY="YOUR_PMXT_API_KEY"
 export PMXT_WS_URL="wss://api.pmxt.dev/ws"
+
+curl --version
+# Confirm the Protocols line includes ws and wss.
 
 printf '%s\n' '{"id":"all-books","action":"subscribe","method":"watchAllOrderBooks"}' \
   | curl --no-progress-meter --no-buffer --http1.1 -T . \
@@ -120,6 +116,83 @@ export PMXT_WS_URL="ws://localhost:5005/ws"
 ```
 
 Do not use `--data` or `--data-binary` for this. Those options send an HTTP request body instead of a WebSocket frame.
+
+If your curl is older, use a WebSocket client library directly. This Python example does not use the PMXT SDK; it connects to the same raw WebSocket URL that a Rust or Go client would use.
+
+```bash
+pip install websockets
+PMXT_API_KEY="YOUR_PMXT_API_KEY" python raw-watch-all-order-books.py
+
+# Local hosted-compatible relay:
+PMXT_WS_URL="ws://localhost:5005/ws" PMXT_API_KEY="YOUR_PMXT_API_KEY" python raw-watch-all-order-books.py
+```
+
+```python raw-watch-all-order-books.py
+import asyncio
+import json
+import os
+
+import websockets
+
+PMXT_API_KEY = os.environ["PMXT_API_KEY"]
+PMXT_WS_URL = os.environ.get("PMXT_WS_URL", "wss://api.pmxt.dev/ws")
+
+
+async def main():
+    url = f"{PMXT_WS_URL}?apiKey={PMXT_API_KEY}"
+    async with websockets.connect(url) as ws:
+        await ws.send(json.dumps({
+            "id": "kalshi-books",
+            "action": "subscribe",
+            "method": "watchAllOrderBooks",
+            "args": [["kalshi"]],
+        }))
+
+        async for raw in ws:
+            msg = json.loads(raw)
+            if msg.get("event") != "data":
+                print(msg)
+                continue
+
+            book = msg["data"]
+            print({
+                "source": msg["source"],
+                "symbol": msg["symbol"],
+                "bestBid": book.get("bids", [])[:1],
+                "bestAsk": book.get("asks", [])[:1],
+            })
+
+
+asyncio.run(main())
+```
+
+For any other language, the wire protocol is the same: open the WebSocket URL, send this JSON text frame, then read JSON text frames from the server.
+
+```json
+{
+  "id": "kalshi-books",
+  "action": "subscribe",
+  "method": "watchAllOrderBooks",
+  "args": [["kalshi"]]
+}
+```
+
+Data frames look like this:
+
+```json
+{
+  "event": "data",
+  "id": "kalshi-books",
+  "method": "watchAllOrderBooks",
+  "symbol": "OUTCOME_ID",
+  "source": "kalshi",
+  "data": {
+    "bids": [{ "price": 0.42, "size": 100 }],
+    "asks": [{ "price": 0.58, "size": 200 }],
+    "timestamp": 1778450010713
+  }
+}
+```
 
 ### One venue with a venue client
 
@@ -183,14 +256,12 @@ while (true) {
 }
 ```
 
-```json WebSocket
-// → Subscribe with venue filter
-{
-  "id": "req-1",
-  "action": "subscribe",
-  "method": "watchAllOrderBooks",
-  "args": [["polymarket", "limitless"]]
-}
+```bash curl
+export PMXT_API_KEY="YOUR_PMXT_API_KEY"
+
+printf '%s\n' '{"id":"poly-limitless","action":"subscribe","method":"watchAllOrderBooks","args":[["polymarket","limitless"]]}' \
+  | curl --no-progress-meter --no-buffer --http1.1 -T . \
+      "wss://api.pmxt.dev/ws?apiKey=${PMXT_API_KEY}"
 ```
 
 </CodeGroup>

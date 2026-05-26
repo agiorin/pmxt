@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.9] - 2026-05-26
+
+### Fixed
+
+- **Docs**: Make raw `watchAllOrderBooks()` WebSocket usage actionable with runnable curl examples, a raw Python WebSocket example for direct `ws://` / `wss://` connections, and clearer wire protocol guidance for non-SDK clients.
+
 ## [2.46.8] - 2026-05-26
 
 ### Fixed
