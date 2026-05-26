@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.7] - 2026-05-26
+
+### Fixed
+
+- **Docs**: Add raw `curl` WebSocket examples for `watchAllOrderBooks()`, including all-venue and single-venue subscription payloads, local relay URL shape, and the curl version requirement for sending WebSocket frames from stdin.
+
 ## [2.46.6] - 2026-05-26
 
 ### Fixed

@@ -4205,6 +4205,38 @@ while (true) {
 
 </CodeGroup>
 
+##### Raw WebSocket with curl
+
+Use this when you are not using the Python or TypeScript SDKs. It requires curl `8.16.0` or newer with `ws` and `wss` listed in `curl --version`. Older curl builds can open WebSocket URLs but cannot reliably send the subscription frame from stdin.
+
+```bash
+export PMXT_API_KEY="YOUR_PMXT_API_KEY"
+export PMXT_WS_URL="wss://api.pmxt.dev/ws"
+
+printf '%s\n' '{"id":"all-books","action":"subscribe","method":"watchAllOrderBooks"}' \
+  | curl --no-progress-meter --no-buffer --http1.1 -T . \
+  "${PMXT_WS_URL}?apiKey=${PMXT_API_KEY}"
+```
+
+For a single venue, put the venue list in `args`:
+
+```bash
+export PMXT_API_KEY="YOUR_PMXT_API_KEY"
+export PMXT_WS_URL="wss://api.pmxt.dev/ws"
+
+printf '%s\n' '{"id":"kalshi-books","action":"subscribe","method":"watchAllOrderBooks","args":[["kalshi"]]}' \
+  | curl --no-progress-meter --no-buffer --http1.1 -T . \
+  "${PMXT_WS_URL}?apiKey=${PMXT_API_KEY}"
+```
+
+When testing a PMXT-compatible hosted relay locally, use the same message shape and switch only the URL:
+
+```bash
+export PMXT_WS_URL="ws://localhost:5005/ws"
+```
+
+Do not use `--data` or `--data-binary` for this. Those options send an HTTP request body instead of a WebSocket frame.
+
 ##### One venue with a venue client
 
 <CodeGroup>
