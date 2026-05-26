@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.46.11] - 2026-05-26
+
+### Fixed
+
+- **Release**: Republish the curl WebSocket documentation patch after a transient npm provenance error interrupted the `2.46.10` npm package publish.
+
 ## [2.46.10] - 2026-05-26
 
 ### Fixed
