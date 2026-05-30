@@ -421,7 +421,19 @@ paths:
       summary: Fetch Series
       operationId: fetchSeries
       parameters:
-        - $ref: '#/components/parameters/ExchangeParam'
+        - in: path
+          name: exchange
+          schema:
+            type: string
+            enum:
+              - polymarket
+              - kalshi
+              - kalshi-demo
+              - opinion
+              - polymarket_us
+              - router
+          required: true
+          description: The prediction market exchange to target.
       responses:
         '200':
           description: Fetch Series response
