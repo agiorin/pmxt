@@ -1215,32 +1215,24 @@ export abstract class Exchange {
 
     async unwatchOrderBook(outcomeId: string | MarketOutcome): Promise<void> {
         await this.initPromise;
-        const resolvedOutcomeId = resolveOutcomeId(outcomeId);
-        const args: any[] = [resolvedOutcomeId];
         try {
-            const ws = await this.getOrCreateWs();
-            if (!ws) {
-                throw this.wsTransportUnavailableError("unwatchOrderBook");
+            const args: any[] = [];
+            args.push(resolveOutcomeId(outcomeId));
+            const response = await this.fetchWithRetry(`${this.resolveBaseUrl()}/api/${this.exchangeName}/unwatchOrderBook`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
+                body: JSON.stringify({ args, credentials: this.getCredentials() }),
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                if (body.error && typeof body.error === "object") {
+                    throw fromServerError(body.error);
+                }
+                throw new PmxtError(body.error?.message || response.statusText);
             }
-
-            const requestId = this.getWsSubscriptionId(ws, "watchOrderBook", args)
-                ?? `req-${Math.random().toString(36).slice(2, 14)}`;
-
-            await this.sendWsMessage(
-                ws,
-                {
-                    id: requestId,
-                    action: "unsubscribe",
-                    exchange: this.exchangeName,
-                    method: "unwatchOrderBook",
-                    args,
-                },
-            );
-            this.clearWsSubscription(ws, "watchOrderBook", args);
+            const json = await response.json();
+            this.handleResponse(json);
         } catch (error) {
-            if (this.isWsTransportUnavailableError(error)) {
-                throw this.wsTransportUnavailableError("unwatchOrderBook");
-            }
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to unwatchOrderBook: ${error}`);
         }
