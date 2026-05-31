@@ -470,8 +470,8 @@ class GeminiTitan(Exchange):
         return creds if creds else None
 
 
-class Suibets(Exchange):
-    """Suibets exchange client."""
+class SuiBets(Exchange):
+    """SuiBets exchange client."""
 
     def __init__(
         self,
@@ -480,7 +480,7 @@ class Suibets(Exchange):
         pmxt_api_key: Optional[str] = None,
     ):
         """
-        Initialize Suibets client.
+        Initialize SuiBets client.
 
         Args:
             base_url: Base URL of the PMXT sidecar server
@@ -493,6 +493,11 @@ class Suibets(Exchange):
             auto_start_server=auto_start_server,
             pmxt_api_key=pmxt_api_key,
         )
+
+
+# Deprecated alias kept for backwards compatibility with the lowercase-b spelling.
+# Remove in a future major version.
+Suibets = SuiBets
 
 
 class Mock(Exchange):
