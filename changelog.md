@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.2] - 2026-06-01
+
+### Fixed
+
+- **Limitless**: `fetchBalance` no longer loses precision when raw on-chain balances exceed `Number.MAX_SAFE_INTEGER` (≈ 9 × 10¹⁵ USDC raw units). Replaced `parseFloat(rawBalance.toString()) / Math.pow(10, decimals)` with a `scaledIntegerToNumber` helper that performs integer division/modulo in bigint before converting to a JS number. Affects `LimitlessExchange.fetchBalance` and `LimitlessClient.getBalance`. (#683)
+- **Python SDK**: Server auto-start failure message now points users at the correct package (`pmxt-core`) instead of the stale `pmxtjs` (the TypeScript SDK package, which does not provide the sidecar). Added a regression test that scans `client.py` source for any future `pmxtjs` reintroduction. Also cleaned up the same stale reference in `QUICKREF.py`. (#764)
+- **Python SDK**: `pmxt.SuiBets` is now exported with the matching cross-SDK casing (was `Suibets`). The fix lives in `core/scripts/generate-python-exchanges.js` via a new `className` override pattern so it survives regeneration; `pmxt.Suibets` remains as a backwards-compatible alias. (#774)
+
 ## [2.48.1] - 2026-05-30
 
 ### Fixed
