@@ -112,6 +112,9 @@ export interface UnifiedMarket {
 
     /** Alias for `title`. Matches the Python SDK's `market.question` property. */
     readonly question?: string;
+
+    /** Raw venue-specific metadata not captured by first-class fields (e.g. Kalshi series_ticker / series_title from the parent event, Polymarket series). Passed through verbatim so downstream consumers can recover anything the unified shape omits. Each venue populates what it has. */
+    sourceMetadata?: Record<string, unknown>;
 }
 
 /**
@@ -758,6 +761,9 @@ export interface UnifiedEvent {
 
     /** The exchange/venue this event originates from (e.g. 'polymarket', 'kalshi'). Populated by the Router. */
     sourceExchange?: string;
+
+    /** Raw venue-specific metadata not captured by first-class fields (e.g. Kalshi series_ticker / series_title, Polymarket series). Passed through verbatim so downstream consumers can recover anything the unified shape omits. Each venue populates what it has. */
+    sourceMetadata?: Record<string, unknown>;
 }
 
 // ----------------------------------------------------------------------------
