@@ -19,7 +19,7 @@ Example:
 from typing import Any, Dict, List
 
 from .client import Exchange
-from ._exchanges import Polymarket, Limitless, Kalshi, KalshiDemo, Probable, Baozi, Myriad, Opinion, Metaculus, Smarkets, PolymarketUS, Polymarket_us, Hyperliquid, GeminiTitan, Suibets, Mock, Router
+from ._exchanges import Polymarket, Limitless, Kalshi, KalshiDemo, Probable, Baozi, Myriad, Opinion, Metaculus, Smarkets, PolymarketUS, Polymarket_us, Hyperliquid, GeminiTitan, SuiBets, Suibets, Mock, Router
 from .router import Router
 from .server_manager import ServerManager
 from .errors import (
@@ -163,6 +163,7 @@ __all__ = [
     "Polymarket_us",
     "Hyperliquid",
     "GeminiTitan",
+    "SuiBets",
     "Suibets",
     "Mock",
     "Router",
