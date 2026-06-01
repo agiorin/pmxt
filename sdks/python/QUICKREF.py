@@ -5,7 +5,7 @@ Installation:
     pip install pmxt
 
 Start Server:
-    npm install -g pmxtjs
+    npm install -g pmxt-core
     pmxt-server
 
 Basic Usage:
