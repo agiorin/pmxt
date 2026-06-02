@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.48.5] - 2026-06-02
+
+### Fixed
+
+- **Opinion**: `outcome.metadata` on every market returned by `fetchEvents` / `fetchMarkets` / `fetchMarket` now carries `opinionMarketId` (Opinion's source-native integer market id), mirroring the `clobTokenId` shape Polymarket already exposes. Downstream consumers (notably `pmxt-trading`'s `/trade/build-order`, which keys Opinion orders by integer marketId) can now recover the id from a unified outcome without bypassing pmxt-api. (#838)
+- **Opinion**: `fetchMarkets({ marketId })` now rejects non-integer values (e.g. accidentally passing a pmxt UUID) with a `BAD_REQUEST` instead of silently returning an unrelated market. (#838)
+
 ## [2.48.4] - 2026-06-02
 
 ### Fixed
