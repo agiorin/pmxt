@@ -50,9 +50,43 @@ import {
 
 import { ServerManager } from "./server-manager.js";
 import { buildArgsWithOptionalOptions } from "./args.js";
-import { PmxtError, fromServerError } from "./errors.js";
+import { PmxtError, fromServerError, InvalidOrder, NotSupported } from "./errors.js";
 import { LOCAL_URL, resolvePmxtBaseUrl } from "./constants.js";
 import { SidecarWsClient } from "./ws-client.js";
+
+// Hosted-mode trading dispatch.
+// These modules are introduced as part of the hosted trading mode rollout.
+// Some of them may be authored by parallel agents; until they all land, the
+// import names below are the conventional ones from the plan. Cross-module
+// "Cannot find module" errors during the parallel landing window resolve
+// once the matching files exist.
+import {
+    HOSTED_TRADING_VENUES,
+    _tradingRequest,
+    resolveWalletAddress,
+    ensureHostedTradingSupported,
+    formatRoutePath,
+    HOSTED_METHOD_ROUTES,
+} from "./hosted-routing.js";
+import {
+    orderFromV0,
+    positionFromV0,
+    balanceFromV0,
+    userTradeFromV0,
+    to6dec,
+} from "./hosted-mappers.js";
+import {
+    validateTypedData,
+    validateEconomics,
+    verifySignature,
+} from "./hosted-typed-data.js";
+import type { Signer, TypedData } from "./signers.js";
+import { signerFromPrivateKey, EthersSigner } from "./signers.js";
+import { Escrow } from "./escrow.js";
+import {
+    MissingWalletAddress,
+    InvalidSignature as HostedInvalidSignature,
+} from "./hosted-errors.js";
 
 interface RawWebSocketLike {
     send(data: string): void;
@@ -236,6 +270,20 @@ export interface ExchangeOptions {
 
     /** Optional signature type (0=EOA, 1=Proxy) */
     signatureType?: number;
+
+    /**
+     * EVM wallet address used for hosted reads/writes. Required for hosted
+     * endpoints that operate on a wallet (balances, positions, trades, open
+     * orders). When omitted, hosted reads raise {@link MissingWalletAddress}.
+     */
+    walletAddress?: string;
+
+    /**
+     * External signer used for hosted writes. When `privateKey` is supplied
+     * without `signer` in hosted mode, an internal {@link EthersSigner} is
+     * built from it lazily.
+     */
+    signer?: Signer;
 }
 
 /**
@@ -252,10 +300,13 @@ export abstract class Exchange {
         "opinion",
     ]);
 
-    protected exchangeName: string;
+    // Public so structural interfaces like `HostedClientLike`
+    // (./hosted-routing) can read the venue name and hosted credentials
+    // without violating protected-access on this base class.
+    public exchangeName: string;
+    public pmxtApiKey?: string;
     protected apiKey?: string;
     protected privateKey?: string;
-    protected pmxtApiKey?: string;
     protected proxyAddress?: string;
     protected signatureType?: number;
     protected api: DefaultApi;
@@ -263,6 +314,15 @@ export abstract class Exchange {
     protected serverManager: ServerManager;
     protected initPromise: Promise<void>;
     protected isHosted: boolean;
+
+    /** Wallet address used for hosted endpoints that operate on a wallet. */
+    public walletAddress?: string;
+
+    /** External signer used for hosted writes. */
+    public signer?: Signer;
+
+    /** Escrow namespace — populated in hosted mode for trading-allowlisted venues. */
+    public escrow?: Escrow;
     private _hostedAccount?: { depositWallet?: string; signatureType?: number };
     private _accountDiscoveryPromise?: Promise<void>;
 
@@ -285,6 +345,8 @@ export abstract class Exchange {
         this.privateKey = options.privateKey;
         this.proxyAddress = options.proxyAddress;
         this.signatureType = options.signatureType;
+        this.walletAddress = options.walletAddress;
+        this.signer = options.signer;
 
         // Resolve base URL + hosted API key via the shared precedence
         // rules. See constants.ts for the full resolution table.
@@ -295,6 +357,27 @@ export abstract class Exchange {
         const baseUrl = resolved.baseUrl;
         this.pmxtApiKey = resolved.pmxtApiKey;
         this.isHosted = resolved.isHosted;
+
+        // Hosted trading bridge: if the caller passed a privateKey but no
+        // explicit signer, lazily wrap it in an EthersSigner so that
+        // `pmxt.Polymarket(pmxtApiKey, privateKey)` just works without the
+        // user touching `signer`. EthersSigner's constructor synchronously
+        // builds an ethers.Wallet, so this remains a synchronous bridge —
+        // the constructor stays sync.
+        if (this.pmxtApiKey && this.privateKey && !this.signer) {
+            try {
+                this.signer = new EthersSigner(this.privateKey);
+            } catch {
+                // ethers not installed — defer the error to the first
+                // hosted write that actually needs the signer. Read-only
+                // hosted callers don't need ethers.
+            }
+        }
+
+        // Instantiate Escrow namespace for hosted-trading-allowlisted venues.
+        if (this.pmxtApiKey && HOSTED_TRADING_VENUES.has(this.exchangeName)) {
+            this.escrow = new Escrow(this);
+        }
 
         // auto_start_server defaults: true for local, false for hosted.
         // An explicit value in the options always wins.
@@ -387,6 +470,29 @@ export abstract class Exchange {
         }
 
         return headers;
+    }
+
+    /**
+     * Returns true when this client should dispatch trading methods through
+     * the hosted PMXT trading API (`pmxtApiKey` set AND venue is on the
+     * hosted-trading allowlist). Used to gate every Group A method.
+     */
+    protected isHostedTradingMode(): boolean {
+        return Boolean(this.pmxtApiKey) && HOSTED_TRADING_VENUES.has(this.exchangeName);
+    }
+
+    /**
+     * Require a configured signer for a hosted write. Returns the signer or
+     * throws {@link MissingWalletAddress} (consistent with the error class
+     * surfaced for missing wallet wiring on hosted writes).
+     */
+    protected requireHostedSigner(): Signer {
+        if (!this.signer) {
+            throw new MissingWalletAddress(
+                "hosted write requires a signer (pass `signer` or `privateKey`)",
+            );
+        }
+        return this.signer;
     }
 
     /**
@@ -1012,6 +1118,9 @@ export abstract class Exchange {
     }
 
     async submitOrder(built: BuiltOrder): Promise<Order> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedSubmitOrder(built);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1037,7 +1146,88 @@ export abstract class Exchange {
         }
     }
 
+    /**
+     * Hosted-mode submitOrder: validate the stored build response, sign the
+     * typed_data (and pull_typed_data for Opinion cross-chain sells), then
+     * POST to `/v0/trade/submit-order`.
+     */
+    private async _hostedSubmitOrder(built: BuiltOrder): Promise<Order> {
+        const signer = this.requireHostedSigner();
+        if (!this.walletAddress) {
+            throw new MissingWalletAddress(
+                "hosted submitOrder requires walletAddress",
+            );
+        }
+        // BuiltOrder is the SDK-side wrapper around the build response —
+        // expect typed_data, optional pull_typed_data, built_order_id, and
+        // the originating build_request to be present.
+        const payload = built as unknown as Record<string, unknown>;
+        const typedData = payload["typed_data"] as TypedData | undefined;
+        if (!typedData) {
+            throw new HostedInvalidSignature(0, "typed_data missing from built order");
+        }
+        const buildRequest = (payload["build_request"] as Record<string, unknown> | undefined)
+            ?? ((payload["params"] as Record<string, unknown> | undefined)?.["build_request"] as Record<string, unknown> | undefined);
+
+        const side = String(buildRequest?.["side"] ?? "buy");
+        const primaryRoute = this._hostedTypedDataRoute(side, false);
+        // Layer 1: schema, Layer 2: economics.
+        validateTypedData(typedData, primaryRoute, this.walletAddress);
+        if (buildRequest) {
+            validateEconomics(typedData, primaryRoute, buildRequest, payload);
+        }
+
+        const signature = await signer.signTypedData(typedData);
+        // Layer 3: post-sign recovery + canonical check.
+        verifySignature(typedData, signature, signer.address);
+
+        const body: Record<string, unknown> = {
+            built_order_id: payload["built_order_id"],
+            signature,
+        };
+
+        const pullTypedData = payload["pull_typed_data"] as TypedData | undefined;
+        if (pullTypedData) {
+            const pullRoute = this._hostedTypedDataRoute(side, true);
+            if (pullRoute) {
+                validateTypedData(pullTypedData, pullRoute, this.walletAddress);
+            }
+            const pullSig = await signer.signTypedData(pullTypedData);
+            verifySignature(pullTypedData, pullSig, signer.address);
+            body["pull_signature"] = pullSig;
+        }
+
+        const route = HOSTED_METHOD_ROUTES.get("submitOrder")!;
+        const data = await _tradingRequest(this, { method: route.method, path: route.path, body });
+        return orderFromV0(data as Record<string, unknown>);
+    }
+
+    /**
+     * Resolve the per-(venue, side, pull) typed-data schema route used by
+     * `validateTypedData` / `validateEconomics`. Returns undefined for the
+     * pull leg when a venue/side combo doesn't have one.
+     */
+    private _hostedTypedDataRoute(side: string, isPull: boolean): string {
+        const venue = this.exchangeName;
+        const sideLower = side.toLowerCase();
+        if (venue === "polymarket") {
+            return sideLower === "sell" ? "polymarket_sell" : "polymarket_buy";
+        }
+        // opinion
+        if (sideLower === "buy") return "opinion_buy";
+        // sell — polygon, or BSC pull leg for cross-chain
+        return isPull ? "opinion_sell_bsc_pull" : "opinion_sell_polygon";
+    }
+
+    private _hostedCancelTypedDataRoute(isPull: boolean): string {
+        if (this.exchangeName === "polymarket") return "cancel_polymarket";
+        return isPull ? "cancel_opinion_bsc_pull" : "cancel_opinion_polygon";
+    }
+
     async cancelOrder(orderId: string): Promise<Order> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedCancelOrder(orderId);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1063,7 +1253,56 @@ export abstract class Exchange {
         }
     }
 
+    /**
+     * Hosted-mode cancelOrder: build the cancel typed_data on the server,
+     * validate + sign (dual-sign for Opinion cross-chain), then submit.
+     */
+    private async _hostedCancelOrder(orderId: string): Promise<Order> {
+        const signer = this.requireHostedSigner();
+        if (!this.walletAddress) {
+            throw new MissingWalletAddress(
+                "hosted cancelOrder requires walletAddress",
+            );
+        }
+
+        const buildRoute = HOSTED_METHOD_ROUTES.get("cancelOrderBuild")!;
+        const buildResp = await _tradingRequest(this, {
+            method: buildRoute.method,
+            path: buildRoute.path,
+            body: { order_id: orderId },
+        }) as Record<string, unknown>;
+
+        const typedData = buildResp["typed_data"] as TypedData | undefined;
+        if (!typedData) {
+            throw new HostedInvalidSignature(0, "typed_data missing from cancel build response");
+        }
+
+        validateTypedData(typedData, this._hostedCancelTypedDataRoute(false), this.walletAddress);
+        const signature = await signer.signTypedData(typedData);
+        verifySignature(typedData, signature, signer.address);
+
+        const body: Record<string, unknown> = {
+            cancel_id: buildResp["cancel_id"],
+            signature,
+        };
+
+        const pullTypedData = buildResp["pull_typed_data"] as TypedData | undefined;
+        if (pullTypedData) {
+            validateTypedData(pullTypedData, this._hostedCancelTypedDataRoute(true), this.walletAddress);
+            const pullSig = await signer.signTypedData(pullTypedData);
+            verifySignature(pullTypedData, pullSig, signer.address);
+            body["pull_signature"] = pullSig;
+        }
+
+        const route = HOSTED_METHOD_ROUTES.get("cancelOrder")!;
+        const data = await _tradingRequest(this, { method: route.method, path: route.path, body });
+        return orderFromV0(data as Record<string, unknown>);
+    }
+
     async fetchOrder(orderId: string): Promise<Order> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedFetchOrder(orderId);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1089,7 +1328,17 @@ export abstract class Exchange {
         }
     }
 
+    private async _hostedFetchOrder(orderId: string): Promise<Order> {
+        const route = HOSTED_METHOD_ROUTES.get("fetchOrder")!;
+        const path = formatRoutePath(route, { order_id: orderId });
+        const data = await _tradingRequest(this, { method: route.method, path });
+        return orderFromV0(data as Record<string, unknown>);
+    }
+
     async fetchOpenOrders(marketId?: string): Promise<Order[]> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedFetchOpenOrders(marketId);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1115,7 +1364,24 @@ export abstract class Exchange {
         }
     }
 
+    private async _hostedFetchOpenOrders(marketId?: string): Promise<Order[]> {
+        const address = resolveWalletAddress(this, undefined);
+        const route = HOSTED_METHOD_ROUTES.get("fetchOpenOrders")!;
+        const params: Record<string, string> = { address };
+        if (marketId !== undefined) params["market_id"] = marketId;
+        const data = await _tradingRequest(this, {
+            method: route.method,
+            path: route.path,
+            params,
+        });
+        const items = (Array.isArray(data) ? data : (data as Record<string, unknown>)?.["orders"] ?? []) as unknown[];
+        return (items as Record<string, unknown>[]).map(orderFromV0);
+    }
+
     async fetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedFetchMyTrades(params);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1141,7 +1407,32 @@ export abstract class Exchange {
         }
     }
 
+    private async _hostedFetchMyTrades(params?: MyTradesParams): Promise<UserTrade[]> {
+        const address = resolveWalletAddress(this, undefined);
+        const route = HOSTED_METHOD_ROUTES.get("fetchMyTrades")!;
+        const path = formatRoutePath(route, { address });
+        const q: Record<string, string> = {};
+        if (params?.marketId) q["market_id"] = params.marketId;
+        if (params?.outcomeId) q["outcome_id"] = params.outcomeId;
+        if (params?.limit !== undefined) q["limit"] = String(params.limit);
+        if (params?.cursor) q["cursor"] = params.cursor;
+        if (params?.since) q["since"] = String(params.since.getTime());
+        if (params?.until) q["until"] = String(params.until.getTime());
+        const data = await _tradingRequest(this, {
+            method: route.method,
+            path,
+            params: Object.keys(q).length ? q : undefined,
+        });
+        const items = (Array.isArray(data) ? data : (data as Record<string, unknown>)?.["trades"] ?? []) as unknown[];
+        return (items as Record<string, unknown>[]).map(userTradeFromV0);
+    }
+
     async fetchClosedOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        if (this.isHostedTradingMode()) {
+            throw new NotSupported(
+                "Settled orders are modeled as trades — use fetchMyTrades().",
+            );
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1168,6 +1459,11 @@ export abstract class Exchange {
     }
 
     async fetchAllOrders(params?: OrderHistoryParams): Promise<Order[]> {
+        if (this.isHostedTradingMode()) {
+            throw new NotSupported(
+                "Use fetchOpenOrders() and fetchMyTrades() separately.",
+            );
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1194,6 +1490,9 @@ export abstract class Exchange {
     }
 
     async fetchPositions(address?: string): Promise<Position[]> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedFetchPositions(address);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1219,7 +1518,19 @@ export abstract class Exchange {
         }
     }
 
+    private async _hostedFetchPositions(address?: string): Promise<Position[]> {
+        const resolvedAddr = resolveWalletAddress(this, address);
+        const route = HOSTED_METHOD_ROUTES.get("fetchPositions")!;
+        const path = formatRoutePath(route, { address: resolvedAddr });
+        const data = await _tradingRequest(this, { method: route.method, path });
+        const items = (Array.isArray(data) ? data : (data as Record<string, unknown>)?.["positions"] ?? []) as unknown[];
+        return (items as Record<string, unknown>[]).map(positionFromV0);
+    }
+
     async fetchBalance(address?: string): Promise<Balance[]> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedFetchBalance(address);
+        }
         await this.initPromise;
         try {
             const args: any[] = [];
@@ -1243,6 +1554,19 @@ export abstract class Exchange {
             if (error instanceof PmxtError) throw error;
             throw new PmxtError(`Failed to fetchBalance: ${error}`);
         }
+    }
+
+    private async _hostedFetchBalance(address?: string): Promise<Balance[]> {
+        const resolvedAddr = resolveWalletAddress(this, address);
+        const route = HOSTED_METHOD_ROUTES.get("fetchBalance")!;
+        const path = formatRoutePath(route, { address: resolvedAddr });
+        const data = await _tradingRequest(this, { method: route.method, path });
+        // Hosted balance is a single USDC escrow record; wrap in an array
+        // to match the existing Balance[] return shape.
+        if (Array.isArray(data)) {
+            return (data as Record<string, unknown>[]).map(balanceFromV0);
+        }
+        return [balanceFromV0(data as Record<string, unknown>)];
     }
 
     async unwatchOrderBook(outcomeId: string | MarketOutcome): Promise<void> {
@@ -1938,6 +2262,9 @@ export abstract class Exchange {
      * ```
      */
     async buildOrder(params: CreateOrderParams & { outcome?: MarketOutcome }): Promise<BuiltOrder> {
+        if (this.isHostedTradingMode()) {
+            return this._hostedBuildOrder(params);
+        }
         if (this.isHosted) {
             throw new PmxtError(
                 "Trade execution is not available through the hosted API. " +
@@ -2070,6 +2397,122 @@ export abstract class Exchange {
     }
 
     /**
+     * Hosted-mode buildOrder: validate inputs locally, then POST to the
+     * trading service's `build-order` endpoint and return a BuiltOrder
+     * that carries the original build_request for Layer-2 economic checks
+     * at submit time.
+     */
+    private async _hostedBuildOrder(
+        params: CreateOrderParams & { outcome?: MarketOutcome },
+    ): Promise<BuiltOrder> {
+        const body = this._hostedBuildOrderBody(params);
+        const route = HOSTED_METHOD_ROUTES.get("buildOrder")!;
+        const data = await _tradingRequest(this, {
+            method: route.method,
+            path: route.path,
+            body,
+        }) as Record<string, unknown>;
+        // Attach the originating build_request so submit can run economic
+        // validation without an extra catalog round-trip.
+        const built = { ...data, build_request: body } as unknown as BuiltOrder;
+        return built;
+    }
+
+    /**
+     * Hosted-mode createOrder: build → sign → submit single-call wrapper.
+     */
+    private async _hostedCreateOrder(params: any): Promise<Order> {
+        const built = await this._hostedBuildOrder(params);
+        return this._hostedSubmitOrder(built);
+    }
+
+    /**
+     * Construct the hosted build-order request body and validate inputs
+     * locally per the v0 contract (denom/side compatibility, > 6-decimal
+     * precision rejected via {@link to6dec}).
+     */
+    private _hostedBuildOrderBody(
+        params: CreateOrderParams & { outcome?: MarketOutcome },
+    ): Record<string, unknown> {
+        let marketId = params.marketId;
+        let outcomeId = params.outcomeId;
+
+        if (params.outcome) {
+            if (marketId !== undefined || outcomeId !== undefined) {
+                throw new InvalidOrder(
+                    "cannot specify both 'outcome' and 'marketId'/'outcomeId'",
+                );
+            }
+            const outcome: MarketOutcome = params.outcome;
+            if (!outcome.marketId) {
+                throw new InvalidOrder(
+                    "outcome.marketId is not set; ensure the outcome comes from a fetched market",
+                );
+            }
+            marketId = outcome.marketId;
+            outcomeId = outcome.outcomeId;
+        }
+
+        const side = String(params.side);
+        const orderType = String(params.type ?? "market");
+        const denom = (params as unknown as Record<string, unknown>)["denom"] as
+            | "usdc"
+            | "shares"
+            | undefined;
+
+        // denom/side compatibility per v0:
+        //   market buy  -> denom='usdc'
+        //   market sell -> denom='shares'
+        //   any limit   -> denom='shares'
+        let resolvedDenom: "usdc" | "shares";
+        if (orderType === "market") {
+            if (side === "buy") {
+                if (denom && denom !== "usdc") {
+                    throw new InvalidOrder("market buy requires denom='usdc'");
+                }
+                resolvedDenom = "usdc";
+            } else if (side === "sell") {
+                if (denom && denom !== "shares") {
+                    throw new InvalidOrder("market sell requires denom='shares'");
+                }
+                resolvedDenom = "shares";
+            } else {
+                throw new InvalidOrder(`unknown side: ${side}`);
+            }
+        } else {
+            if (denom && denom !== "shares") {
+                throw new InvalidOrder("limit orders require denom='shares'");
+            }
+            resolvedDenom = "shares";
+        }
+
+        if (!(Number(params.amount) > 0)) {
+            throw new InvalidOrder("amount must be positive");
+        }
+
+        // to6dec throws InvalidOrder for sub-micro precision.
+        const amount6dec = to6dec(params.amount as number).toString();
+
+        const body: Record<string, unknown> = {
+            market_id: marketId,
+            outcome_id: outcomeId,
+            side,
+            order_type: orderType,
+            denom: resolvedDenom,
+            amount: params.amount,
+            amount_6dec: amount6dec,
+        };
+
+        if (params.price !== undefined) body["price"] = params.price;
+        const extra = params as unknown as Record<string, unknown>;
+        if (extra["slippage_pct"] !== undefined) {
+            body["slippage_pct"] = extra["slippage_pct"];
+        }
+        if (this.walletAddress) body["wallet_address"] = this.walletAddress;
+        return body;
+    }
+
+    /**
      * @example
      * ```typescript
      * const order = await exchange.createOrder({
@@ -2083,10 +2526,15 @@ export abstract class Exchange {
      * ```
      */
     async createOrder(params: CreateOrderParams & { outcome?: MarketOutcome }): Promise<Order> {
+        // SOR escape path (preserved): legacy hosted SOR flow uses a venue-side
+        // SDK to execute the legs, only when a privateKey is present.
+        if (this.isHosted && this.exchangeName === 'sor' && this.privateKey) {
+            return this._executeSorOrder(params as any);
+        }
+        if (this.isHostedTradingMode()) {
+            return this._hostedCreateOrder(params);
+        }
         if (this.isHosted) {
-            if (this.exchangeName === 'sor' && this.privateKey) {
-                return this._executeSorOrder(params);
-            }
             throw new PmxtError(
                 "Trade execution is not available through the hosted API. " +
                 "Use the local PMXT SDK with your venue credentials instead. " +

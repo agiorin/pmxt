@@ -388,6 +388,24 @@ class UserTrade(Trade):
     market_id: Optional[str] = None
     """The market this trade belongs to"""
 
+    fee: Optional[float] = None
+    """Trading fee, when available."""
+
+    tx_hash: str | None = None
+    """On-chain transaction hash (hosted mode only; None in venue-direct mode)."""
+
+    chain: str | None = None
+    """Chain identifier where the trade settled (hosted mode only; None in venue-direct mode)."""
+
+    block_number: int | None = None
+    """Block number of the settling transaction (hosted mode only; None in venue-direct mode)."""
+
+    venue: Optional[str] = None
+    """Venue that produced this trade, when available."""
+
+    raw: Optional[Any] = None
+    """Raw venue-specific payload, when available."""
+
 
 @dataclass
 class PaginatedMarketsResult:
@@ -444,24 +462,36 @@ class Order:
     
     filled: float
     """Amount filled"""
-    
-    filled_shares: Optional[float] = None
-    """Amount filled in shares/contracts (if different from USDC-denominated `filled`)."""
-    
+
     remaining: float
     """Amount remaining"""
-    
+
     timestamp: int
     """Unix timestamp (milliseconds)"""
-    
+
+    filled_shares: Optional[float] = None
+    """Amount filled in shares/contracts (if different from USDC-denominated `filled`)."""
+
     price: Optional[float] = None
     """Limit price (for limit orders)"""
-    
+
     fee: Optional[float] = None
     """Trading fee"""
 
     fee_rate_bps: Optional[float] = None
     """Fee rate in basis points applied to this order (e.g. 100 = 1%)."""
+
+    tx_hash: str | None = None
+    """On-chain transaction hash (hosted mode only; None in venue-direct mode)."""
+
+    chain: str | None = None
+    """Chain identifier where the order settled (hosted mode only; None in venue-direct mode)."""
+
+    block_number: int | None = None
+    """Block number of the settling transaction (hosted mode only; None in venue-direct mode)."""
+
+    raw: Optional[Any] = None
+    """Raw venue-specific payload, when available."""
 
 
 @dataclass
@@ -486,48 +516,84 @@ class BuiltOrder:
 
 @dataclass
 class Position:
-    """A current position in a market."""
-    
+    """A current position in a market.
+
+    In hosted mode, ``outcome_label``, ``entry_price``, ``current_price`` and
+    ``unrealized_pnl`` may be ``None`` when the server cannot derive them
+    (e.g. ``with_mtm=false`` or no fill history). Venue-direct callers
+    continue to populate every field.
+    """
+
     market_id: str
     """Market ID"""
-    
+
     outcome_id: str
     """Outcome ID"""
-    
-    outcome_label: str
-    """Outcome label"""
-    
+
     size: float
     """Position size (positive for long, negative for short)"""
-    
-    entry_price: float
-    """Average entry price"""
-    
-    current_price: float
-    """Current market price"""
-    
-    unrealized_pnl: float
-    """Unrealized profit/loss"""
-    
+
+    outcome_label: str | None = None
+    """Outcome label (None in hosted mode when the server cannot enrich)."""
+
+    entry_price: float | None = None
+    """Average entry price (None in hosted mode when no fill history is available)."""
+
+    current_price: float | None = None
+    """Current market price (None in hosted mode when ``with_mtm=false``)."""
+
+    unrealized_pnl: float | None = None
+    """Unrealized profit/loss (None when entry_price or current_price is None)."""
+
     realized_pnl: Optional[float] = None
     """Realized profit/loss"""
+
+    tx_hash: str | None = None
+    """On-chain transaction hash of the position-creating event (hosted mode only)."""
+
+    chain: str | None = None
+    """Chain identifier (hosted mode only; None in venue-direct mode)."""
+
+    block_number: int | None = None
+    """Block number of the position-creating transaction (hosted mode only)."""
+
+    venue: Optional[str] = None
+    """Venue that produced this position, when available."""
+
+    current_value: Optional[float] = None
+    """Current mark-to-market value, when available."""
+
+    raw: Optional[Any] = None
+    """Raw venue-specific payload, when available."""
 
 
 @dataclass
 class Balance:
     """Account balance."""
-    
+
     currency: str
     """Currency (e.g., "USDC")"""
-    
+
     total: float
     """Total balance"""
-    
+
     available: float
     """Available for trading"""
-    
+
     locked: float
     """Locked in open orders"""
+
+    tx_hash: str | None = None
+    """On-chain transaction hash of the latest balance-affecting event (hosted mode only)."""
+
+    chain: str | None = None
+    """Chain identifier (hosted mode only; None in venue-direct mode)."""
+
+    block_number: int | None = None
+    """Block number of the latest balance-affecting transaction (hosted mode only)."""
+
+    venue: Optional[str] = None
+    """Venue or hosted account source, when available."""
 
 
 @dataclass

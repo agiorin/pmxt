@@ -36,6 +36,7 @@ export { MarketList } from "./pmxt/models.js";
 export type { UnifiedSeries } from "./pmxt/models.js";
 export type * from "./pmxt/models.js";
 export * from "./pmxt/errors.js";
+export * from "./pmxt/hosted-errors.js";
 
 
 const defaultManager = new ServerManager();
