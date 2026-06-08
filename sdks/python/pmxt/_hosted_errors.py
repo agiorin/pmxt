@@ -184,7 +184,11 @@ def _json_payload(response: httpx.Response) -> object | None:
 
 def _error_detail_from_success_payload(payload: object | None) -> str | None:
     if not isinstance(payload, Mapping):
-        return _stringify_detail(payload)
+        # Lists and scalars on 2xx responses are valid success payloads
+        # (e.g. /v0/user/{addr}/balances returns a JSON array). Only the
+        # explicit `{"success": false}` / `{"error": ...}` envelope shapes
+        # below count as an error on a 2xx status.
+        return None
 
     detail = _stringify_detail(payload.get("error")) or _stringify_detail(payload.get("errors"))
     if detail is not None:

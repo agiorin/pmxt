@@ -2508,7 +2508,7 @@ export abstract class Exchange {
         if (extra["slippage_pct"] !== undefined) {
             body["slippage_pct"] = extra["slippage_pct"];
         }
-        if (this.walletAddress) body["wallet_address"] = this.walletAddress;
+        if (this.walletAddress) body["user_address"] = this.walletAddress;
         return body;
     }
 
