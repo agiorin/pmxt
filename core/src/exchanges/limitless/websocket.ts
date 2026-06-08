@@ -228,7 +228,7 @@ export class LimitlessWebSocket {
             await this.client.connect();
         }
 
-        await this.client.subscribe('subscribe_order_events');
+        await this.client.subscribe('subscribe_order_events' as any);
         await this.client.subscribe('subscribe_positions' as any);
         this.client.on('positions', callback);
     }
