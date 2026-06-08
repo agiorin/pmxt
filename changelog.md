@@ -2,7 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.48.6] - 2026-06-04
+## [2.49.0] - 2026-06-08
+
+### Added
+
+- **SDK (Python + TypeScript)**: Hosted trading mode now works end-to-end against `trade.pmxt.dev`. Constructing the client with a `pmxt_api_key` / `pmxtApiKey` switches every Group A public method — `create_order` / `createOrder`, `build_order` / `buildOrder`, `submit_order` / `submitOrder`, `cancel_order` / `cancelOrder`, `fetch_balance` / `fetchBalance`, `fetch_positions` / `fetchPositions`, `fetch_open_orders` / `fetchOpenOrders`, `fetch_my_trades` / `fetchMyTrades`, `fetch_order` / `fetchOrder` — to dispatch through PMXT's PreFundedEscrow custody on `trade.pmxt.dev/v0/*` instead of the local sidecar. Read methods that require a wallet raise `MissingWalletAddress` locally before any network call when neither an explicit `address` argument nor `wallet_address` on the client is set. `fetch_closed_orders` and `fetch_all_orders` raise `NotSupported` in hosted mode (settled orders are modeled as trades; callers should use `fetch_my_trades`). Both SDKs auto-wrap a raw `private_key` / `privateKey` into the venue signer (`EthAccountSigner` for Python via `eth-account`, `EthersSigner` for TypeScript via the optional `ethers >= 6` peer dep) so the user never has to construct a signer manually.
+- **SDK (Python + TypeScript)**: New `Escrow` namespace on hosted-mode Polymarket clients (`client.escrow.build_approve_tx(...)`, `build_deposit_tx`, `build_withdraw_tx`, `withdrawals(...)`) for the PreFundedEscrow deposit/withdraw flow. Mirrors the `/v0/escrow/*` surface; only instantiated on hosted-trading-allowlisted venues.
+- **SDK (Python + TypeScript)**: New hosted-mode error hierarchy (`HostedTradingError`, `InsufficientEscrowBalance`, `OrderSizeTooSmall`, `InvalidApiKey`, `OutcomeNotFound`, `CatalogUnavailable`, `BuiltOrderExpired`, `InvalidSignature`, `NoLiquidity`, `MissingWalletAddress`). Each hosted error keeps a semantic parent so existing catch-sites still work — e.g. `InsufficientEscrowBalance` extends `InsufficientFunds`, `OutcomeNotFound` extends `NotFoundError`, `CatalogUnavailable` extends `ExchangeNotAvailable`. Python uses true multi-inheritance; TypeScript uses a `static isHostedError = true` flag plus an `isHostedError(e)` helper to compensate for single-inheritance. The mapper (`raise_from_response` / `raiseFromResponse`) translates `trade.pmxt.dev` status codes and detail strings to the right subclass.
+- **SDK (Python)**: New `tests/e2e/hosted_driver.py` — runnable live driver that proves URL routing against prod. Hits `trade.pmxt.dev/v0/*` with a deliberately-bogus key so the server returns 401, captures the URL for every public method via an `httpx`-level transport hook, and asserts each URL starts with `https://trade.pmxt.dev/v0/`. Also verifies local-only failure paths (`MissingWalletAddress`, `NotSupported`, `InvalidOrder`, `InvalidSignature`) raise before any network call.
+- **SDK (TypeScript)**: New `tests/e2e/hosted-driver.ts` — equivalent live driver (tsx-runnable) covering the same routing and local-raise assertions, using `global.fetch` instrumentation.
+- **SDK (Python + TypeScript)**: 87 new in-process integration tests (`test_hosted_dispatch.py` + `test_hosted_error_mapping.py` in Python, `hosted-dispatch.test.ts` + `hosted-error-mapping.test.ts` in TypeScript). These mock the lowest reasonable HTTP layer (`httpx.MockTransport` / `jest.spyOn(global, 'fetch')`), construct a hosted client, call the public method, and assert exact URL / verb / body shape / response mapping for every Group A method plus the upstream status → SDK exception mapping.
+- **SDK (Python + TypeScript)**: Feed listing surface on SDK clients — callers can now enumerate available data feeds from the unified client instead of reaching into the internal feed-client submodule. (#869)
+
+### Changed
+
+- **SDK (Python)**: `pmxt` 2.17.1 → 2.18.0. New constructor kwargs `wallet_address: str | None` and `signer: Signer | None` on every Exchange subclass; both are pass-through to the base class. Existing non-hosted (sidecar) callers see no behavior change.
+- **SDK (TypeScript)**: `pmxtjs` 2.17.1 → 2.18.0. New `walletAddress` / `signer` / `privateKey` fields on `ExchangeOptions`. `ethers >= 6.0.0 < 7.0.0` declared as an optional `peerDependency` (only required for hosted writes; hosted reads work without it).
+- **SDK (Python + TypeScript)**: `Order`, `UserTrade`, `Position`, and `Balance` now carry optional `tx_hash` / `txHash`, `chain`, and `block_number` / `blockNumber` fields, populated in hosted mode after the trade settles on-chain. Non-hosted callers see `None` / `undefined` for these — unchanged behavior.
+- **SDK (Python + TypeScript)**: `Position` mark-to-market fields (`outcome_label`, `entry_price`, `current_price`, `current_value`) are now all `Optional`. Hosted endpoints populate `outcome_label` and `entry_price` from operator-side cost-basis enrichment when available, but downstream consumers must handle the missing case rather than relying on fabricated defaults.
+- **SDK (Python + TypeScript)**: Drift parity sweep across the two SDKs — model shapes, method signatures, capability flags, and generated outputs reconciled so the same call against the same venue returns identically-shaped objects regardless of which SDK you use. (#867)
+- **SDK (Python + TypeScript)**: Missing event/order parameters propagated through both SDK models so the full set of fields the core surface produces is actually reachable on the SDK objects. (#872)
+- **SDK (Python)**: Type annotations tightened across the Python SDK — narrower union types and `Optional` markers replacing implicit `Any` in several public signatures. (#868)
+- **Core**: Cached exchange specs (the test fixtures used to detect upstream API drift) reconciled with current live payloads from each venue. (#866)
+- **Core**: Magic chain IDs (`137`, `56`, etc.) replaced with named constants throughout the codebase. (#878)
+- **Deps**: npm dependency refresh to clear outstanding security advisories. (#864)
+- **Deps**: Python security dependency floors raised to clear outstanding security advisories. (#865)
+
+### Fixed
+
+- **SDK (Python)**: `Order` dataclass field ordering — `filled_shares: Optional[float] = None` was declared before the non-default fields `remaining: float` and `timestamp: int`, which Python 3.13 rejects with `TypeError: non-default argument 'remaining' follows default argument 'filled_shares'` on first instantiation. Moved `filled_shares` below the required fields.
+- **SDK (Python)**: `_error_detail_from_success_payload` no longer treats a successful 2xx response with a list or scalar JSON payload as an error envelope. Endpoints like `/v0/user/{addr}/balances` return JSON arrays (`[{"currency": "USDC", "amount": 12.5}]`); the previous logic stringified the array and re-raised it as `HostedTradingError`, so every successful read crashed. Only 2xx Mappings with explicit `error` / `errors` / `success: false` markers now count as an error envelope.
+- **SDK (Python)**: Duplicate `NotSupported` class in `_hosted_errors.py` was shadowing the canonical one in `errors.py`. Tests that did `from pmxt._hosted_errors import NotSupported` failed to catch raises from `client.py` that used `from .errors import NotSupported`, because the two classes were unrelated. `_hosted_errors.py` now re-exports the canonical `NotSupported` from `errors.py`.
+- **SDK (TypeScript)**: `_hostedBuildOrderBody` was writing the user's wallet to `body["wallet_address"]`, but `trade.pmxt.dev`'s `BuildOrderV0Req` expects the field as `user_address`. Every `createOrder` / `buildOrder` via the TS SDK previously 422-ed on a "missing user_address" Pydantic validation error before reaching the chain. Python SDK was already correct.
+- **SDK (TypeScript)**: Nine `HOSTED_METHOD_ROUTES.get("…")` lookups in `client.ts` used snake_case keys (`"submit_order"`, `"fetch_balance"`, etc.) against a Map whose keys are camelCase (`"submitOrder"`, `"fetchBalance"`, etc.). Every hosted call would have thrown `TypeError: Cannot read properties of undefined (reading 'method')` at runtime. `tsc` and Jest didn't catch this because the existing unit tests stub out the lookup. Fixed by switching all nine sites to the camelCase keys actually defined in the map.
+- **SDK (TypeScript)**: Removed the `errors.ts → hosted-errors.ts` re-export block that created a circular import. `tsc` and `ts-jest` tolerated the cycle, but `tsx` / Node CJS crashed at module load with `ReferenceError: Cannot access 'PmxtError' before initialization` because `errors.ts`'s body re-exports from `hosted-errors.ts`, which extends `PmxtError` defined later in the same `errors.ts` body. Hosted error classes are now re-exported once from `index.ts` instead of via `errors.ts`. The public surface is unchanged for consumers importing from `pmxtjs`.
+- **Server (Python sidecar)**: Bare and overly-broad `except:` handlers in the sidecar manager tightened to specific exception types, so genuine bugs surface instead of getting swallowed and reported as opaque "server failed to start" errors. Closes #813-#821. (#871)
+- **Server**: WebSocket and feed-client hygiene issues surfaced rather than swallowed — disconnects, malformed frames, and feed-side errors now propagate to the caller instead of silently dropping events. (#870)
+- **Core**: Exchange normalizers across all venues realigned with current live payload shapes; addresses cumulative drift that had been quietly producing inconsistent unified objects between SDKs and the server. (#873)
+- **Kalshi**: Pagination capped to prevent unbounded scrolling on `fetchMarkets` / `fetchEvents`, and `status=all` is now serialized as a single value rather than the array form that some Kalshi endpoints reject. (#874)
+- **Limitless**: Explicit fetch timeouts on every outbound HTTP call (and the local test server) so a slow upstream can no longer hang the entire SDK request indefinitely. (#875, #876)
+- **Limitless**: Throttler now rejects new work when its queue overflows instead of growing the queue unbounded — prevents memory blow-up under burst load. (#877)
+- **Myriad**: Balance precision preserved end-to-end by performing integer math in `bigint` before converting to JS number, matching the fix shipped for Limitless in 2.48.2. Raw on-chain balances above `Number.MAX_SAFE_INTEGER` (~9 × 10¹⁵) no longer lose low-order digits. (#879)
+- **SuiBets**: Four review-feedback fixes in the SuiBets venue integration: restored `fetchSeries: false` capability flag in series-fetch paths, added `params.series` guard to prevent an undefined spread, removed the unused `SuiBetsApiResponse` import, and wired a new `SuiBetsOptions.walletAddress` through the TypeScript client. (#663)
+
+### Docs
+
+- **API reference**: Historical fetch order book usage clarified — the docs previously implied the historical depth endpoint covered current state, leading to wrong assumptions about caller-side throttling. (#837)
+- **API reference**: hosted-pmxt custom endpoints (the value-add routes layered on top of the unified surface) documented in-tree so they show up in the published Mintlify docs. (#842)
+
+
 
 ### Fixed
 
