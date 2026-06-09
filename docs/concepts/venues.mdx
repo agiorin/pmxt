@@ -7,7 +7,7 @@ description: "Every venue PMXT currently speaks."
   AUTO-GENERATED from pmxt-core's openapi spec (ExchangeParam enum).
   Do not edit by hand — run `npm run generate:mintlify` to regenerate.
   Source: docs/api-reference/openapi.json
-  pmxt-core version at last sync: 2.49.3
+  pmxt-core version at last sync: 2.49.4
 */}
 
 PMXT Hosted currently supports the following venues. The **wire key** is
@@ -55,19 +55,6 @@ The hosted catalog currently ingests the following venues:
 | Probable | `probable` | polling |
 | Myriad | `myriad` | polling |
 {/* HOSTED-AUTOGEN:catalog-venues:END */}
-
-## Hosted-trading venues
-
-The venues below support **hosted trading** end-to-end (build → sign → submit → settle) without running a local PMXT service. All hosted trading is custodied in a single Polygon-based `PreFundedEscrow` — you fund USDC once on Polygon, regardless of which venue's chain the trade actually executes on.
-
-| Venue | Execution chain | Settlement chain | Notes |
-| ----- | --------------- | ---------------- | ----- |
-| Polymarket | Polygon (chainId 137) | Polygon (same-chain) | USDC.e via Polymarket CTF exchange. |
-| Opinion | BSC (chainId 56) | Polygon → BSC (cross-chain) | PMXT relays an internal cross-chain settlement leg; you fund + sign on Polygon only. |
-
-EIP-712 order signatures always target the Polygon `PreFundedEscrow` domain (`chainId: 137`) — your wallet never has to switch networks, and any EVM-compatible private key works.
-
-Venues not in this table are **read-only** via the catalog; for write methods (`createOrder`, `cancelOrder`, etc.) on those venues, use [self-hosted mode](/guides/self-hosted).
 
 ## Feature support
 
