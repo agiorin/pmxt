@@ -386,21 +386,36 @@ function updateDocsJsonEndpoints(spec) {
     const otherExternalGroups = externalGroups.filter(
         (g) => g.group !== 'Cross Exchange' && g.group !== 'Enterprise'
     );
-    const apiGroups = insertGroupsAfter(
-        [
-            {
-                group: 'Overview',
-                pages: ['api-reference/overview'],
-            },
-            ...endpointGroups,
-        ],
+    // Order the API Reference tab so the customer's natural path is
+    // walkable top-to-bottom: discover (Events & Markets) -> act
+    // (Trading) -> inspect state (Orders & Positions) -> everything
+    // else. Cross Exchange (matched-cluster discovery) gets inserted
+    // first, then the hosted Trading + Orders & Positions groups are
+    // inserted immediately after Events & Markets — that pushes Cross
+    // Exchange one slot down, producing:
+    //   ... -> Events & Markets -> Trading -> Orders & Positions
+    //       -> Cross Exchange -> Order Book & Trades -> ...
+    let apiGroups = [
+        {
+            group: 'Overview',
+            pages: ['api-reference/overview'],
+        },
+        ...endpointGroups,
+    ];
+    apiGroups = insertGroupsAfter(
+        apiGroups,
         'Events & Markets',
         crossExchangeGroups
+    );
+    apiGroups = insertGroupsAfter(
+        apiGroups,
+        'Events & Markets',
+        otherExternalGroups
     );
 
     const apiTab = {
         tab: 'API Reference',
-        groups: [...apiGroups, ...otherExternalGroups, ...enterpriseGroups],
+        groups: [...apiGroups, ...enterpriseGroups],
     };
     if (apiTabIdx >= 0) {
         const updatedTabs = [...tabs];

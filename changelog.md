@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.49.7] - 2026-06-09
+
+API Reference sidebar reorder: `Trading` and `Orders & Positions` move from near the bottom of the tab to immediately under `Events & Markets`, so the customer's natural path is walkable top-to-bottom — discover (Events & Markets) → act (Trading) → inspect state (Orders & Positions) → niche features.
+
+### Changed
+
+- **`scripts/generate-mintlify-docs.js`**: The API-tab assembly now inserts both `crossExchangeGroups` and the hosted `otherExternalGroups` after `"Events & Markets"`. Because `insertGroupsAfter` pushes the existing target's neighbor down, the second insertion (`otherExternalGroups`) lands between `"Events & Markets"` and `"Cross Exchange"`, producing the order: `Overview → System → Events & Markets → Trading → Orders & Positions → Cross Exchange → Order Book & Trades → Realtime → Data Feeds → Other → Enterprise`. Idempotent — re-running the regenerator produces no diff.
+
 ## [2.49.6] - 2026-06-09
 
 Generator-side hotfix for a regression introduced by the v2.49.5 auto-publish: the `generate:mintlify` step (`scripts/generate-mintlify-docs.js`, run by `.github/workflows/publish.yml` on every release tag) was re-injecting self-hosted Group A endpoints as a duplicate `"Trading"` group (with `"Local Only"` badges) into `docs.json`'s API Reference tab, sitting alongside the canonical hosted `"Trading"` group that this release line had just renamed and cleaned up. Result: every release pushed two same-named groups into the rendered sidebar.
