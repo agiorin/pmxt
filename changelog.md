@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.49.6] - 2026-06-09
+
+Generator-side hotfix for a regression introduced by the v2.49.5 auto-publish: the `generate:mintlify` step (`scripts/generate-mintlify-docs.js`, run by `.github/workflows/publish.yml` on every release tag) was re-injecting self-hosted Group A endpoints as a duplicate `"Trading"` group (with `"Local Only"` badges) into `docs.json`'s API Reference tab, sitting alongside the canonical hosted `"Trading"` group that this release line had just renamed and cleaned up. Result: every release pushed two same-named groups into the rendered sidebar.
+
+### Fixed
+
+- **`scripts/generate-mintlify-docs.js`**: Removed the hardcoded `"Trading"` and `"Orders & Positions"` entries from the `ENDPOINT_GROUPS` matcher array — the generator no longer manufactures those groups from the self-hosted `openapi.json`. Added the matching self-hosted operation ids (`createOrder`, `buildOrder`, `submitOrder`, `cancelOrder`, `editOrder`, `fetchOrder`, `fetchOpenOrders`, `fetchClosedOrders`, `fetchAllOrders`, `fetchMyTrades`, `fetchPositions`, `fetchBalance`, `fetchOrderHistory`) to the `HIDDEN_OPERATIONS` set so they don't fall through to the `"Other"` bucket either. Net effect: the next auto-publish keeps the manually-curated hosted `"Trading"` + `"Orders & Positions"` groups (rendered from `openapi-hosted-trading.json`) and never re-adds the self-hosted equivalents. Self-hosters who want the full reference still consume `openapi.json` directly or reach it via `/guides/self-hosted`.
+- **`docs/docs.json`**: Removed two stale duplicate groups (`"Trading (Hosted)"`, `"Orders & Positions (Hosted)"`) that the 2.49.5 auto-publish had left behind after the rename. The generator is now idempotent — regenerating produces a stable group list.
+
 ## [2.49.5] - 2026-06-09
 
 Sidebar cleanup: drop "(Hosted)" suffixes everywhere and hide the parallel self-hosted Group A reference. The hosted endpoints are now the only Group A surface in the sidebar; the API reference reads as "Trading → Create Order" instead of "Trading (Hosted) → Create Order (Hosted)."
