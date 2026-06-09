@@ -11,29 +11,29 @@ PMXT runs two ways. **Hosted** is the default — it's what `pmxt.Polymarket(pmx
 | - | --------------------------- | ------------------------ |
 | **Install footprint** | `pip install pmxt` / `npm i pmxtjs` | SDK + pmxt-core local server |
 | **Who holds the API key?** | You (backend secret) | Not used |
-| **Who holds venue credentials?** | PMXT escrow contract (USDC custody only) | You, on your machine |
+| **Who holds venue credentials?** | Non-custodial `PreFundedEscrow` contract holds USDC; PMXT holds no venue credentials | You, on your machine |
 | **Trading auth (writes)** | Your EIP-712 signature, signed locally | Raw venue credential (private key, Kalshi RSA, etc.) |
 | **Reads** | `trade.pmxt.dev/v0/user/...` | Direct to the venue API |
 | **Writes** | `trade.pmxt.dev/v0/trade/{build,submit}-order` | Direct to the venue API |
-| **Custody** | USDC in PMXT `PreFundedEscrow` | You retain venue-native custody |
+| **Custody** | Non-custodial: USDC in `PreFundedEscrow`, movable only against your EIP-712 signature | You retain venue-native custody |
 | **Latency** | ~150–300ms round-trip | Limited by venue + your network |
 | **Trading venues** | Polymarket, Opinion | Every venue PMXT supports |
 | **Read-only venues** | All catalog venues via Router | All catalog venues via Router |
 | **Infra to run** | None | One local process |
-| **Regulatory custody** | PMXT escrow as counterparty | You as direct counterparty to the venue |
+| **Regulatory posture** | Non-custodial escrow; user retains beneficial ownership and unilateral withdrawal | You as direct counterparty to the venue |
 
 ## When hosted is the right choice
 
 - You're building a **web or mobile app** and want to keep `pmxt_api_key` server-side while end users keep their private keys client-side.
 - You want **one HTTP surface** across Polymarket and Opinion without learning each venue's order schema.
-- You want **PreFundedEscrow custody** instead of managing venue-native accounts.
+- You want the **non-custodial `PreFundedEscrow`** model instead of managing venue-native accounts.
 - You don't want to operate the pmxt-core process, manage upgrades, or run a local PMXT service.
 
 ## When self-hosted is the right choice
 
 - You need **sub-100ms latency** — colocated arbitrage, market-making, latency-sensitive HFT-style strategies.
-- You **prefer raw venue credentials** — Polymarket L2 API keys, Kalshi RSA keys, Smarkets sessions — and don't want PMXT in the custody path.
-- You have **regulatory custody requirements** that mandate direct counterparty status with the venue.
+- You **prefer raw venue credentials** — Polymarket L2 API keys, Kalshi RSA keys, Smarkets sessions — and don't want PMXT in the settlement path at all.
+- You have **regulatory requirements** that mandate direct counterparty status with the venue.
 - You want to **trade on venues not yet supported by hosted** (Kalshi, Limitless, Smarkets, Probable, Myriad, etc.).
 - You're an **OSS contributor** developing or debugging pmxt-core itself.
 
@@ -74,4 +74,4 @@ local = pmxt.Polymarket(private_key="0x...")
 order = local.create_order(...)
 ```
 
-This is useful if you trust PMXT enough for catalog and price data but want custody to stay with the venue for execution.
+This is useful if you trust PMXT enough for catalog and price data but want execution to settle directly against the venue.

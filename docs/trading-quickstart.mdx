@@ -3,7 +3,7 @@ title: Trading Quickstart
 description: "Place your first hosted trade in 60 seconds — API key, escrow deposit, market order."
 ---
 
-This page walks you from a fresh `pmxt_api_key` to a confirmed position on Polymarket in under a minute. Hosted mode is the default: PMXT custodies USDC in [PreFundedEscrow](/guides/escrow-lifecycle) and your wallet only ever signs EIP-712 typed-data payloads — no private key leaves your machine when you trade.
+This page walks you from a fresh `pmxt_api_key` to a confirmed position on Polymarket in under a minute. Hosted mode is the default: USDC sits in a non-custodial [`PreFundedEscrow`](/guides/escrow-lifecycle) smart contract that PMXT cannot move without your EIP-712 signature, and your wallet only ever signs typed-data payloads — no private key leaves your machine when you trade.
 
 <Info>
 Hosted trading currently supports **Polymarket** (Polygon) and **Opinion** (cross-chain). Other venues are read-only via the hosted catalog. To trade on those, run the [self-hosted server](/guides/self-hosted) with raw venue credentials.
@@ -68,7 +68,23 @@ Use a **dedicated trading wallet**. The private key only stays on your machine f
 
 ## 4. Approve and deposit USDC into escrow
 
-Hosted trades execute against your balance in PMXT's `PreFundedEscrow` contract. The first time you trade, you need to (a) approve the escrow to pull USDC from your wallet, and (b) deposit. Both methods on `client.escrow` build **unsigned** transactions — you submit them with your wallet (web3, ethers, viem, MetaMask, etc.).
+Hosted trades execute against your balance in the non-custodial `PreFundedEscrow` contract. The first time you trade, you need to approve the escrow to pull USDC from your wallet and make an initial deposit. The fastest way is the dashboard.
+
+### Recommended: deposit from the dashboard
+
+Open [pmxt.dev/dashboard](https://pmxt.dev/dashboard), connect the wallet that matches `0xYourWallet`, and use the Deposit flow. Your wallet (MetaMask, Rabby, WalletConnect, etc.) prompts you to sign each transaction — PMXT never sees your private key.
+
+1. Go to [pmxt.dev/dashboard](https://pmxt.dev/dashboard) and connect the same wallet address you passed to the SDK.
+2. Click **Deposit** and enter the USDC amount.
+3. Approve the USDC allowance in your wallet (one-time per token).
+4. Confirm the deposit transaction in your wallet.
+
+<Note>
+Approval and deposit are one-time setup. Subsequent trades just spend from escrow until you withdraw. See [Escrow Lifecycle](/guides/escrow-lifecycle) for the full deposit / withdraw flow.
+</Note>
+
+<Accordion title="Advanced: programmatic deposit">
+If you're scripting deposits (CI, treasury automation, custom wallet integrations), `client.escrow` builds **unsigned** transactions you sign and broadcast with your own wallet library (web3, ethers, viem, etc.).
 
 <CodeGroup>
 ```python Python
@@ -99,10 +115,7 @@ const balance = await client.fetchBalance();
 console.log(`Escrow USDC: ${balance.free}`);
 ```
 </CodeGroup>
-
-<Note>
-Approval and deposit are one-time setup. Subsequent trades just spend from escrow until you withdraw. See [Escrow Lifecycle](/guides/escrow-lifecycle) for the full deposit / withdraw flow.
-</Note>
+</Accordion>
 
 ## 5. Find a market and place your first order
 
