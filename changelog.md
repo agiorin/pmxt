@@ -4,13 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [2.49.2] - 2026-06-09
 
-Per-method docs follow-up to 2.49.1 — every Group A method (`createOrder`, `buildOrder`, `submitOrder`, `cancelOrder`, `fetchBalance`, `fetchPositions`, `fetchOpenOrders`, `fetchMyTrades`, `fetchOrder`, `fetchClosedOrders`, `fetchAllOrders`) now has a synchronized `Hosted (recommended)` / `Self-hosted` tab toggle on its reference page, so customers see the hosted endpoint and the v2.49 SDK constructor shape by default and can flip to the local-sidecar variant in place. Mintlify synchronizes tab selection across pages via shared label keys, so the choice persists as the user navigates the API Reference.
+Per-method docs follow-up to 2.49.1 paired with a terminology cleanup. Every Group A method (`createOrder`, `buildOrder`, `submitOrder`, `cancelOrder`, `fetchBalance`, `fetchPositions`, `fetchOpenOrders`, `fetchMyTrades`, `fetchOrder`, `fetchClosedOrders`, `fetchAllOrders`) now has a synchronized `Hosted (recommended)` / `Self-hosted` tab toggle on its reference page, so customers see the hosted endpoint and the v2.49 SDK constructor shape by default and can flip to the local-service variant in place. Mintlify synchronizes tab selection across pages via shared label keys, so the choice persists as the user navigates the API Reference. In parallel, per the 2026-05-27 ADR "Avoid Sidecar Terminology" in the company brain, user-facing references to the local PMXT runtime now use **"local PMXT service"** (or **"local service"** when unambiguous) across the READMEs and `concepts/hosted-vs-self-hosted.mdx`. Internal implementation identifiers and historical changelog entries from earlier releases are intentionally left as-is.
 
 ### Added
 
 - **Docs (`docs/api-reference/`)**: 11 new shadow MDX files — one per Group A method — wrapping the existing OpenAPI auto-render in a `<Tabs>` toggle. `Hosted (recommended)` tab listed first on every page so it's the default; `Self-hosted` second. Tab labels are byte-identical across all 11 files for cross-page sync.
 - **Core (`openapi-hosted.json`)**: 9 new operations documenting the `trade.pmxt.dev/v0/*` trading surface — `buildOrderHosted` (POST `/v0/trade/build-order`), `submitOrderHosted` (POST `/v0/trade/submit-order`), `createOrderHosted` (SDK-convenience POST `/v0/trade/create-order` documentation entry), `cancelOrderHosted` (POST `/v0/orders/cancel/build`), `fetchBalanceHosted` (GET `/v0/user/{address}/balances`), `fetchPositionsHosted` (GET `/v0/user/{address}/positions`), `fetchOpenOrdersHosted` (GET `/v0/orders/open`), `fetchMyTradesHosted` (GET `/v0/user/{address}/trades`), `fetchOrderHosted` (GET `/v0/orders/{order_id}`). Each carries Python + TypeScript `x-codeSamples` using the v2.49 hosted constructor (`pmxtApiKey`, `walletAddress`, `privateKey`), error responses covering 401/403/404/410/422/503, and bearer auth via the existing `bearerAuth` security scheme. Plus 10 new component schemas for the v0 request/response shapes, all referencing existing components (`Order`, `Balance`, etc.) from 2.49.1.
 - **Docs (`docs.json`)**: Trading and "Orders & Positions" sidebar groups now reference the 11 shadow MDX slugs directly, so Mintlify renders the toggle pages instead of auto-generating from `openapi.json`.
+
+### Changed
+
+- **READMEs (`readme.md`, `sdks/python/README.md`, `sdks/typescript/README.md`)**: Every user-visible "sidecar" reference replaced with "local PMXT service" or "local service" depending on context. The Quick Start, "How it works (self-hosted)", and "Self-hosted trading (advanced)" sections now use the canonical terms.
+- **Docs (`docs/concepts/hosted-vs-self-hosted.mdx`)**: "...or run a sidecar" → "...or run a local PMXT service" in the "When hosted is the right choice" list.
 
 ### Fixed
 
@@ -21,6 +26,12 @@ Per-method docs follow-up to 2.49.1 — every Group A method (`createOrder`, `bu
 - **`fetchClosedOrdersHosted` / `fetchAllOrdersHosted`**: no underlying hosted endpoint exists — both methods raise `NotSupported` in hosted mode (closed orders are modeled as trades; use `fetchMyTrades` for historical fills). The shadow MDX files surface this via a `<Warning>` on the Hosted tab linking to `fetchMyTrades`.
 - **Escrow methods**: `client.escrow.{approve, deposit, withdraw, withdrawals}` aren't in Group A and so don't have toggle pages yet. They're hosted-only (no self-hosted variant exists), so a follow-up could add single-tab reference pages.
 - **Generator capability map gap**: `buildCapabilityMap()` in `core/scripts/generate-openapi.js` only instantiates 13 of the 16 exported exchange classes, omitting `Hyperliquid`, `GeminiTitan`, and `Mock`. Re-running the generator drops their `x-codeSamples`. The merged main spec retains the missing samples from a prior generator run; the surgical fix here didn't disturb them. Worth a real fix in a follow-up.
+
+### Not changed (deliberate)
+
+- **Internal implementation identifiers** (`_resolve_sidecar_host`, `_kill_orphan_sidecars`, `sidecarReadRequest`, `pmxt-ensure-server`, etc.) — per the ADR's scope ("Existing internal implementation identifiers may remain unchanged unless they are user-visible in generated outputs").
+- **Historical changelog entries** for 2.49.1 and earlier — they accurately describe what shipped at the time using the terms in use then.
+- **Auto-generated files** (`docs/api-reference/openapi.json`, `docs/llms-full.txt`, `docs/llms.txt`) — these are emitted by the generator pipeline. The terminology fix flows through the next regeneration via the source files; not hand-editing the artifacts here.
 
 ## [2.49.1] - 2026-06-08
 
