@@ -22,7 +22,7 @@ GitHub: https://github.com/pmxt-dev/pmxt
 - [Supported Venues](https://pmxt.dev/docs/concepts/venues): Every venue PMXT currently speaks.
 - [Hosted Trading](https://pmxt.dev/docs/concepts/hosted-trading): The hosted-default execution path — how PMXT routes orders, why custody lives in PreFundedEscrow, and when to choose self-host instead.
 - [Hosted vs Self-hosted](https://pmxt.dev/docs/concepts/hosted-vs-self-hosted): One-page comparison of the two PMXT execution paths.
-- [Catalog UUID vs Venue ID](https://pmxt.dev/docs/concepts/catalog-uuid-vs-venue-id): Two market identifier spaces coexist in PMXT — when each is used, and how to convert.
+- [Catalog UUID vs Venue ID](https://pmxt.dev/docs/concepts/catalog-uuid-vs-venue-id): Two ways to identify a market. The hosted trading API accepts either — here's when each matters.
 - [Escrow Lifecycle](https://pmxt.dev/docs/guides/escrow-lifecycle): Deposit, trade, withdraw — how USDC moves through PMXT's PreFundedEscrow custody.
 - [Signing Orders](https://pmxt.dev/docs/guides/signing): EIP-712 typed-data signing for hosted trading — what the SDK does, what the protocol looks like, and how to bring your own signer.
 - [Handling Hosted Errors](https://pmxt.dev/docs/guides/hosted-errors): Every common hosted-trading error, when it fires, and how to recover.
