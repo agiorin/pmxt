@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.49.9] - 2026-06-11
+
+Kalshi API hostname fix. The `api.external-api.kalshi.com` domain was decommissioned by Kalshi, causing all Kalshi ingest runs to fail with `ENOTFOUND` for approximately 2.6 days. Updated all hardcoded URLs to the current hostnames.
+
+### Fixed
+
+- **`core/src/exchanges/kalshi/config.ts`**: Updated production REST base URL from `https://api.external-api.kalshi.com` to `https://external-api.kalshi.com`, demo REST from `https://demo-api.external-api.kalshi.com` to `https://external-api.demo.kalshi.co`, production WebSocket from `wss://api.external-api.kalshi.com/trade-api/ws/v2` to `wss://external-api-ws.kalshi.com/trade-api/ws/v2`, and demo WebSocket to `wss://external-api-ws.demo.kalshi.co/trade-api/ws/v2`. The `KALSHI_BASE_URL` and `KALSHI_DEMO_BASE_URL` env var overrides remain supported and take precedence over these defaults.
+- **`core/specs/kalshi/Kalshi.yaml`**: Replaced the `{env}.external-api.kalshi.com` server-variable entry with two explicit server entries matching the new hostnames. Regenerated `core/src/exchanges/kalshi/api.ts` from the updated spec.
+
 ## [2.49.8] - 2026-06-10
 
 Hosted trading quickstart actually works now. The SDKs' client-side economics validator was rejecting every server-built market order before signing (`economic mismatch: worst_price expected <= ... got 0.999`), because the hosted trading API deliberately pins market-order `worst_price` to the tick-grid extreme and caps the user with `max_cost_usdc` / `shares_6dec` instead ("textbook market semantics"). Verified live against `trade.pmxt.dev` with a real $5 fill end-to-end.
