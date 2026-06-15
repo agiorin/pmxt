@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.50.1] - 2026-06-15
+
+Follow-up to 2.50.0. Rain is now wired through every consumer surface — the openapi enum source, the TS SDK class export, and the Python SDK class export — so `pmxtjs.Rain` and `pmxt.Rain` (Python) actually exist instead of being missing from the published packages. The CI exchange-drift check caught this on the 2.50.0 push; `ADDING_AN_EXCHANGE.md` only documents the core-server registration sites, not these SDK-facing ones.
+
+### Fixed
+
+- **`core/scripts/generate-openapi.js`**: Added `'rain'` to the path-parameter enum and registered `new pmxt.Rain()` in the capability-introspection instance map so the generated `openapi.yaml` describes Rain.
+- **`sdks/typescript/pmxt/client.ts`** + **`sdks/typescript/index.ts`**: Added a `Rain extends Exchange` class binding to `exchange_name="rain"` and exported it from both the package barrel and the default-export `pmxt` namespace.
+- **`sdks/python/pmxt/_exchanges.py`** + **`sdks/python/pmxt/__init__.py`**: Added a `Rain(Exchange)` class binding to `exchange_name="rain"` and surfaced it on the `pmxt` package plus `__all__`.
+
 ## [2.50.0] - 2026-06-15
 
 Added Rain ([rain.one](https://rain.one)) as the 15th venue — a permissionless AMM-plus-orderbook prediction market on Arbitrum One. Reads (markets, events, outcomes, orderbook, OHLCV, positions, balance) and full on-chain writes (market buys via AMM, limit buys/sells through the order book, cancels) are wired end-to-end via the official `@buidlrrr/rain-sdk` and viem signing. Verified live against production: markets like "Which Team will win FIFA World Cup 2026?" (16 outcomes) and Trump/Khamenei binary markets round-trip correctly through `fetchMarkets`, `fetchEvents`, and `fetchOrderBook` with prices, liquidity, and statuses populated.
