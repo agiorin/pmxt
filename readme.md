@@ -72,7 +72,7 @@
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://gemini.com" style="color: inherit; text-decoration: none;"><img src="https://pmxt.dev/venues/gemini-titan.png" alt="Gemini Titan" width="24" height="24"> <b>Gemini Titan</b></a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://rain.one" style="color: inherit; text-decoration: none;"><img src="https://rain.one/favicon.ico" alt="Rain" width="24" height="24"> <b>Rain</b></a>
+  <a href="https://rain.one" style="color: inherit; text-decoration: none;"><img src="https://rain.one/logo.svg" alt="Rain" width="24" height="24"> <b>Rain</b></a>
 </p>
 
 [Feature Support & Compliance](core/COMPLIANCE.md).
