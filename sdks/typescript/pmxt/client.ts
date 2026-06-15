@@ -3175,6 +3175,28 @@ export class SuiBets extends Exchange {
 export const Suibets = SuiBets;
 
 /**
+ * Rain exchange client.
+ *
+ * Rain is a permissionless AMM-plus-orderbook prediction market on Arbitrum One.
+ * Reads are unauthenticated; trading requires an EVM privateKey.
+ *
+ * @example
+ * ```typescript
+ * const rain = new Rain();
+ * const markets = await rain.fetchMarkets({ limit: 20 });
+ *
+ * // With wallet for trading
+ * const me = new Rain({ privateKey: '0x...' });
+ * await me.createOrder({ marketId, outcomeId, side: 'buy', type: 'market', amount: 10 });
+ * ```
+ */
+export class Rain extends Exchange {
+    constructor(options: ExchangeOptions = {}) {
+        super("rain", options);
+    }
+}
+
+/**
  * Mock exchange client.
  *
  * Offline deterministic exchange for testing and development.
