@@ -89,6 +89,7 @@ paths:
               - smarkets
               - polymarket_us
               - suibets
+              - rain
               - router
           required: true
           description: The prediction market exchange to target.
@@ -294,6 +295,7 @@ paths:
               - smarkets
               - polymarket_us
               - suibets
+              - rain
               - router
           required: true
           description: The prediction market exchange to target.
@@ -700,6 +702,7 @@ paths:
               - baozi
               - myriad
               - opinion
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -769,6 +772,7 @@ paths:
               - smarkets
               - polymarket_us
               - suibets
+              - rain
               - router
           required: true
           description: The prediction market exchange to target.
@@ -903,6 +907,7 @@ paths:
               - baozi
               - myriad
               - smarkets
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -966,6 +971,7 @@ paths:
               - metaculus
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
       requestBody:
@@ -1014,6 +1020,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
       requestBody:
@@ -1064,6 +1071,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
       requestBody:
@@ -1115,6 +1123,7 @@ paths:
               - metaculus
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
       requestBody:
@@ -1165,6 +1174,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -1205,6 +1215,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -1246,6 +1257,7 @@ paths:
               - opinion
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -1315,6 +1327,7 @@ paths:
               - limitless
               - opinion
               - smarkets
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -1447,6 +1460,7 @@ paths:
               - smarkets
               - polymarket_us
               - suibets
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -1488,6 +1502,7 @@ paths:
               - myriad
               - smarkets
               - polymarket_us
+              - rain
           required: true
           description: The prediction market exchange to target.
         - in: query
@@ -2847,6 +2862,7 @@ components:
           - gemini-titan
           - hyperliquid
           - suibets
+          - rain
           - mock
           - router
       required: true
