@@ -2847,6 +2847,7 @@ components:
           - gemini-titan
           - hyperliquid
           - suibets
+          - rain
           - mock
           - router
       required: true

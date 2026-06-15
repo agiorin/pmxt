@@ -13,6 +13,7 @@ import { PolymarketUSExchange } from "../exchanges/polymarket_us";
 import { HyperliquidExchange } from "../exchanges/hyperliquid";
 import { GeminiTitanExchange } from "../exchanges/gemini-titan";
 import { SuiBetsExchange } from "../exchanges/suibets";
+import { RainExchange } from "../exchanges/rain";
 import { MockExchange } from "../exchanges/mock";
 import { Router } from "../router";
 
@@ -134,6 +135,30 @@ export function createExchange(
           (credentials as { walletAddress?: string })?.walletAddress || process.env.SUIBETS_WALLET_ADDRESS,
         baseUrl:
           credentials?.baseUrl || process.env.SUIBETS_BASE_URL,
+      });
+    case "rain":
+      return new RainExchange({
+        privateKey:
+          credentials?.privateKey || process.env.RAIN_PRIVATE_KEY,
+        walletAddress:
+          (credentials as { walletAddress?: string })?.walletAddress ||
+          process.env.RAIN_WALLET_ADDRESS,
+        subgraphUrl:
+          (credentials as { subgraphUrl?: string })?.subgraphUrl ||
+          process.env.RAIN_SUBGRAPH_URL,
+        subgraphApiKey:
+          (credentials as { subgraphApiKey?: string })?.subgraphApiKey ||
+          process.env.RAIN_SUBGRAPH_API_KEY,
+        wsRpcUrl:
+          (credentials as { wsRpcUrl?: string })?.wsRpcUrl ||
+          process.env.RAIN_WS_RPC_URL,
+        environment:
+          ((credentials as { environment?: string })?.environment ||
+            process.env.RAIN_ENVIRONMENT) as
+            | "development"
+            | "stage"
+            | "production"
+            | undefined,
       });
     case "mock":
       return new MockExchange();
